@@ -105,7 +105,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgdBQTO-etcRH1nbaxbG_UI8j4Qd4Ravf1eNTGf72Ll1wKBg-flfnFyJaENq22G_gwrg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9huD1ANWV1hQLb5v8xn3kK-fD-q8fPgfn2Ucz0zExe7iqPI6MMFJrHtFhmk4cSAKuQA/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -182,26 +182,41 @@
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
         async function addToQueue(method) {
-            if (cart.length === 0) return;
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            const order = {
-                orderNo: String(Date.now()).slice(-4),
-                time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
-                total: total,
-                method: method
-            };
+    // 1. ตรวจสอบก่อนว่ามีสินค้าในตะกร้าไหม ถ้าไม่มีไม่ต้องทำอะไร
+    if (cart.length === 0) {
+        alert("กรุณาเลือกสินค้าก่อนครับ");
+        return;
+    }
 
-            try {
-                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(order) });
-                cart = [];
-                updateCartUI();
-                toggleCartModal();
-                switchView('queue');
-            } catch (e) {
-                alert("บันทึกคิวล้มเหลว");
-            }
-        }
+    const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    const order = {
+        orderNo: String(Date.now()).slice(-4),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
+        total: total,
+        method: method
+    };
+
+    // ปิด Modal ทันทีเพื่อกันการกดซ้ำ
+    toggleCartModal();
+    
+    try {
+        // 2. ส่งข้อมูลไป Sheet
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify(order) 
+        });
+        
+        // 3. ล้างค่าตะกร้า และสลับหน้าจอ
+        cart = [];
+        updateCartUI();
+        switchView('queue'); // ฟังก์ชันนี้จะไปเรียก syncOnlineData() ให้อยู่แล้ว
+    } catch (e) {
+        console.error("Error:", e);
+        alert("บันทึกคิวล้มเหลว กรุณาลองใหม่");
+    }
+}
 
         async function confirmPayment() {
             if (!activePaymentOrder || !activePaymentOrder.rowId) return;
@@ -330,3 +345,4 @@
     </script>
 </body>
 </html>
+
