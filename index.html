@@ -109,14 +109,14 @@
 
     <script>
         // *** ใส่ URL ล่าสุดของคุณที่นี่ ***
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc2bLrwnfWqhE8w-6W7_Fgt-8ufks9E1SxJfOKvVwflr9Mbta8kAObF6m2aZYfjbQS0A/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwiMZZYbmMuL_3dAc0Q4z9ywyaw_Z2qQpMvdesGiYHUMnAIW-Ob-tBwwjKR4nQotOcMgQ/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
             { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
             { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
             { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-            { id: 'H05', name: 'ข้าวโพดอบชีส', price: 69, icon: '🌽' },
+            { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
             { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
             { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
             { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
@@ -263,34 +263,59 @@
         }
 
         async function fetchHistory() {
-            const list = document.getElementById('history-list');
-            const loader = document.getElementById('history-loading');
-            const icon = document.getElementById('refresh-icon');
-            list.innerHTML = ""; loader.classList.remove('hidden');
-            if(icon) icon.classList.add('loading-spinner');
+    const list = document.getElementById('history-list');
+    const loader = document.getElementById('history-loading');
+    const icon = document.getElementById('refresh-icon');
+    
+    list.innerHTML = ""; 
+    loader.classList.remove('hidden');
+    if(icon) icon.classList.add('loading-spinner');
 
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const data = await response.json();
-                if (data.length === 0) list.innerHTML = `<p class="text-center py-10 text-slate-400 text-xs italic">No history found</p>`;
-                else {
-                    list.innerHTML = data.map(o => `
-                        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 text-xs"><i class="fas fa-receipt"></i></div>
-                                <div><p class="font-black text-sm italic">#${o.orderNo}</p><p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p></div>
-                            </div>
-                            <p class="font-black text-lg text-red-600 italic">฿${o.total}</p>
-                        </div>
-                    `).join('');
-                }
-            } catch (e) {
-                list.innerHTML = `<p class="text-center py-10 text-red-400 text-xs">Failed to load history</p>`;
-            } finally {
-                loader.classList.add('hidden');
-                if(icon) icon.classList.remove('loading-spinner');
+    try {
+        // ใช้โหมด cors และบอกให้ follow redirect
+        const response = await fetch(SCRIPT_URL, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
             }
+        });
+
+        if (!response.ok) throw new Error('Network error');
+
+        const data = await response.json();
+        
+        if (!data || data.length === 0) {
+            list.innerHTML = `<p class="text-center py-10 text-slate-400 text-xs italic">No history found</p>`;
+        } else {
+            list.innerHTML = data.map(o => `
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in duration-500">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl ${o.method === 'CASH' ? 'bg-slate-50' : 'bg-blue-50'} flex items-center justify-center text-slate-400">
+                            <i class="fas ${o.method === 'CASH' ? 'fa-wallet' : 'fa-mobile-alt'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-black text-sm italic">#${o.orderNo}</p>
+                            <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
+                        </div>
+                    </div>
+                    <p class="font-black text-lg text-red-600 italic">฿${Number(o.total).toLocaleString()}</p>
+                </div>
+            `).join('');
         }
+    } catch (e) {
+        console.error("Fetch error:", e);
+        list.innerHTML = `
+            <div class="text-center py-10">
+                <i class="fas fa-exclamation-circle text-red-300 mb-2 text-xl"></i>
+                <p class="text-red-400 text-[10px] font-bold">Failed to load history</p>
+                <p class="text-slate-300 text-[9px]">${e.message}</p>
+            </div>`;
+    } finally {
+        loader.classList.add('hidden');
+        if(icon) icon.classList.remove('loading-spinner');
+    }
+}
 
         function switchView(v) {
             document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
@@ -307,3 +332,4 @@
     </script>
 </body>
 </html>
+
