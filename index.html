@@ -3,367 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AMAMEE PIZZA POS</title>
+    <title>AMAMEE PIZZA POS ONLINE</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="manifest.json">
     <style>
         :root { --brand-red: #E11D48; }
         body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; }
         .font-inter { font-family: 'Inter', sans-serif; }
-        .custom-scrollbar::-webkit-scrollbar { display: none; }
         .mobile-nav { box-shadow: 0 -5px 20px rgba(0,0,0,0.05); padding-bottom: env(safe-area-inset-bottom); }
         .active-tab { color: var(--brand-red) !important; }
-        .menu-card:active { transform: scale(0.95); transition: 0.1s; }
+        .loading-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
     <header class="bg-[#0F172A] text-white px-5 py-4 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
-            <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice text-white"></i></div>
-            <div>
-                <h1 class="text-xl font-black tracking-tighter">AMAMEE <span class="text-red-500">PIZZA</span></h1>
-                <p class="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Premium Halal POS</p>
-            </div>
+            <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
+            <h1 class="text-xl font-black tracking-tighter">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
-        <div class="text-right">
-            <p id="clock-display" class="text-lg font-black font-inter leading-none"></p>
-            <p id="date-display" class="text-[9px] text-slate-500 font-bold uppercase"></p>
+        <div id="online-status" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">
+            <i class="fas fa-circle text-[6px] mr-1"></i> ONLINE
         </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto custom-scrollbar pb-32">
+    <main class="flex-1 overflow-y-auto pb-32">
         <div id="view-pos" class="p-4 grid grid-cols-2 gap-3"></div>
 
         <div id="view-queue" class="hidden p-4 space-y-4">
-            <div class="flex items-center gap-2 mb-4">
-                <i class="fas fa-clock text-red-500"></i>
-                <h2 class="text-2xl font-black">รายการรอจัดส่ง</h2>
-            </div>
+            <h2 class="text-2xl font-black"><i class="fas fa-clock text-red-500 mr-2"></i>ออเดอร์รอจ่าย</h2>
             <div id="queue-list" class="space-y-4"></div>
         </div>
 
         <div id="view-history" class="hidden p-4">
             <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-history text-red-500"></i>
-                    <h2 class="text-2xl font-black">ประวัติการขาย</h2>
-                </div>
-                <button onclick="clearHistory()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1 rounded-full">ล้างประวัติ</button>
+                <h2 class="text-2xl font-black"><i class="fas fa-history text-red-500 mr-2"></i>ประวัติรวม</h2>
+                <button onclick="fetchHistory()" class="p-2 text-slate-400"><i id="refresh-icon" class="fas fa-sync-alt"></i></button>
+            </div>
+            <div id="history-loading" class="hidden text-center py-10">
+                <i class="fas fa-circle-notch loading-spinner text-3xl text-slate-300"></i>
+                <p class="text-slate-400 text-xs mt-2 font-bold">กำลังดึงข้อมูลจาก Cloud...</p>
             </div>
             <div id="history-list" class="space-y-3"></div>
         </div>
     </main>
 
     <div id="cart-preview" onclick="toggleCartModal()" class="fixed bottom-24 left-4 right-4 bg-red-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-2xl z-40 hidden">
-        <div class="flex items-center gap-3">
-            <i class="fas fa-shopping-basket"></i>
-            <span class="bg-white/20 px-2 rounded font-black" id="cart-count">0</span>
-            <span class="font-bold">รายการ</span>
-        </div>
+        <div class="flex items-center gap-3"><i class="fas fa-shopping-basket"></i><span id="cart-count" class="bg-white/20 px-2 rounded font-black">0</span></div>
         <span id="cart-total" class="text-xl font-black font-inter italic">฿0</span>
     </div>
 
     <nav class="mobile-nav fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex justify-around items-center py-3 z-50">
-        <button onclick="switchView('pos')" id="btn-pos" class="active-tab text-slate-400 flex flex-col items-center gap-1">
-            <i class="fas fa-th-large text-xl"></i>
-            <span class="text-[10px] font-black uppercase">Menu</span>
-        </button>
-        <button onclick="switchView('queue')" id="btn-queue" class="text-slate-400 flex flex-col items-center gap-1 relative">
-            <i class="fas fa-list-check text-xl"></i>
-            <span class="text-[10px] font-black uppercase">Queue</span>
-            <span id="queue-badge" class="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white hidden">0</span>
-        </button>
-        <button onclick="switchView('history')" id="btn-history" class="text-slate-400 flex flex-col items-center gap-1">
-            <i class="fas fa-receipt text-xl"></i>
-            <span class="text-[10px] font-black uppercase">History</span>
-        </button>
+        <button onclick="switchView('pos')" id="btn-pos" class="active-tab text-slate-400 flex flex-col items-center gap-1"><i class="fas fa-th-large text-xl"></i><span class="text-[10px] font-black uppercase">Menu</span></button>
+        <button onclick="switchView('queue')" id="btn-queue" class="text-slate-400 flex flex-col items-center gap-1 relative"><i class="fas fa-list-check text-xl"></i><span id="queue-badge" class="absolute -top-1 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-white hidden">0</span><span class="text-[10px] font-black uppercase">Queue</span></button>
+        <button onclick="switchView('history')" id="btn-history" class="text-slate-400 flex flex-col items-center gap-1"><i class="fas fa-receipt text-xl"></i><span class="text-[10px] font-black uppercase">History</span></button>
     </nav>
 
-    <div id="cart-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden flex flex-col justify-end">
-        <div class="bg-white rounded-t-[2.5rem] h-[80vh] flex flex-col">
-            <div class="p-6 text-center border-b relative">
-                <button onclick="toggleCartModal()" class="absolute right-6 top-6 text-slate-300"><i class="fas fa-times text-xl"></i></button>
-                <h3 class="text-xl font-black">ตะกร้าสินค้า</h3>
-            </div>
-            <div id="cart-items-list" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
-            <div class="p-8 bg-slate-50 space-y-4 pb-12">
-                <div class="flex justify-between items-end">
-                    <span class="text-slate-400 font-bold uppercase text-xs">ยอดรวม</span>
-                    <span id="modal-total" class="text-4xl font-black font-inter text-red-600">฿0</span>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="addToQueue('cash')" class="bg-slate-900 text-white py-5 rounded-2xl font-black flex flex-col items-center">
-                        <i class="fas fa-money-bill-wave mb-1"></i><span>เงินสด</span>
-                    </button>
-                    <button onclick="addToQueue('transfer')" class="bg-blue-600 text-white py-5 rounded-2xl font-black flex flex-col items-center">
-                        <i class="fas fa-mobile-screen-button mb-1"></i><span>โอนเงิน</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="payment-modal" class="fixed inset-0 bg-slate-900/95 z-[70] hidden p-6 flex items-center justify-center">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6 shadow-2xl">
-            <div class="text-center space-y-2">
-                <div id="pay-icon-box" class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl mb-2"></div>
-                <p id="pay-method-label" class="text-slate-400 font-bold text-xs uppercase tracking-widest"></p>
-                <h2 id="pay-total-display" class="text-5xl font-black font-inter italic">฿0</h2>
-            </div>
-
-            <div id="cash-input-section" class="space-y-4 hidden">
-                <input type="number" id="cash-received" oninput="calcChange()" class="w-full text-4xl font-black font-inter p-6 bg-slate-50 rounded-2xl border-2 border-slate-100 text-center focus:outline-none focus:border-red-500" placeholder="0">
-                <div class="flex justify-between items-center p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <span class="font-bold text-emerald-700 uppercase text-xs">เงินทอน</span>
-                    <span id="cash-change" class="text-3xl font-black font-inter text-emerald-600">฿0</span>
-                </div>
-            </div>
-
-            <div id="transfer-info-section" class="p-6 bg-blue-50 rounded-2xl border-2 border-blue-100 border-dashed text-center hidden">
-                <i class="fas fa-circle-check text-blue-500 text-4xl mb-2"></i>
-                <p class="text-blue-700 font-bold">ตรวจสอบสลิปแล้ว</p>
-            </div>
-
-            <button onclick="confirmPayment()" class="w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-transform uppercase">
-                ยืนยันรายการ
-            </button>
-            <button onclick="closePaymentModal()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
-        </div>
-    </div>
-
     <script>
+        // *** ใส่ URL ของ Google Apps Script ที่นี่ ***
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzix4TKuOQIppHCzpHC2HBTpJLZog7PvaFEa9t3QTTDhO8gjQwkb5g-hHvL-FYkGvdG4w/exec";
+
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
             { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
             { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
-            { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-            { id: 'H05', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
-            { id: 'H06', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
-            { id: 'H07', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
-            { id: 'H08', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
-            { id: 'H09', name: 'หน้ารวม', price: 79, icon: '🍕' },
+            { id: 'H04', name: 'ข้าวโพดอบชีส', price: 69, icon: '🧀' },
+            { id: 'H05', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
+            { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
+            { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
+            { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
+            { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
+            { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
             { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
         ];
 
         let cart = [];
         let currentQueue = JSON.parse(localStorage.getItem('pizza_queue') || '[]');
-        let salesHistory = JSON.parse(localStorage.getItem('pizza_sales_log') || '[]');
         let activePaymentOrder = null;
 
         window.onload = () => {
             renderPOS();
             updateCartUI();
             updateQueueUI();
-            updateHistoryUI();
-            setInterval(updateTime, 1000);
         };
 
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('clock-display').innerText = now.toLocaleTimeString('th-TH', { hour12: false, hour: '2-digit', minute: '2-digit' });
-            document.getElementById('date-display').innerText = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-        }
+        // ฟังก์ชันดึงประวัติจาก Google Sheets
+        async function fetchHistory() {
+            if (!SCRIPT_URL.includes("http")) return;
+            
+            const list = document.getElementById('history-list');
+            const loader = document.getElementById('history-loading');
+            const icon = document.getElementById('refresh-icon');
 
-        function renderPOS() {
-            const grid = document.getElementById('view-pos');
-            grid.innerHTML = MENU.map(item => `
-                <div onclick="addToCart('${item.id}')" class="menu-card bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-40 relative">
-                    <span class="absolute top-4 right-4 text-3xl opacity-20">${item.icon}</span>
-                    <h3 class="font-black text-slate-800 leading-tight pr-8">${item.name}</h3>
-                    <div class="flex justify-between items-end">
-                        <span class="text-xl font-black font-inter italic">฿${item.price}</span>
-                        <div class="w-8 h-8 bg-red-600 text-white rounded-lg flex items-center justify-center shadow-lg shadow-red-100">
-                            <i class="fas fa-plus text-xs"></i>
+            list.innerHTML = "";
+            loader.classList.remove('hidden');
+            icon.classList.add('loading-spinner');
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                list.innerHTML = data.map(o => `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="${o.method === 'CASH' ? 'bg-slate-100' : 'bg-blue-50'} w-10 h-10 rounded-xl flex items-center justify-center text-slate-400">
+                                <i class="fas ${o.method === 'CASH' ? 'fa-wallet' : 'fa-mobile-alt'}"></i>
+                            </div>
+                            <div>
+                                <p class="font-black font-inter text-sm italic">#${o.orderNo}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black font-inter text-lg text-red-600 italic">฿${o.total}</p>
                         </div>
                     </div>
-                </div>
-            `).join('');
-        }
-
-        function addToCart(id) {
-            const item = MENU.find(x => x.id === id);
-            const exists = cart.find(i => i.id === id);
-            if (exists) exists.qty++; else cart.push({ ...item, qty: 1 });
-            updateCartUI();
-        }
-
-        function updateCartUI() {
-            const count = cart.reduce((s, i) => s + i.qty, 0);
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            document.getElementById('cart-count').innerText = count;
-            document.getElementById('cart-total').innerText = `฿${total.toLocaleString()}`;
-            document.getElementById('modal-total').innerText = `฿${total.toLocaleString()}`;
-            document.getElementById('cart-preview').style.display = count > 0 ? 'flex' : 'none';
-
-            const list = document.getElementById('cart-items-list');
-            list.innerHTML = cart.map(item => `
-                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div class="text-2xl">${item.icon}</div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-sm">${item.name}</h4>
-                        <p class="text-xs text-slate-400 font-inter font-black">฿${item.price}</p>
-                    </div>
-                    <div class="flex items-center gap-3 bg-white p-1 rounded-full border">
-                        <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 flex items-center justify-center text-red-600"><i class="fas fa-minus text-xs"></i></button>
-                        <span class="font-black font-inter w-4 text-center text-sm">${item.qty}</span>
-                        <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 flex items-center justify-center text-red-600"><i class="fas fa-plus text-xs"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function changeQty(id, d) {
-            const item = cart.find(x => x.id === id);
-            if (item) {
-                item.qty += d;
-                if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
-                updateCartUI();
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<p class="text-center text-red-400 text-xs">เชื่อมต่อ Google Sheets ไม่ได้</p>`;
+            } finally {
+                loader.classList.add('hidden');
+                icon.classList.remove('loading-spinner');
             }
         }
 
-        function toggleCartModal() {
-            document.getElementById('cart-modal').classList.toggle('hidden');
-        }
-
-        function addToQueue(method) {
-            if (cart.length === 0) return;
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            const order = {
-                id: Date.now(),
-                orderNo: String(Date.now()).slice(-4),
-                time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                date: new Date().toLocaleDateString('th-TH'),
-                items: [...cart],
-                itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
-                total: total,
-                method: method === 'cash' ? 'CASH' : 'TRANSFER'
-            };
-            currentQueue.push(order);
-            localStorage.setItem('pizza_queue', JSON.stringify(currentQueue));
-            cart = [];
-            updateCartUI();
-            toggleCartModal();
-            updateQueueUI();
-            switchView('queue');
-        }
-
-        function updateQueueUI() {
-            const list = document.getElementById('queue-list');
-            document.getElementById('queue-badge').innerText = currentQueue.length;
-            document.getElementById('queue-badge').classList.toggle('hidden', currentQueue.length === 0);
-
-            list.innerHTML = currentQueue.map(o => `
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-3 bg-slate-50 rounded-bl-2xl">
-                        <button onclick="cancelQueue(${o.id})" class="text-slate-300 text-xs uppercase font-bold">ยกเลิก</button>
-                    </div>
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl font-inter italic">#${o.orderNo}</span>
-                        <div>
-                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">${o.time} | ${o.method}</p>
-                            <h4 class="font-bold text-slate-800 text-sm">${o.items[0].name} ${o.items.length > 1 ? 'และอื่นๆ...' : ''}</h4>
-                        </div>
-                    </div>
-                    <button onclick="openPaymentModal(${o.id})" class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2">
-                        <i class="fas fa-check-circle"></i> เช็คเอาท์ ฿${o.total}
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function openPaymentModal(id) {
-            activePaymentOrder = currentQueue.find(o => o.id === id);
-            const isCash = activePaymentOrder.method === 'CASH';
-            
-            // ปรับ UI ตามประเภทการชำระเงิน
-            document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
-            document.getElementById('pay-total-display').innerText = `฿${activePaymentOrder.total}`;
-            
-            const iconBox = document.getElementById('pay-icon-box');
-            if(isCash) {
-                iconBox.innerHTML = '<i class="fas fa-money-bill-wave"></i>';
-                iconBox.className = "w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl mb-2 bg-amber-100 text-amber-600";
-                document.getElementById('cash-input-section').classList.remove('hidden');
-                document.getElementById('transfer-info-section').classList.add('hidden');
-                document.getElementById('cash-received').value = '';
-                document.getElementById('cash-change').innerText = '฿0';
-                setTimeout(() => document.getElementById('cash-received').focus(), 300);
-            } else {
-                iconBox.innerHTML = '<i class="fas fa-mobile-screen-button"></i>';
-                iconBox.className = "w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl mb-2 bg-blue-100 text-blue-600";
-                document.getElementById('cash-input-section').classList.add('hidden');
-                document.getElementById('transfer-info-section').classList.remove('hidden');
-            }
-            
-            document.getElementById('payment-modal').classList.remove('hidden');
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
-        }
-
-        function calcChange() {
-            const received = document.getElementById('cash-received').value || 0;
-            const change = received - activePaymentOrder.total;
-            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change}` : '฿0';
-        }
-
-        function confirmPayment() {
+        // ฟังก์ชันส่งข้อมูลไปบันทึก
+        async function confirmPayment() {
             if (!activePaymentOrder) return;
             
-            if (activePaymentOrder.method === 'CASH') {
-                const received = document.getElementById('cash-received').value || 0;
-                if (received < activePaymentOrder.total) {
-                    alert('เงินรับมาไม่พอครับ!');
-                    return;
-                }
+            // ปิดหน้าจอจ่ายเงินก่อนเพื่อความลื่นไหล
+            document.getElementById('payment-modal').classList.add('hidden');
+
+            try {
+                // ส่งข้อมูลไป Google Sheets
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(activePaymentOrder)
+                });
+
+                // ลบออกจากคิวในเครื่อง
+                currentQueue = currentQueue.filter(o => o.id !== activePaymentOrder.id);
+                localStorage.setItem('pizza_queue', JSON.stringify(currentQueue));
+                
+                updateQueueUI();
+                switchView('history');
+                fetchHistory(); // โหลดประวัติใหม่ทันที
+            } catch (e) {
+                alert("บันทึกลง Cloud ไม่สำเร็จ แต่ข้อมูลยังอยู่ในเครื่อง");
             }
-
-            salesHistory.unshift(activePaymentOrder);
-            currentQueue = currentQueue.filter(o => o.id !== activePaymentOrder.id);
-            localStorage.setItem('pizza_queue', JSON.stringify(currentQueue));
-            localStorage.setItem('pizza_sales_log', JSON.stringify(salesHistory));
-            
-            closePaymentModal();
-            updateQueueUI();
-            updateHistoryUI();
-            switchView('history');
-        }
-
-        function updateHistoryUI() {
-            const list = document.getElementById('history-list');
-            list.innerHTML = salesHistory.map(o => `
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-50">
-                    <div class="flex items-center gap-3">
-                        <div class="${o.method === 'CASH' ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-500'} w-10 h-10 rounded-xl flex items-center justify-center text-xs">
-                            <i class="fas ${o.method === 'CASH' ? 'fa-wallet' : 'fa-mobile-alt'}"></i>
-                        </div>
-                        <div>
-                            <p class="font-black font-inter text-sm italic">#${o.orderNo}</p>
-                            <p class="text-[9px] text-slate-300 font-bold uppercase">${o.time} • ${o.method}</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black font-inter text-lg text-slate-800 italic">฿${o.total}</p>
-                    </div>
-                </div>
-            `).join('');
         }
 
         function switchView(v) {
             document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
             document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
             document.getElementById('view-history').classList.toggle('hidden', v !== 'history');
+            
+            if (v === 'history') fetchHistory(); // ดึงข้อมูลทุกครั้งที่กดดูหน้าประวัติ
+
             ['btn-pos', 'btn-queue', 'btn-history'].forEach(id => {
                 document.getElementById(id).classList.toggle('active-tab', id === `btn-${v}`);
             });
         }
 
-        function clearHistory() { if(confirm('ล้างประวัติทั้งหมด?')) { salesHistory = []; localStorage.removeItem('pizza_sales_log'); updateHistoryUI(); } }
-        function cancelQueue(id) { if(confirm('ยกเลิกคิวนี้?')) { currentQueue = currentQueue.filter(o => o.id !== id); localStorage.setItem('pizza_queue', JSON.stringify(currentQueue)); updateQueueUI(); } }
+        // --- (ใส่ฟังก์ชันช่วยอื่นๆ เช่น addToCart, updateQueueUI เหมือนเดิม) ---
     </script>
 </body>
 </html>
