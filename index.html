@@ -109,7 +109,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLYrnw_BvplbJE27IoeIsfe7LFwnLOate2-bFncFYOchhZElNcFhhyIDs4b9-m5x6pow/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIrg8AMSwMrwDpfDjoAc_3degE4BgTtX6XQ622ukKlwBofz5Hx1MSkW-16IO8G8T4bvg/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -129,21 +129,60 @@
         let activePaymentOrder = null;
 
         // --- เพิ่มฟังก์ชันแสดงเมนู (สำคัญ!) ---
-        function renderPOS() {
-            const grid = document.getElementById('view-pos');
-            grid.innerHTML = MENU.map(item => `
-                <div onclick="addToCart('${item.id}')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-40 relative active:scale-90 transition-all duration-100">
-                    <span class="absolute top-4 right-4 text-3xl opacity-20">${item.icon}</span>
-                    <h3 class="font-black text-slate-800 leading-tight pr-8">${item.name}</h3>
-                    <div class="flex justify-between items-end">
-                        <span class="text-xl font-black font-inter italic text-red-600">฿${item.price}</span>
-                        <div class="w-8 h-8 bg-red-600 text-white rounded-lg flex items-center justify-center shadow-lg">
-                            <i class="fas fa-plus text-[10px]"></i>
-                        </div>
+        function renderQueue(data) {
+    const list = document.getElementById('queue-list');
+    document.getElementById('queue-badge').innerText = data.length;
+    document.getElementById('queue-badge').classList.toggle('hidden', data.length === 0);
+    
+    if (data.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-slate-300 text-sm italic">ยังไม่มีคิวในขณะนี้</div>`;
+        return;
+    }
+
+    list.innerHTML = data.map(o => `
+        <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time}</p>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
                     </div>
                 </div>
-            `).join('');
-        }
+                <div class="text-right">
+                    <p class="text-xs text-slate-400 font-bold">ยอดสุทธิ</p>
+                    <p class="font-black text-lg text-red-600 italic">฿${o.total}</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="cancelOrder(${o.rowId})" class="bg-slate-100 text-slate-500 py-3 rounded-xl font-bold text-sm active:bg-slate-200 transition-colors">
+                    ยกเลิกคิว
+                </button>
+                <button onclick='openPaymentModalOnline(${JSON.stringify(o)})' class="bg-slate-900 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform">
+                    ชำระเงิน (${o.method === 'CASH' ? 'สด' : 'โอน'})
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// --- ฟังก์ชันยกเลิกคิวใหม่ ---
+async function cancelOrder(rowId) {
+    if (!confirm("คุณต้องการยกเลิกคิวนี้ใช่หรือไม่?")) return;
+    
+    try {
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify({ action: "CANCEL_ORDER", rowId: rowId }) 
+        });
+        // รอสักครู่แล้วดึงข้อมูลใหม่
+        setTimeout(syncOnlineData, 800);
+    } catch (e) {
+        alert("ไม่สามารถยกเลิกได้");
+    }
+}
 
         function addToCart(id) {
             const item = MENU.find(x => x.id === id);
@@ -323,3 +362,4 @@
     </script>
 </body>
 </html>
+
