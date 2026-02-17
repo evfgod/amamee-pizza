@@ -62,18 +62,19 @@
 
     <script>
         // *** ใส่ URL ของ Google Apps Script ที่นี่ ***
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxwUeB6IWK6kjFtiMkRY1kMNkZciJk3TJNyqHyACbdEvfXUMa4MwK6SF5K1-tAay61ddQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymhukOYS0APPenoY97q-359Nlf05fmbOBjTAnE7auZVw8PJKTmXIz_hpdANWBa8BTIkA/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
             { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
             { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
-            { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-            { id: 'H05', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
-            { id: 'H06', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
-            { id: 'H07', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
-            { id: 'H08', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
-            { id: 'H09', name: 'หน้ารวม', price: 79, icon: '🍕' },
+            { id: 'H04', name: 'ข้าวโพดอบชีส', price: 69, icon: '🌽' },
+            { id: 'H05', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
+            { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
+            { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
+            { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
+            { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
+            { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
             { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
         ];
 
@@ -91,54 +92,45 @@
         async function fetchHistory() {
     const list = document.getElementById('history-list');
     const loader = document.getElementById('history-loading');
-    const icon = document.getElementById('refresh-icon');
-
-    // แสดงสถานะการโหลด
+    
     list.innerHTML = "";
     loader.classList.remove('hidden');
-    if(icon) icon.classList.add('loading-spinner');
 
     try {
-        // เพิ่ม Cache Busting เพื่อป้องกันการดึงข้อมูลเก่าจาก Browser
-        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        // ใช้ fetch แบบปกติ แต่ตัดโหมดบางอย่างออก
+        const response = await fetch(SCRIPT_URL);
         
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const data = await response.json();
+        // ตรวจสอบว่าได้ข้อมูลกลับมาไหม
+        const text = await response.text();
+        const data = JSON.parse(text);
         
         if (data.length === 0) {
-            list.innerHTML = `<div class="text-center py-10 text-slate-400 text-sm">ยังไม่มีประวัติการขาย</div>`;
+            list.innerHTML = `<p class="text-center py-10 text-slate-400 text-xs">ไม่มีรายการขาย</p>`;
             return;
         }
 
         list.innerHTML = data.map(o => `
-            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-3">
                 <div class="flex items-center gap-3">
-                    <div class="${o.method === 'CASH' ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-500'} w-10 h-10 rounded-xl flex items-center justify-center">
-                        <i class="fas ${o.method === 'CASH' ? 'fa-wallet' : 'fa-mobile-screen-button'}"></i>
+                    <div class="bg-slate-50 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400">
+                        <i class="fas fa-receipt"></i>
                     </div>
                     <div>
-                        <p class="font-black font-inter text-sm italic">#${o.orderNo}</p>
+                        <p class="font-black text-sm italic">#${o.orderNo}</p>
                         <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
                     </div>
                 </div>
                 <div class="text-right">
-                    <p class="font-black font-inter text-lg text-red-600 italic">฿${Number(o.total).toLocaleString()}</p>
-                    <p class="text-[8px] text-slate-300 truncate w-24 overflow-hidden">${o.itemSummary}</p>
+                    <p class="font-black text-lg text-red-600 italic">฿${o.total}</p>
                 </div>
             </div>
         `).join('');
 
     } catch (e) {
-        console.error("Fetch Error:", e);
-        list.innerHTML = `
-            <div class="text-center py-10">
-                <i class="fas fa-exclamation-triangle text-amber-500 mb-2"></i>
-                <p class="text-slate-500 text-xs">ไม่สามารถดึงข้อมูลได้<br>กรุณาตรวจสอบการตั้งค่า Deploy เป็น Anyone</p>
-            </div>`;
+        console.error(e);
+        list.innerHTML = `<p class="text-center py-10 text-red-400 text-xs">เกิดข้อผิดพลาด: ${e.message}</p>`;
     } finally {
-        loader.classList.add('hidden');
-        if(icon) icon.classList.remove('loading-spinner');
+      loader.classList.add('hidden');
     }
 }
 
@@ -186,6 +178,7 @@
     </script>
 </body>
 </html>
+
 
 
 
