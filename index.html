@@ -109,7 +109,7 @@
 
     <script>
         // *** ใส่ URL ล่าสุดของคุณที่นี่ ***
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_yCPhK_BoTH8UoJpM5B2CkhO7hxSScf5S6Yni3PJvZSmYq3ifzOAXEA94QQpHiBoAVQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzxs7pK3fDpBhWgOKxuqdFubQvKODrR4hlszRsBJqtu8M63a1sA48TiP1yqAEj0VJguYw/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -240,52 +240,54 @@
             const change = received - activePaymentOrder.total;
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change}` : '฿0';
         }
-        async function syncQueueOnline() {
+       async function syncOnlineData() {
     try {
-        const response = await fetch(`${SCRIPT_URL}?mode=queue&t=${Date.now()}`);
-        const onlineData = await response.json();
-        
-        // กรองเฉพาะรายการที่ยังไม่ได้ชำระเงิน (ถ้ามีการทำระบบสถานะ)
-        // แต่ถ้าใช้ระบบเดิม ให้ใช้การดึงข้อมูลล่าสุดมาแสดง
-        currentQueue = onlineData; 
-        updateQueueUI();
-    } catch (e) {
-        console.error("Sync Queue Failed", e);
-    }
-}
-async function addToQueue(method) {
-    if (cart.length === 0) return;
-    const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-    
-    const order = {
-        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-        orderNo: String(Date.now()).slice(-4),
-        itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
-        total: total,
-        method: method
-    };
+        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        const allData = await response.json();
 
-    // ส่งขึ้นออนไลน์ทันที
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify(order)
-        });
-        
-        cart = [];
-        updateCartUI();
-        toggleCartModal();
-        
-        // ดึงข้อมูลใหม่ทันที
-        syncQueueOnline(); 
-        switchView('queue');
+        // 1. แยกข้อมูลไปหน้า QUEUE (เฉพาะอันที่สถานะเป็น PENDING)
+        const onlineQueue = allData.filter(item => item.status === "PENDING");
+        renderQueue(onlineQueue);
+
+        // 2. แยกข้อมูลไปหน้า HISTORY (เฉพาะอันที่จ่ายเงินแล้ว - สมมติว่ามีระบบอัปเดตสถานะ)
+        // หรือถ้ายังไม่มีระบบอัปเดต ให้โชว์ทั้งหมดใน History ไปก่อน
+        renderHistory(allData);
+
     } catch (e) {
-        alert("ส่งข้อมูลออนไลน์ล้มเหลว");
+        console.error("Sync Error:", e);
     }
 }
-// ตั้งเวลาให้ดึงข้อมูลคิวอัตโนมัติทุกๆ 10 วินาที
-setInterval(syncQueueOnline, 10000);
+
+// ฟังก์ชันวาดหน้า Queue ใหม่
+function renderQueue(data) {
+    const list = document.getElementById('queue-list');
+    document.getElementById('queue-badge').innerText = data.length;
+    document.getElementById('queue-badge').classList.toggle('hidden', data.length === 0);
+    
+    list.innerHTML = data.map(o => `
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time} | ${o.method}</p>
+                    <h4 class="font-bold text-slate-800 text-sm">${o.itemSummary}</h4>
+                </div>
+            </div>
+            <button onclick="openPaymentModalOnline('${o.rowId}', ${o.total})" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black">
+                ชำระเงิน ฿${o.total}
+            </button>
+        </div>
+    `).join('');
+}
+
+// ตั้งเวลาให้ดึงข้อมูลเองทุก 10 วินาที (เพื่อให้เครื่อง B เห็นเครื่อง A)
+setInterval(syncOnlineData, 10000);
+
+// เรียกครั้งแรกตอนโหลดหน้าจอ
+window.onload = () => {
+    renderPOS();
+    syncOnlineData();
+};
 
         async function confirmPayment() {
             if (!activePaymentOrder) return;
@@ -378,6 +380,7 @@ setInterval(syncQueueOnline, 10000);
     </script>
 </body>
 </html>
+
 
 
 
