@@ -1,43 +1,15 @@
-function doGet() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var rows = sheet.getDataRange().getValues();
-  var history = [];
-  
-  // ถ้าไม่มีข้อมูลเลย ให้ส่งค่าว่างกลับไป
-  if (rows.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
-
-  // เริ่มดึงข้อมูลจากแถวสุดท้ายขึ้นบน (ล่าสุดไปเก่า)
-  for (var i = rows.length - 1; i >= 1; i--) {
-    // ตรวจสอบว่าแถวไม่ว่าง
-    if (rows[i][2]) { 
-      history.push({
-        date: rows[i][0],
-        time: rows[i][1],
-        orderNo: rows[i][2].toString().replace("#",""),
-        itemSummary: rows[i][3],
-        total: rows[i][4],
-        method: rows[i][5]
-      });
+{
+  "name": "AMAMEE PIZZA",
+  "short_name": "AMAMEE",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#E11D48",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3595/3595455.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  }
-  
-  // สำคัญมาก: ต้องตั้งค่า JSON ให้ถูกต้อง
-  return ContentService.createTextOutput(JSON.stringify(history))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-  
-  sheet.appendRow([
-    new Date(), 
-    data.time, 
-    "#" + data.orderNo, 
-    data.itemSummary, 
-    data.total, 
-    data.method
-  ]);
-  
-  return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
+  ]
 }
