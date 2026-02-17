@@ -109,7 +109,7 @@
 
     <script>
         // *** ใส่ URL ล่าสุดของคุณที่นี่ ***
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyt6okxjLkSemtZ3EIjTCfNgYME9fezPFFzBtmYAgoa3_auBb44Znv77y6_DJdZ8xbSRA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_yCPhK_BoTH8UoJpM5B2CkhO7hxSScf5S6Yni3PJvZSmYq3ifzOAXEA94QQpHiBoAVQ/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -240,6 +240,52 @@
             const change = received - activePaymentOrder.total;
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change}` : '฿0';
         }
+        async function syncQueueOnline() {
+    try {
+        const response = await fetch(`${SCRIPT_URL}?mode=queue&t=${Date.now()}`);
+        const onlineData = await response.json();
+        
+        // กรองเฉพาะรายการที่ยังไม่ได้ชำระเงิน (ถ้ามีการทำระบบสถานะ)
+        // แต่ถ้าใช้ระบบเดิม ให้ใช้การดึงข้อมูลล่าสุดมาแสดง
+        currentQueue = onlineData; 
+        updateQueueUI();
+    } catch (e) {
+        console.error("Sync Queue Failed", e);
+    }
+}
+async function addToQueue(method) {
+    if (cart.length === 0) return;
+    const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    
+    const order = {
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        orderNo: String(Date.now()).slice(-4),
+        itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
+        total: total,
+        method: method
+    };
+
+    // ส่งขึ้นออนไลน์ทันที
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(order)
+        });
+        
+        cart = [];
+        updateCartUI();
+        toggleCartModal();
+        
+        // ดึงข้อมูลใหม่ทันที
+        syncQueueOnline(); 
+        switchView('queue');
+    } catch (e) {
+        alert("ส่งข้อมูลออนไลน์ล้มเหลว");
+    }
+}
+// ตั้งเวลาให้ดึงข้อมูลคิวอัตโนมัติทุกๆ 10 วินาที
+setInterval(syncQueueOnline, 10000);
 
         async function confirmPayment() {
             if (!activePaymentOrder) return;
@@ -332,5 +378,6 @@
     </script>
 </body>
 </html>
+
 
 
