@@ -109,7 +109,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwU09A93FNTz3aWVfGxLLAi0yNt5Whn8Zfwd8I9JTSDUP1bnPh5cp7Fx-h5ty19nXR0AA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLYrnw_BvplbJE27IoeIsfe7LFwnLOate2-bFncFYOchhZElNcFhhyIDs4b9-m5x6pow/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -165,9 +165,8 @@ function updateCartUI() {
 async function sendToQueue(method) {
     if (cart.length === 0) return;
     
-    // แสดงสถานะ Loading ที่ปุ่ม
-    const originalBtnHTML = event.currentTarget.innerHTML;
     const btn = event.currentTarget;
+    const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerText = "กำลังบันทึกคิว...";
 
@@ -177,20 +176,36 @@ async function sendToQueue(method) {
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
         itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
         total: total,
-        method: method
+        method: method,
+        status: "PENDING" // ย้ำสถานะส่งไปที่ Sheet
     };
 
     try {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(order) });
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify(order) 
+        });
+
+        // ล้างตะกร้า
         cart = [];
         updateCartUI();
         toggleCartModal();
-        switchView('queue'); // สลับไปหน้าคิวและดึงข้อมูลใหม่
+
+        // ไปหน้าคิว
+        switchView('queue');
+        
+        // รอ 1 วินาทีเพื่อให้ Google Sheet บันทึกเสร็จแล้วค่อยดึงข้อมูลใหม่
+        setTimeout(() => {
+            syncOnlineData();
+        }, 1000);
+
     } catch (e) {
-        alert("การบันทึกคิวผิดพลาด");
+        alert("บันทึกคิวไม่สำเร็จ กรุณาลองใหม่");
+        console.error(e);
     } finally {
         btn.disabled = false;
-        btn.innerHTML = originalBtnHTML;
+        btn.innerHTML = originalHTML;
     }
 }
 
@@ -227,24 +242,36 @@ async function syncOnlineData() {
     if(icon) icon.classList.add('loading-spinner');
 
     try {
+        // เพิ่ม t=Date.now() เพื่อป้องกัน Browser จำค่าเก่า (Cache)
         const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        if (!response.ok) throw new Error();
+        
         const allData = await response.json();
 
-        // กรองข้อมูลขยะ (เลข 0)
+        // 1. กรองเฉพาะข้อมูลที่ถูกต้อง (ไม่ใช่ 0 หรือหัวตาราง)
         const validData = allData.filter(item => item.orderNo && item.orderNo !== "0");
 
-        const pendingOrders = validData.filter(item => item.status === "PENDING");
-        const paidOrders = validData.filter(item => item.status === "PAID");
+        // 2. แยกข้อมูล PENDING (หน้าคิว) และ PAID (หน้าประวัติ)
+        // ใช้ .toUpperCase() เพื่อกันเหนียวเรื่องตัวพิมพ์เล็ก-ใหญ่
+        const pendingOrders = validData.filter(item => 
+            item.status && item.status.toUpperCase() === "PENDING"
+        );
+        const paidOrders = validData.filter(item => 
+            item.status && item.status.toUpperCase() === "PAID"
+        );
 
+        // 3. แสดงผลลงหน้าจอ
         renderQueue(pendingOrders);
         renderHistory(paidOrders);
+
     } catch (e) {
-        console.error("Sync Error");
+        console.error("Sync Error:", e);
+        // ถ้าดึงข้อมูลไม่ได้ ให้แสดงข้อความแจ้งเตือนใน List
+        document.getElementById('queue-list').innerHTML = `<p class="text-center py-10 text-red-400">ดึงข้อมูลไม่สำเร็จ กำลังลองใหม่...</p>`;
     } finally {
         if(icon) icon.classList.remove('loading-spinner');
     }
 }
-
 function renderQueue(data) {
     const list = document.getElementById('queue-list');
     document.getElementById('queue-badge').innerText = data.length;
@@ -309,5 +336,6 @@ window.onload = () => { renderPOS(); };
     </script>
 </body>
 </html>
+
 
 
