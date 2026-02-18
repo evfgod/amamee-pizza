@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzR3PAloPvIKouAlRYXdaUAjjtba-ivPy8M3CdqtCus7JLr2wulddElCyiHCWQ0GsI_pQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbynrVL9dqM9gbXltkzIPWalX_rqbQye02CINIFiDdIihOsYdwl0iYe3WWwjfY_2pBRpWQ/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -277,42 +277,51 @@
 
 
         async function confirmPayment() {
-            if (!activePaymentOrder) return;
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-        
-            // สร้าง Form Data เพื่อส่งข้อมูล
-            const formBody = [];
-            for (const property in activePaymentOrder) {
-                const encodedKey = encodeURIComponent(property);
-                const encodedValue = encodeURIComponent(activePaymentOrder[property]);
-                formBody.push(encodedKey + "=" + encodedValue);
+            // 1. ตรวจสอบว่ามีข้อมูลออเดอร์จริงๆ และยอดไม่ใช่ 0
+            if (!activePaymentOrder || !activePaymentOrder.orderNo || activePaymentOrder.total <= 0) {
+                alert("ข้อมูลออเดอร์ไม่ถูกต้อง");
+                return;
             }
-            const finalBody = formBody.join("&");
+        
+            const btn = document.getElementById('btn-confirm-pay');
+            if (btn.disabled) return; // ป้องกันการทำงานซ้อนถ้ากำลังส่งอยู่
+        
+            // 2. ล็อคปุ่มทันที
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึก... ห้ามปิดหน้าจอ";
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+        
+            const params = new URLSearchParams();
+            params.append('time', activePaymentOrder.time);
+            params.append('orderNo', activePaymentOrder.orderNo);
+            params.append('itemSummary', activePaymentOrder.itemSummary);
+            params.append('total', activePaymentOrder.total);
+            params.append('method', activePaymentOrder.method);
         
             try {
-                // ส่งข้อมูลแบบ POST แบบดั้งเดิมที่สุด
+                // 3. ส่งข้อมูลแบบ POST
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-                    },
-                    body: finalBody
+                    body: params
                 });
         
-                // บันทึกสำเร็จในฝั่ง POS (Local)
+                // 4. รอสักครู่เพื่อให้มั่นใจว่าส่งออกไปแล้วจริงๆ
+                await new Promise(resolve => setTimeout(resolve, 500));
+        
+                // 5. เคลียร์คิวในเครื่องและปิดหน้าต่าง
                 localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                activePaymentOrder = null; // ล้างค่าทิ้งป้องกันการส่งซ้ำ
+                
                 closePaymentModal();
                 renderLocalQueue(); 
                 switchView('history'); 
         
             } catch (e) {
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ: " + e.message);
-            } finally {
+                alert("เกิดข้อผิดพลาด: " + e.message);
                 btn.disabled = false;
                 btn.innerText = "ชำระเงินและบันทึก";
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
 
@@ -369,6 +378,7 @@
     </script>
 </body>
 </html>
+
 
 
 
