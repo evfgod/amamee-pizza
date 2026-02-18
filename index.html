@@ -157,6 +157,25 @@
                 updateCartUI();
             }
         }
+                    function renderHistoryUI(data) {
+                const list = document.getElementById('history-list');
+                if (!data || data.length === 0) {
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+                    return;
+                }
+                list.innerHTML = data.map(o => `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
+                            <div>
+                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                                <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
+                            </div>
+                        </div>
+                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
+                    </div>
+                `).join('');
+            }
 
         function updateCartUI() {
             const count = cart.reduce((s, i) => s + i.qty, 0);
@@ -253,7 +272,7 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyp_p0XIm2a0t5Fp2sCUk9RNDjIE7Ysnvi8yIZAWnz6GiBj3LqrlvrwPt4QnSluUvYw6w/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxt0pqHsGTlPC-FB0U0KK3r4iX803EoESAKltCEzOTGv1b8np8tx7WDzJ7j_vW6lfuFVg/exec";
 
             async function confirmPayment() {
     if (!activePaymentOrder) return;
@@ -340,6 +359,7 @@
     </script>
 </body>
 </html>
+
 
 
 
