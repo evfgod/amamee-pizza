@@ -335,35 +335,29 @@
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
             const list = document.getElementById('history-list');
-            const icon = document.getElementById('refresh-icon');
-            if(icon) icon.classList.add('loading-spinner');
+            // ป้องกันการเรียกซ้อนถ้า URL ยังไม่ถูกตั้งค่า
+            if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_SCRIPT_URL")) return;
         
             try {
-                // บังคับให้เป็น GET เท่านั้นเพื่อดึงข้อมูล (ห้ามใช้ POST ในฟังก์ชันนี้)
                 const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                
-                // อ่านค่าเป็น Text ก่อนเพื่อตรวจสอบว่าเป็น JSON หรือเป็นคำว่า Success
-                const text = await response.text(); 
+                const text = await response.text();
         
-                if (text.trim() === "Success") {
-                    // ถ้าหลุดคำว่า Success มา แสดงว่า Script ยังประมวลผล GET ไม่เสร็จ
-                    console.warn("ได้รับค่า Success แทนข้อมูล JSON");
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังรอข้อมูลจาก Google...</p>`;
-                    return;
-                }
-        
-                const data = JSON.parse(text); // แปลงเป็น JSON จริงๆ
-                if (Array.isArray(data)) {
-                    renderHistoryUI(data); 
+                // ตรวจสอบว่าสิ่งที่ส่งกลับมาเป็น JSON หรือไม่ (ต้องขึ้นต้นด้วย [ )
+                if (text.trim().startsWith('[')) {
+                    const data = JSON.parse(text);
+                    renderHistoryUI(data);
+                } else {
+                    console.log("Data received is not JSON yet");
                 }
             } catch (e) {
-                console.error("Fetch history failed:", e);
-                list.innerHTML = `<p class="text-center py-20 text-red-400 italic">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
-            } finally {
-                if(icon) icon.classList.remove('loading-spinner');
+                console.error("Sync stop due to error:", e);
+                // ไม่สั่งทำงานซ้ำที่นี่เด็ดขาด!
             }
         }
-            
+            function goToHistory() {
+    switchView('history');
+    syncHistoryData(); // ดึงข้อมูลแค่ครั้งเดียวตอนเปิดหน้า
+}
             // เพิ่ม/แก้ไขฟังก์ชันนี้เพื่อให้แสดงผลบนหน้าจอด้วย
             function renderHistoryUI(data) {
                 const list = document.getElementById('history-list');
@@ -398,6 +392,7 @@
     </script>
 </body>
 </html>
+
 
 
 
