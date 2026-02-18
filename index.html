@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyknUbN8clF9oh2NUx6a8ezhUgE_FvkW_wmor1YlBmC33At0StYrTgb6-2ZdZRBIGfCEg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjM3wHje9UErTr2FyLI9w-rSmiPi8SJcCxvpGhcRibCiMY4-LCuTLgx5hGKQI2Sfur3w/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -334,26 +334,33 @@
 
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            // ป้องกันการเรียกซ้อนถ้า URL ยังไม่ถูกตั้งค่า
-            if (!SCRIPT_URL || SCRIPT_URL.includes("YOUR_SCRIPT_URL")) return;
-        
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const text = await response.text();
-        
-                // ตรวจสอบว่าสิ่งที่ส่งกลับมาเป็น JSON หรือไม่ (ต้องขึ้นต้นด้วย [ )
-                if (text.trim().startsWith('[')) {
-                    const data = JSON.parse(text);
-                    renderHistoryUI(data);
-                } else {
-                    console.log("Data received is not JSON yet");
-                }
-            } catch (e) {
-                console.error("Sync stop due to error:", e);
-                // ไม่สั่งทำงานซ้ำที่นี่เด็ดขาด!
-            }
+    const list = document.getElementById('history-list');
+    const icon = document.getElementById('refresh-icon');
+    
+    if (icon) icon.classList.add('loading-spinner');
+    
+    try {
+        // ใช้ fetch แบบระบุเป็น GET เท่านั้น
+        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, { method: 'GET' });
+        const text = await response.text(); 
+
+        // ตรวจสอบว่าถ้าได้รับค่า "Success" หรือค่าที่ไม่ใช่ JSON ให้หยุด (ป้องกันการวนลูป)
+        if (text === "Success" || !text.trim().startsWith('[')) {
+            console.warn("Script returned text instead of data, ignoring...");
+            return; 
         }
+
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) {
+            renderHistoryUI(data); 
+        }
+    } catch (e) {
+        console.error("Fetch history failed:", e);
+        list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถดึงข้อมูลได้</p>`;
+    } finally {
+        if (icon) icon.classList.remove('loading-spinner');
+    }
+}
             function goToHistory() {
     switchView('history');
     syncHistoryData(); // ดึงข้อมูลแค่ครั้งเดียวตอนเปิดหน้า
@@ -392,6 +399,7 @@
     </script>
 </body>
 </html>
+
 
 
 
