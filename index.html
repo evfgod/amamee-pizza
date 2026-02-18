@@ -102,7 +102,9 @@
                     <span id="cash-change" class="text-3xl font-black text-emerald-600 font-inter">฿0</span>
                 </div>
             </div>
-            <button id="btn-confirm-pay" onclick="confirmPayment()" class="w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">ชำระเงินและบันทึก</button>
+            <button id="btn-confirm-pay" onclick="confirmPayment()" class="w-full bg-slate-400 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all opacity-50 cursor-not-allowed">
+    กรุณาใส่จำนวนเงิน
+</button>
             <button onclick="closePaymentModal()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
         </div>
     </div>
@@ -271,22 +273,19 @@
             const changeDisplay = document.getElementById('cash-change');
             const confirmBtn = document.getElementById('btn-confirm-pay');
         
-            // แสดงเงินทอน
             changeDisplay.innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         
-            // ตรวจสอบเงื่อนไขการเปิดปุ่มจ่ายเงิน
-            if (activePaymentOrder.method === 'CASH') {
-                if (received >= total) {
-                    confirmBtn.disabled = false;
-                    confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    confirmBtn.classList.add('bg-red-600');
-                    confirmBtn.innerText = "ชำระเงินและบันทึก";
-                } else {
-                    confirmBtn.disabled = true;
-                    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    confirmBtn.classList.remove('bg-red-600');
-                    confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
-                }
+            // เงื่อนไขปลดล็อคปุ่ม
+            if (received >= total) {
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
+                confirmBtn.classList.add('bg-red-600');
+                confirmBtn.innerText = "ชำระเงินและบันทึก";
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
+                confirmBtn.classList.remove('bg-red-600');
+                confirmBtn.innerText = received > 0 ? `ค้างอีก ฿${(total - received).toLocaleString()}` : "กรุณาใส่จำนวนเงิน";
             }
         }
         
@@ -378,6 +377,7 @@
     </script>
 </body>
 </html>
+
 
 
 
