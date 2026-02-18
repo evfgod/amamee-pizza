@@ -108,7 +108,6 @@
     </div>
 
     <script>
-        
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyI-VePVOc8aK_rUxBiBlO1e6zbz7cyJK1xnPCQQjZoO8Fy2ehVfn2RsIYMX9xY_6QV7g/exec";
         
         const MENU = [
@@ -126,10 +125,30 @@
         ];
 
         let cart = [];
-        let localQueue = []; // คิวในเครื่อง
+        let localQueue = []; 
         let activePaymentOrder = null;
 
-        // --- 1. แสดงเมนูหน้าแรก ---
+        // --- 1. จัดการหน้าจอ (Navigation) ---
+        function switchView(viewId) {
+            // ซ่อนทุกหน้า (แก้จาก .view เป็นการหา div ที่เป็นลูกของ main)
+            document.getElementById('view-pos').classList.add('hidden');
+            document.getElementById('view-queue').classList.add('hidden');
+            document.getElementById('view-history').classList.add('hidden');
+            
+            // แสดงหน้าที่เลือก
+            const target = document.getElementById('view-' + viewId);
+            if (target) target.classList.remove('hidden');
+
+            // จัดการสีปุ่ม Nav
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
+            document.getElementById('btn-' + viewId).classList.add('active-tab');
+
+            if (viewId === 'pos') renderPOS();
+            if (viewId === 'queue') renderLocalQueue();
+            if (viewId === 'history') syncHistoryData();
+        }
+
+        // --- 2. POS & Cart System ---
         function renderPOS() {
             const grid = document.getElementById('view-pos');
             grid.innerHTML = MENU.map(item => `
@@ -159,26 +178,6 @@
                 updateCartUI();
             }
         }
-        
-        function renderHistoryUI(data) {
-                const list = document.getElementById('history-list');
-                if (!data || data.length === 0) {
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                    return;
-                }
-                list.innerHTML = data.map(o => `
-                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                            <div>
-                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
-                                <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
-                            </div>
-                        </div>
-                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
-                    </div>
-                `).join('');
-            }
 
         function updateCartUI() {
             const count = cart.reduce((s, i) => s + i.qty, 0);
@@ -207,7 +206,7 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        // --- 2. ส่งจากตะกร้าไปหน้าคิว (ไม่บันทึกลง Google Sheets) ---
+        // --- 3. Queue System ---
         function sendToQueue(method) {
             if (cart.length === 0) return;
             const order = {
@@ -225,7 +224,6 @@
             switchView('queue');
         }
 
-        // --- 3. แสดงหน้าคิวจากข้อมูลในเครื่อง ---
         function renderLocalQueue() {
             const list = document.getElementById('queue-list');
             document.getElementById('queue-badge').innerText = localQueue.length;
@@ -255,7 +253,14 @@
             `).join('');
         }
 
-        // --- 4. การชำระเงินและบันทึกลง Google Sheets ---
+        function cancelLocalOrder(id) {
+            if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
+                localQueue = localQueue.filter(q => q.id !== id);
+                renderLocalQueue();
+            }
+        }
+
+        // --- 4. Payment & Google Sheets ---
         function openPaymentModal(order) {
             activePaymentOrder = order;
             const isCash = order.method === 'CASH';
@@ -275,110 +280,79 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-
         async function confirmPayment() {
-            // 1. ตรวจสอบว่ามีข้อมูลออเดอร์จริงๆ และยอดไม่ใช่ 0
-            if (!activePaymentOrder || !activePaymentOrder.orderNo || activePaymentOrder.total <= 0) {
-                alert("ข้อมูลออเดอร์ไม่ถูกต้อง");
-                return;
-            }
-        
+            if (!activePaymentOrder) return;
             const btn = document.getElementById('btn-confirm-pay');
-            if (btn.disabled) return; // ป้องกันการทำงานซ้อนถ้ากำลังส่งอยู่
-        
-            // 2. ล็อคปุ่มทันที
             btn.disabled = true;
-            btn.innerText = "กำลังบันทึก... ห้ามปิดหน้าจอ";
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-        
+            btn.innerText = "กำลังบันทึก...";
+
             const params = new URLSearchParams();
             params.append('time', activePaymentOrder.time);
             params.append('orderNo', activePaymentOrder.orderNo);
             params.append('itemSummary', activePaymentOrder.itemSummary);
             params.append('total', activePaymentOrder.total);
             params.append('method', activePaymentOrder.method);
-        
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: params
-                });
-            
-                const data = await response.json(); // รับข้อมูลประวัติที่ส่งกลับมาทันที
-                
-                if (Array.isArray(data)) {
-                    renderHistoryUI(data); // อัปเดตหน้าจอด้วยข้อมูลใหม่
-                }
-            
-                closePaymentModal();
-                switchView('history'); // สลับไปหน้าประวัติ
-            } catch (e) {
-                console.error("Payment failed", e);
-            }
 
-        function cancelLocalOrder(id) {
-            if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
-                localQueue = localQueue.filter(q => q.id !== id);
-                renderLocalQueue();
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
+                const data = await response.json();
+                
+                // ลบคิวออกจากเครื่องหลังจากบันทึกสำเร็จ
+                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                
+                closePaymentModal();
+                switchView('history'); 
+                if (Array.isArray(data)) renderHistoryUI(data);
+            } catch (e) {
+                console.error("Payment Error:", e);
+                alert("บันทึกไม่สำเร็จ แต่ยอดจะยังอยู่ในคิว");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "ชำระเงินและบันทึก";
             }
         }
 
-        // --- 5. จัดการหน้าประวัติ (History) ---
+        // --- 5. History System ---
         async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                if (!list) return;
-            
-                try {
-                    const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                    const data = await response.json();
-            
-                    if (Array.isArray(data)) {
-                        renderHistoryUI(data);
-                    } else {
-                        list.innerHTML = `<p class="text-center py-10 text-slate-400">ยังไม่มีข้อมูลออเดอร์</p>`;
-                    }
-                } catch (e) {
-                    console.error("Fetch history failed:", e);
-                    list.innerHTML = `<p class="text-center py-10 text-slate-400">ไม่พบข้อมูล (ตรวจสอบ SCRIPT_URL)</p>`;
-                }
+            const list = document.getElementById('history-list');
+            const icon = document.getElementById('refresh-icon');
+            if (icon) icon.classList.add('loading-spinner');
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                const data = await response.json();
+                if (Array.isArray(data)) renderHistoryUI(data);
+            } catch (e) {
+                list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถดึงข้อมูลได้</p>`;
+            } finally {
+                if (icon) icon.classList.remove('loading-spinner');
             }
-            function goToHistory() {
-    switchView('history');
-    syncHistoryData(); // ดึงข้อมูลแค่ครั้งเดียวตอนเปิดหน้า
-}
-            // เพิ่ม/แก้ไขฟังก์ชันนี้เพื่อให้แสดงผลบนหน้าจอด้วย
-            function renderHistoryUI(data) {
-                const list = document.getElementById('history-list');
-                list.innerHTML = data.map(o => `
-                    <div class="bg-white p-4 rounded-2xl border border-slate-100 mb-2 flex justify-between items-center shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-emerald-50 text-emerald-500 w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-check"></i></div>
-                            <div>
-                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
-                            </div>
+        }
+
+        function renderHistoryUI(data) {
+            const list = document.getElementById('history-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+                return;
+            }
+            list.innerHTML = data.map(o => `
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
+                        <div>
+                            <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
                         </div>
-                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
                     </div>
-                `).join('');
-            }
-                function switchView(viewId) {
-                    // ซ่อนทุกหน้า
-                    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-                    
-                    // แสดงหน้าที่เลือก
-                    const target = document.getElementById(viewId);
-                    if (target) {
-                        target.classList.remove('hidden');
-                    }
-                    
-                    // ถ้าเข้าหน้า history ให้ดึงข้อมูลมาแสดง
-                    if (viewId === 'history') {
-                        syncHistoryData();
-                    }
-                }
-               
+                    <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
+                </div>
+            `).join('');
+        }
+
+        // เริ่มต้นโปรแกรม
+        renderPOS();
     </script>
 </body>
 </html>
+
 
