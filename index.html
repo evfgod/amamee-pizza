@@ -110,7 +110,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2a0GPlX59W5WxVnr-eTVMFjgcgGBuQsC0KW_oXc1vBIqdgNHonx51QxsuOLFVT0H-tg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEK-cR3YZUBlMA0Mq1hsS6DDSbaIN_vNZZniUos88pvh5rwKndG83IhrZMFZVQTSc2/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -423,16 +423,35 @@
         }
 
         async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const data = await response.json();
-                if (Array.isArray(data)) renderHistoryUI(data);
-            } catch (e) {
-                console.error("Sync Error:", e);
-                list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถดึงข้อมูลได้</p>`;
+    const list = document.getElementById('history-list');
+    if (!list) return;
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        const text = await response.text(); // อ่านเป็นข้อความธรรมดาก่อนเพื่อเช็ค
+
+        try {
+            const data = JSON.parse(text); // ค่อยแปลงเป็น JSON
+            if (Array.isArray(data)) {
+                renderHistoryUI(data);
+            }
+        } catch (jsonError) {
+            // ถ้าไม่ใช่ JSON (เช่น เป็นคำว่า Success) ให้ลองโหลดใหม่หรือข้ามไป
+            console.warn("Received non-JSON response:", text);
+            if (text.includes("Success")) {
+                // ถ้าขึ้น Success แสดงว่าบันทึกผ่านแล้ว แต่อาจจะดึงข้อมูลทันทีไม่ได้ 
+                // ให้รอ 1 วินาทีแล้วดึงใหม่อีกครั้ง
+                setTimeout(syncHistoryData, 1000);
             }
         }
+    } catch (e) {
+        console.error("Sync Error:", e);
+        // ป้องกันข้อมูลหาย: ถ้าในหน้าจอมีข้อมูลอยู่แล้ว ไม่ต้องพ่น Error ทับ
+        if (list.innerHTML.trim() === "" || list.innerHTML.includes("ไม่สามารถ")) {
+            list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังเชื่อมต่อฐานข้อมูล...</p>`;
+        }
+    }
+}
 
         // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
@@ -466,6 +485,7 @@
     </script>
 </body>
 </html>
+
 
 
 
