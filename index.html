@@ -110,7 +110,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyYdSpIU51f27dv4rXNjQWTMb8y-_nsXE4F4PaIGR6fLtKAO-rqSblS6jeuPDDwsE0-3g/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyG_T0Md7v4airAXiCithzZB9Oz7OAjdQyu28Pmosh9DRrl2DjstNVFBPnzPQNBANKtg/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -387,54 +387,52 @@
         }
 
         async function confirmPayment() {
-                if (!activePaymentOrder) return;
-            
-                const btn = document.getElementById('btn-confirm-pay');
-                btn.disabled = true;
-                btn.innerText = "กำลังบันทึก...";
-            
-                // ✅ สร้างวันที่ format ตรงกับ Apps Script (dd/mm/yyyy พ.ศ.)
-                const now = new Date();
-                const day = now.getDate();
-                const month = now.getMonth() + 1;
-                const year = now.getFullYear() + 543;
-                const thaiDate = `${day}/${month}/${year}`;
-            
-                const params = new URLSearchParams();
-                params.append('date', thaiDate);
-                params.append('type', activePaymentOrder.method || "-");
-                params.append('amount', activePaymentOrder.total || 0);
-                params.append('note', activePaymentOrder.itemSummary || "-");
-            
-                try {
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        body: params
-                    });
-            
-                    const text = await response.text();
-                    console.log("Server response:", text);
-            
-                    const result = JSON.parse(text);
-            
-                    if (result.result === "success") {
-                        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                        renderLocalQueue();
-                        closePaymentModal();
-                        switchView('history');
-                    } else {
-                        throw new Error(result.message || "Unknown error");
+                    if (!activePaymentOrder) return;
+                
+                    const btn = document.getElementById('btn-confirm-pay');
+                    btn.disabled = true;
+                    btn.innerText = "กำลังบันทึก...";
+                
+                    // ✅ สร้างวันที่ตรง format GAS
+                    const now = new Date();
+                    const day = now.getDate();
+                    const month = now.getMonth() + 1;
+                    const year = now.getFullYear() + 543;
+                    const thaiDate = `${day}/${month}/${year}`;
+                
+                    const params = new URLSearchParams();
+                    params.append('date', thaiDate);
+                    params.append('type', activePaymentOrder.method);
+                    params.append('amount', String(activePaymentOrder.total)); // บังคับเป็น string
+                    params.append('note', activePaymentOrder.itemSummary);
+                
+                    try {
+                        const response = await fetch(SCRIPT_URL, {
+                            method: 'POST',
+                            body: params
+                        });
+                
+                        const result = await response.json();
+                        console.log("Server result:", result);
+                
+                        // ✅ ตรวจแบบยืดหยุ่น ป้องกันพัง
+                        if (result && result.result === "success") {
+                            localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                            renderLocalQueue();
+                            closePaymentModal();
+                            switchView('history');
+                        } else {
+                            console.error("Server returned:", result);
+                            throw new Error("Server did not return success");
+                        }
+                
+                    } catch (error) {
+                        console.error("Payment Error:", error);
+                        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาดู Console");
+                        btn.disabled = false;
+                        btn.innerText = "ชำระเงินและบันทึก";
                     }
-            
-                } catch (error) {
-                    console.error("Payment Error:", error);
-                    alert("บันทึกข้อมูลไม่สำเร็จ กรุณาตรวจสอบ Console");
-                    btn.disabled = false;
-                    btn.innerText = "ชำระเงินและบันทึก";
                 }
-            }
-
-
 
         async function syncHistoryData() {
                 const list = document.getElementById('history-list');
@@ -493,6 +491,7 @@
     </script>
 </body>
 </html>
+
 
 
 
