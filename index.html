@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwF5ivfjsvaMHPE5Q7MWPe8ZYcJH19k7krrIZh_0wSicxIzEGpQkoMQTvIfhmSOfV0g5w/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyknUbN8clF9oh2NUx6a8ezhUgE_FvkW_wmor1YlBmC33At0StYrTgb6-2ZdZRBIGfCEg/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -336,33 +336,29 @@
         async function syncHistoryData() {
             const list = document.getElementById('history-list');
             const icon = document.getElementById('refresh-icon');
-            
             if(icon) icon.classList.add('loading-spinner');
-            
-            try {
-                // บังคับให้เป็น GET เท่านั้นเพื่อไม่ให้ไปโดนฟังก์ชัน doPost บันทึกซ้ำ
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
-                    method: 'GET',
-                    redirect: 'follow'
-                });
         
-                const text = await response.text(); // อ่านเป็น Text ก่อนเพื่อเช็ค
+            try {
+                // บังคับให้เป็น GET เท่านั้นเพื่อดึงข้อมูล (ห้ามใช้ POST ในฟังก์ชันนี้)
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
                 
-                // ถ้าผลลัพธ์คือ Success หรือไม่ใช่ JSON ให้หยุดทำงาน
-                if (text === "Success" || !text.trim().startsWith('[')) {
-                    console.log("ได้รับค่า Success หรือรูปแบบไม่ใช่ JSON, กำลังลองใหม่...");
-                    setTimeout(syncHistoryData, 1000); // รอ 1 วินาทีแล้วลองใหม่
+                // อ่านค่าเป็น Text ก่อนเพื่อตรวจสอบว่าเป็น JSON หรือเป็นคำว่า Success
+                const text = await response.text(); 
+        
+                if (text.trim() === "Success") {
+                    // ถ้าหลุดคำว่า Success มา แสดงว่า Script ยังประมวลผล GET ไม่เสร็จ
+                    console.warn("ได้รับค่า Success แทนข้อมูล JSON");
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังรอข้อมูลจาก Google...</p>`;
                     return;
                 }
         
-                const data = JSON.parse(text); // แปลงเป็น JSON เมื่อมั่นใจแล้วว่าเป็น Array
-                
+                const data = JSON.parse(text); // แปลงเป็น JSON จริงๆ
                 if (Array.isArray(data)) {
                     renderHistoryUI(data); 
                 }
             } catch (e) {
                 console.error("Fetch history failed:", e);
-                list.innerHTML = `<div class="text-center py-20 text-slate-300 italic">กำลังเชื่อมต่อฐานข้อมูล...</div>`;
+                list.innerHTML = `<p class="text-center py-20 text-red-400 italic">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
             } finally {
                 if(icon) icon.classList.remove('loading-spinner');
             }
@@ -402,6 +398,7 @@
     </script>
 </body>
 </html>
+
 
 
 
