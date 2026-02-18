@@ -141,20 +141,30 @@
             localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
         }
 
-        // --- 1. สลับหน้าจอ ---
+        // --- ปรับปรุงการสลับหน้าจอให้บังคับโหลดคิวใหม่ทุกครั้ง ---
         function switchView(viewId) {
             const views = ['pos', 'queue', 'history'];
             views.forEach(id => {
                 const v = document.getElementById('view-' + id);
-                if (v) v.classList.add(id === viewId ? 'block' : 'hidden');
-                if (v && id !== viewId) v.classList.remove('block');
+                if (v) {
+                    if (id === viewId) {
+                        v.classList.remove('hidden');
+                        v.classList.add('block');
+                    } else {
+                        v.classList.add('hidden');
+                        v.classList.remove('block');
+                    }
+                }
             });
 
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
             const activeBtn = document.getElementById('btn-' + viewId);
             if (activeBtn) activeBtn.classList.add('active-tab');
 
-            if (viewId === 'queue') renderLocalQueue();
+            // บังคับวาดหน้าจอใหม่ทันทีที่สลับหน้า
+            if (viewId === 'queue') {
+                renderLocalQueue(); 
+            }
             if (viewId === 'history') syncHistoryData();
             if (viewId === 'pos') renderPOS();
         }
@@ -236,18 +246,36 @@
             switchView('queue');
         }
 
+        // --- ปรับปรุงฟังก์ชันแสดงคิวให้แม่นยำขึ้น ---
         function renderLocalQueue() {
+            // ดึงข้อมูลล่าสุดจาก localStorage ก่อนเผื่อมีการอัปเดต
+            localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
+            
             const list = document.getElementById('queue-list');
             const badge = document.getElementById('queue-badge');
+            
+            // อัปเดต Badge ตัวเลข
             if (badge) {
                 badge.innerText = localQueue.length;
-                badge.classList.toggle('hidden', localQueue.length === 0);
+                if (localQueue.length > 0) {
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
             }
+
             if (!list) return;
+
             if (localQueue.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ยังไม่มีออเดอร์ในคิว</div>`;
+                list.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-slate-300">
+                        <i class="fas fa-clipboard-list text-5xl mb-4 opacity-20"></i>
+                        <p class="font-bold italic">ยังไม่มีออเดอร์ในคิว</p>
+                    </div>`;
                 return;
             }
+
+            // แสดงรายการคิว
             list.innerHTML = localQueue.map(o => `
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
                     <div class="flex items-center justify-between mb-4">
@@ -261,8 +289,8 @@
                         <p class="font-black text-xl text-slate-700 italic">฿${o.total.toLocaleString()}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs">ยกเลิก</button>
-                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg">ชำระเงิน</button>
+                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs active:scale-95 transition-all">ยกเลิก</button>
+                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">ชำระเงิน</button>
                     </div>
                 </div>
             `).join('');
@@ -395,6 +423,7 @@
     </script>
 </body>
 </html>
+
 
 
 
