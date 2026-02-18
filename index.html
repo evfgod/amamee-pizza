@@ -108,7 +108,9 @@
     </div>
 
     <script>
-
+        
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxt0pqHsGTlPC-FB0U0KK3r4iX803EoESAKltCEzOTGv1b8np8tx7WDzJ7j_vW6lfuFVg/exec";
+        
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
             { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
@@ -272,7 +274,6 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxt0pqHsGTlPC-FB0U0KK3r4iX803EoESAKltCEzOTGv1b8np8tx7WDzJ7j_vW6lfuFVg/exec";
 
             async function confirmPayment() {
     if (!activePaymentOrder) return;
@@ -359,6 +360,7 @@
     </script>
 </body>
 </html>
+
 
 
 
