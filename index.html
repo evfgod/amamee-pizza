@@ -387,69 +387,68 @@
         }
 
         async function confirmPayment() {
-            if (!activePaymentOrder) return;
-        
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-        
-            const params = new URLSearchParams();
-            params.append('date', new Date().toLocaleDateString('th-TH'));
-            params.append('type', activePaymentOrder.method);
-            params.append('amount', activePaymentOrder.total);
-            params.append('note', activePaymentOrder.itemSummary);
-        
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: params
-                });
-        
-                const result = await response.json();
-        
-                if (result.result === "success") {
-                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                    renderLocalQueue();
-                    closePaymentModal();
-                    switchView('history');
-                    await syncHistoryData(); // ✅ ดึงข้อมูลใหม่หลังบันทึก
-                } else {
+                if (!activePaymentOrder) return;
+            
+                const btn = document.getElementById('btn-confirm-pay');
+                btn.disabled = true;
+                btn.innerText = "กำลังบันทึก...";
+            
+                const params = new URLSearchParams();
+                params.append('date', new Date().toLocaleDateString('th-TH'));
+                params.append('type', activePaymentOrder.method);
+                params.append('amount', activePaymentOrder.total);
+                params.append('note', activePaymentOrder.itemSummary);
+            
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: params
+                    });
+            
+                    const result = await response.json();
+            
+                    if (result.result === "success") {
+                        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                        renderLocalQueue();
+                        closePaymentModal();
+                        switchView('history');
+                    } else {
+                        throw new Error("Save failed");
+                    }
+            
+                } catch (error) {
+                    console.error("Payment Error:", error);
                     alert("บันทึกไม่สำเร็จ");
                     btn.disabled = false;
                     btn.innerText = "ชำระเงินและบันทึก";
                 }
-        
-            } catch (e) {
-                console.error("Payment Error:", e);
-                alert("บันทึกไม่สำเร็จ");
-                btn.disabled = false;
-                btn.innerText = "ชำระเงินและบันทึก";
             }
-        }
+
 
 
         async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            if (!list) return;
-        
-            list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังโหลดข้อมูล...</p>`;
-        
-            try {
-                // ✅ สำคัญ: ต้องมี action=get
-                const response = await fetch(`${SCRIPT_URL}?action=get&t=${Date.now()}`);
-                const data = await response.json();
-        
-                if (Array.isArray(data)) {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+            
+                list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังโหลดข้อมูล...</p>`;
+            
+                try {
+                    // ✅ ดึงข้อมูลอย่างเดียว ไม่ส่งค่าอะไรไปบันทึก
+                    const response = await fetch(`${SCRIPT_URL}?action=get`);
+                    const data = await response.json();
+            
+                    if (!Array.isArray(data) || data.length === 0) {
+                        list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+                        return;
+                    }
+            
                     renderHistoryUI(data);
-                } else {
-                    list.innerHTML = `<p class="text-center py-10 text-red-400 italic">รูปแบบข้อมูลไม่ถูกต้อง</p>`;
+            
+                } catch (error) {
+                    console.error("History Load Error:", error);
+                    list.innerHTML = `<p class="text-center py-10 text-red-400 italic">โหลดข้อมูลไม่สำเร็จ</p>`;
                 }
-        
-            } catch (e) {
-                console.error("Sync Error:", e);
-                list.innerHTML = `<p class="text-center py-10 text-red-400 italic">ไม่สามารถโหลดข้อมูลได้</p>`;
             }
-        }
 
 
         // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
@@ -484,6 +483,7 @@
     </script>
 </body>
 </html>
+
 
 
 
