@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwuTOg43U89KGgUpOBC77lF2WI2qaWjWKc8LiNiAVo-bdNjs_KlOZ4NF0CrdnwwJpSwYw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyI-VePVOc8aK_rUxBiBlO1e6zbz7cyJK1xnPCQQjZoO8Fy2ehVfn2RsIYMX9xY_6QV7g/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -325,24 +325,22 @@
 
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            const icon = document.getElementById('refresh-icon');
-            if (icon) icon.classList.add('loading-spinner');
-        
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const data = await response.json(); // เปลี่ยนจาก .text() เป็น .json() เลย
-        
-                if (Array.isArray(data)) {
-                    renderHistoryUI(data); // นำข้อมูลไปโชว์ในหน้า History
-                }
-            } catch (e) {
-                console.error("Sync Error:", e);
-                list.innerHTML = `<p class="text-center py-10 text-slate-400">ไม่สามารถโหลดข้อมูลได้</p>`;
-            } finally {
-                if (icon) icon.classList.remove('loading-spinner');
-            }
+    const list = document.getElementById('history-list');
+    if (!list) return;
+
+    try {
+        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        const data = await response.json(); // อ่านเป็น JSON โดยตรง
+
+        if (Array.isArray(data)) {
+            renderHistoryUI(data);
         }
+    } catch (e) {
+        console.error("Sync failed, but not crashing");
+        // ถ้าดึงไม่ได้ ให้แสดงข้อความบอกผู้ใช้แทนการค้าง
+        list.innerHTML = `<p class="text-center py-10 text-slate-400">ยังไม่มีข้อมูลใหม่</p>`;
+    }
+}
             function goToHistory() {
     switchView('history');
     syncHistoryData(); // ดึงข้อมูลแค่ครั้งเดียวตอนเปิดหน้า
@@ -363,17 +361,20 @@
                     </div>
                 `).join('');
             }
-                function switchView(v) {
-                    document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
-                    document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
-                    document.getElementById('view-history').classList.toggle('hidden', v !== 'history');
-                    document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-                    document.getElementById(`btn-${v}`).classList.add('active-tab');
-        
-                    if (v === 'queue') renderLocalQueue();
-                    if (v === 'history') syncHistoryData();
-                }
-        
+                function switchView(viewId) {
+    // 1. ซ่อนทุกหน้า
+    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+    // 2. โชว์หน้าที่จะไป
+    const targetView = document.getElementById(viewId);
+    if (targetView) {
+        targetView.classList.remove('hidden');
+    }
+    
+    // 3. ถ้าไปหน้า History ให้ดึงข้อมูลแค่ครั้งเดียวพอ
+    if (viewId === 'history') {
+        syncHistoryData();
+    }
+}       
                 window.onload = () => { 
             renderPOS(); 
             // ไม่ต้องเรียก syncOnlineData แล้ว เพราะเราใช้ Local Queue
@@ -381,6 +382,7 @@
     </script>
 </body>
 </html>
+
 
 
 
