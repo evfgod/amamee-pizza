@@ -435,29 +435,24 @@
                 }
 
         async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                if (!list) return;
-            
-                list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังโหลดข้อมูล...</p>`;
-            
-                try {
-                    // ✅ ดึงข้อมูลอย่างเดียว ไม่ส่งค่าอะไรไปบันทึก
-                    const response = await fetch(`${SCRIPT_URL}?action=get`);
-                    const data = await response.json();
-            
-                    if (!Array.isArray(data) || data.length === 0) {
-                        list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                        return;
-                    }
-            
-                    renderHistoryUI(data);
-            
-                } catch (error) {
-                    console.error("History Load Error:", error);
-                    list.innerHTML = `<p class="text-center py-10 text-red-400 italic">โหลดข้อมูลไม่สำเร็จ</p>`;
-                }
-            }
+    const list = document.getElementById('history-list');
+    try {
+        const response = await fetch(SCRIPT_URL + "?action=getHistory");
+        const rawText = await response.text(); // อ่านเป็นข้อความดิบๆ มาก่อน
 
+        // ตรวจสอบว่าถ้าได้รับคำว่า Success หรือไม่ใช่รูปแบบ JSON
+        if (rawText.trim() === "Success" || !rawText.trim().startsWith("[")) {
+            console.warn("เซิร์ฟเวอร์ส่งข้อความธรรมดามา:", rawText);
+            return; // หยุดทำงานตรงนี้ ไม่ต้องไป Parse JSON ให้พัง
+        }
+
+        const data = JSON.parse(rawText);
+        renderHistoryUI(data);
+
+    } catch (error) {
+        console.error("History Load Error:", error);
+    }
+}
 
         // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
@@ -491,3 +486,4 @@
     </script>
 </body>
 </html>
+
