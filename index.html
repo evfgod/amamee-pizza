@@ -108,7 +108,6 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLmkdDNp0jQyktH5es8J_nw7oI11lFHoV_Zn8_F6dnbTtKjIxbkuCyyDM3rtDHvKPn5g/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -254,31 +253,37 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        async function confirmPayment() {
-            if (!activePaymentOrder) return;
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึกข้อมูลลง Sheet...";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5gYCucyCKfN-F9j_H7swQ5kr4OpgsLDrTVuvVbbpG81e5E60f-nhhrsUoBEmSh7dNoA/exec";
 
-            try {
-                // บันทึกเฉพาะเมื่อจ่ายเงินแล้ว
-                await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify({ action: "SAVE_SALE", ...activePaymentOrder }) 
-                });
+async function confirmPayment() {
+    if (!activePaymentOrder) return;
+    const btn = document.getElementById('btn-confirm-pay');
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึกข้อมูล...";
 
-                // ลบออกจากคิวในเครื่อง
-                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                closePaymentModal();
-                switchView('history');
-            } catch (e) {
-                alert("ไม่สามารถเชื่อมต่อ Google Sheets ได้");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "ชำระเงินและบันทึก";
-            }
-        }
+    try {
+        // ส่งข้อมูลไปบันทึกที่ Google Sheets
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', // สำคัญ: ต้องเป็น no-cors สำหรับ Google Apps Script
+            body: JSON.stringify({ action: "SAVE_SALE", ...activePaymentOrder }) 
+        });
+
+        // เมื่อบันทึกสำเร็จ (หรือส่งออกไปแล้ว) ให้ลบออกจากคิวในเครื่องทันที
+        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+        
+        closePaymentModal();
+        renderLocalQueue(); // อัปเดตรายการหน้าคิว (รายการที่จ่ายแล้วจะหายไป)
+        switchView('history'); // สลับไปหน้าประวัติ
+        
+    } catch (e) {
+        console.error("Confirm Payment Error:", e);
+        alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "ชำระเงินและบันทึก";
+    }
+}
 
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
@@ -339,4 +344,5 @@
     </script>
 </body>
 </html>
+
 
