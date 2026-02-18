@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNym-5z3X_0jGbDltdFcCQJ_5id8VpBVqqILyzn4xtfyXBX7ZSVPbjF-3PGBf8YlM/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzR3PAloPvIKouAlRYXdaUAjjtba-ivPy8M3CdqtCus7JLr2wulddElCyiHCWQ0GsI_pQ/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -328,20 +328,25 @@
                 const list = document.getElementById('history-list');
                 const icon = document.getElementById('refresh-icon');
                 
-                // ใส่ Loading สวยๆ
                 if(icon) icon.classList.add('loading-spinner');
                 
                 try {
-                    // ใช้ GET เท่านั้นและเติมแคชป้องกันข้อมูลเก่า
-                    const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                    // ใช้ GET อย่างเดียว ห้ามส่ง Body หรือ Params อื่นๆ ที่เสี่ยงให้ Google สับสน
+                    const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+                        method: 'GET'
+                    });
+                    
                     const data = await response.json();
                     
+                    // ตรวจสอบว่าเป็น Array ข้อมูลจริงหรือไม่
                     if (Array.isArray(data)) {
                         renderHistoryUI(data);
+                    } else {
+                        list.innerHTML = `<p class="text-center py-10 text-slate-400 font-bold">ไม่พบประวัติการขาย</p>`;
                     }
                 } catch (e) {
                     console.error("Fetch history failed");
-                    list.innerHTML = `<p class="text-center py-10 text-slate-400">ยังไม่มีข้อมูลประวัติ</p>`;
+                    list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถดึงข้อมูลได้</p>`;
                 } finally {
                     if(icon) icon.classList.remove('loading-spinner');
                 }
@@ -364,6 +369,7 @@
     </script>
 </body>
 </html>
+
 
 
 
