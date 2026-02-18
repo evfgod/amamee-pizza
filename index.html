@@ -299,28 +299,50 @@
         async function syncHistoryData() {
             const list = document.getElementById('history-list');
             const icon = document.getElementById('refresh-icon');
+            
+            // 1. แสดงสถานะกำลังโหลด (ถ้ามีไอคอน)
             if (icon) icon.classList.add('loading-spinner');
+        
             try {
+                // 2. ดึงข้อมูลแบบป้องกันการจำค่าเก่า (Cache)
                 const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                
+                if (!response.ok) throw new Error('Network response was not ok');
+                
                 const data = await response.json();
-                if (Array.isArray(data)) renderHistoryUI(data);
+        
+                // 3. ตรวจสอบว่าข้อมูลที่ได้มาเป็น Array จริงไหม
+                if (Array.isArray(data)) {
+                    // ถ้ามีข้อมูล ให้แสดงผลและ "หยุด" การทำงานของ catch ทันที
+                    renderHistoryUI(data);
+                    console.log("History updated successfully");
+                } else {
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ยังไม่มีข้อมูลออเดอร์</p>`;
+                }
             } catch (e) {
-                list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถดึงข้อมูลได้</p>`;
+                console.error("Fetch history failed:", e);
+                // 4. แก้ปัญหา "เด้งหาย": เช็คก่อนว่าใน list มีข้อมูลอยู่แล้วหรือเปล่า 
+                // ถ้ามีข้อมูลเก่าโชว์อยู่แล้ว ไม่ต้องพ่น Error ทับหน้าจอ
+                if (list.children.length <= 1) { 
+                    list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">ไม่สามารถเชื่อมต่อระบบได้ (ตรวจสอบอินเทอร์เน็ต)</p>`;
+                }
             } finally {
+                // 5. เอาตัวหมุนออกเสมอไม่ว่าจะสำเร็จหรือไม่
                 if (icon) icon.classList.remove('loading-spinner');
             }
         }
-
+        
         function renderHistoryUI(data) {
             const list = document.getElementById('history-list');
-            if (!data || data.length === 0) {
-                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                return;
-            }
-            list.innerHTML = data.map(o => `
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
+            if (!list) return;
+        
+            // สร้างเนื้อหาใหม่ทั้งหมดในตัวแปรเดียวก่อน แล้วค่อยพ่นลง HTML ครั้งเดียว (ลดการกระพริบ)
+            const html = data.map(o => `
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm animate-fadeIn">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
+                            <i class="fas fa-check"></i>
+                        </div>
                         <div>
                             <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
                             <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
@@ -329,12 +351,15 @@
                     <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
                 </div>
             `).join('');
+        
+            list.innerHTML = html;
         }
 
         renderPOS();
     </script>
 </body>
 </html>
+
 
 
 
