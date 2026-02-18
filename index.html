@@ -253,7 +253,7 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5gYCucyCKfN-F9j_H7swQ5kr4OpgsLDrTVuvVbbpG81e5E60f-nhhrsUoBEmSh7dNoA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8gHpLyucWSueN9DaVmWhBfqzwpkrHlu_yZhhCC9nytv260knzWK16pnraaEw1GJnYtg/exec";
 
 async function confirmPayment() {
     if (!activePaymentOrder) return;
@@ -296,33 +296,39 @@ async function confirmPayment() {
         async function syncHistoryData() {
     const icon = document.getElementById('refresh-icon');
     if(icon) icon.classList.add('loading-spinner');
+    
     try {
         const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-        const data = await response.json();
-        const list = document.getElementById('history-list');
+        const text = await response.text(); // อ่านเป็น Text ก่อน
         
-        // กรองเอาเฉพาะรายการที่มีข้อมูลจริง
-        const validData = data.filter(o => o.orderNo !== "");
-        
-        if (validData.length === 0) {
-            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-        } else {
-            list.innerHTML = validData.map(o => `
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                        <div>
-                            <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
-                            <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
+        try {
+            const data = JSON.parse(text); // ค่อยแปลงเป็น JSON
+            const list = document.getElementById('history-list');
+            
+            if (!data || data.length === 0) {
+                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+            } else {
+                list.innerHTML = data.map(o => `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
+                            <div>
+                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                                <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
+                            </div>
                         </div>
+                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
                     </div>
-                    <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
-                </div>
-            `).join('');
+                `).join('');
+            }
+        } catch (jsonErr) {
+            console.log("Waiting for JSON data..."); // กรณีที่ Google ส่ง Success กลับมา ไม่ต้องทำอะไร
         }
-    } catch (e) { 
-        console.error("History Sync Error:", e); 
+
+    } catch (e) {
+        console.error("History Sync Error:", e);
     }
+    
     if(icon) icon.classList.remove('loading-spinner');
 }
 
@@ -344,5 +350,6 @@ async function confirmPayment() {
     </script>
 </body>
 </html>
+
 
 
