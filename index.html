@@ -362,19 +362,24 @@
                 `).join('');
             }
                 function switchView(viewId) {
-    // 1. ซ่อนทุกหน้า
-    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-    // 2. โชว์หน้าที่จะไป
-    const targetView = document.getElementById(viewId);
-    if (targetView) {
-        targetView.classList.remove('hidden');
+    console.log("Switching to:", viewId);
+    // ซ่อนทุกหน้าที่มี class 'view'
+    const views = document.querySelectorAll('.view');
+    views.forEach(v => v.classList.add('hidden'));
+
+    // แสดงหน้าที่มี ID ตรงกับที่ส่งมา
+    const target = document.getElementById(viewId);
+    if (target) {
+        target.classList.remove('hidden');
+    } else {
+        console.error("View ID not found:", viewId);
     }
-    
-    // 3. ถ้าไปหน้า History ให้ดึงข้อมูลแค่ครั้งเดียวพอ
+
+    // ถ้าเปลี่ยนไปหน้า history ให้ดึงข้อมูลมาโชว์
     if (viewId === 'history') {
         syncHistoryData();
     }
-}       
+}
                 window.onload = () => { 
             renderPOS(); 
             // ไม่ต้องเรียก syncOnlineData แล้ว เพราะเราใช้ Local Queue
@@ -382,6 +387,7 @@
     </script>
 </body>
 </html>
+
 
 
 
