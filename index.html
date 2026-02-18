@@ -208,8 +208,14 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
+        // --- แก้ไขฟังก์ชันส่งลงคิว ---
         function sendToQueue(method) {
-            if (cart.length === 0) return;
+            if (cart.length === 0) {
+                alert("กรุณาเลือกเมนูอย่างน้อย 1 รายการ");
+                return;
+            }
+
+            // สร้างก้อนข้อมูลออเดอร์
             const order = {
                 id: Date.now(),
                 orderNo: String(Date.now()).slice(-4),
@@ -218,45 +224,64 @@
                 total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
                 method: method
             };
+
+            // 1. เก็บเข้าตัวแปรคิวในเครื่อง
             localQueue.push(order);
+            
+            // 2. ล้างตะกร้าสินค้า
             cart = [];
             updateCartUI();
-            toggleCartModal();
+            
+            // 3. ปิดหน้าต่างตะกร้า
+            if (document.getElementById('cart-modal')) {
+                document.getElementById('cart-modal').classList.add('hidden');
+            }
+            
+            // 4. สั่งวาดข้อมูลหน้าคิว "ก่อน" สลับหน้า
+            renderLocalQueue(); 
+            
+            // 5. สลับไปหน้าคิว
             switchView('queue');
         }
 
-        // --- 2. ฟังก์ชันแสดงหน้าคิว (Queue) ---
+        // --- ตรวจสอบฟังก์ชันแสดงผลหน้าคิว (ตรวจสอบ ID ให้ตรงกัน) ---
         function renderLocalQueue() {
             const list = document.getElementById('queue-list');
             const badge = document.getElementById('queue-badge');
             
-            // อัปเดตตัวเลขแจ้งเตือนบนปุ่มคิว
+            // แสดงตัวเลขคิวค้างบนปุ่ม
             if (badge) {
                 badge.innerText = localQueue.length;
                 badge.classList.toggle('hidden', localQueue.length === 0);
             }
 
             if (!list) return;
+
             if (localQueue.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบรายการค้างชำระ</div>`;
+                list.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-slate-300">
+                        <i class="fas fa-clipboard-list text-5xl mb-4 opacity-20"></i>
+                        <p class="font-bold italic">ยังไม่มีออเดอร์ในคิว</p>
+                    </div>`;
                 return;
             }
 
+            // วาดรายการคิว
             list.innerHTML = localQueue.map(o => `
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4 animate-fadeIn">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
-                            <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic font-inter">#${o.orderNo}</span>
+                            <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
                             <div>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time}</p>
-                                <h4 class="font-bold text-slate-800 text-sm">${o.itemSummary}</h4>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
+                                <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
                             </div>
                         </div>
-                        <p class="font-black text-xl text-slate-700">฿${o.total.toLocaleString()}</p>
+                        <p class="font-black text-xl text-slate-700 italic">฿${o.total.toLocaleString()}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs">ยกเลิก</button>
-                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg">ชำระเงิน</button>
+                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs active:scale-95 transition-all">ยกเลิก</button>
+                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">ชำระเงิน</button>
                     </div>
                 </div>
             `).join('');
@@ -267,8 +292,6 @@
                 renderLocalQueue();
             }
         }
-
-
         function calcChange() {
             const received = parseFloat(document.getElementById('cash-received').value) || 0;
             const total = activePaymentOrder.total;
@@ -443,6 +466,7 @@
     </script>
 </body>
 </html>
+
 
 
 
