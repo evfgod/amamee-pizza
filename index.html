@@ -112,7 +112,7 @@
 
     <script>
         // เปลี่ยน URL นี้เป็น URL ของ Google Script ของคุณ
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfUd1EkFgYvNPzijK7M0iPUKkoul4w1ESb_PkLqaoP6VuM9Q9LFwQe8-Wqu-LAhLtQdg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyROCTy6IIBeftxQ-ITu28ov5YN7QzFCVXcg-UpUXv8xxfzCK3B_8YEWB_cOLvvM3vkQw/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -199,174 +199,104 @@
         }
 
         // --- 3. ส่งข้อมูลไปจองคิว (PENDING) ---
-        async function sendToQueue(method) {
-    if (cart.length === 0) {
-        alert("กรุณาเลือกเมนูก่อนครับ");
-        return;
-    }
+        let localQueue = []; // เก็บข้อมูลคิวชั่วคราวในเครื่อง
 
-    const btn = event.currentTarget;
-    const originalHTML = btn.innerHTML;
-    
-    // ล็อคปุ่มป้องกันการกดซ้ำ
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner loading-spinner mr-2"></i>กำลังบันทึกคิว...';
+// --- 1. จากหน้าเมนู ส่งไปหน้าคิว (ยังไม่บันทึกลง Google Sheets) ---
+function sendToQueue(method) {
+    if (cart.length === 0) return;
 
-    const orderData = {
+    const order = {
+        id: Date.now(), // ใช้สำหรับลบหรือระบุในเครื่อง
         orderNo: String(Date.now()).slice(-4),
         time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
         itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
         total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-        method: method,
-        status: "PENDING" // ต้องระบุเป็นตัวพิมพ์ใหญ่เพื่อให้ Filter ตรวจเจอ
+        method: method
+    };
+
+    localQueue.push(order); // บันทึกเข้าคิวในเครื่อง
+    cart = []; // ล้างตะกร้า
+    updateCartUI();
+    toggleCartModal();
+    switchView('queue'); // สลับไปหน้าคิว
+    renderLocalQueue(); // วาดรายการหน้าคิว
+}
+
+// --- 2. แสดงรายการหน้าคิวจากข้อมูลในเครื่อง ---
+function renderLocalQueue() {
+    const list = document.getElementById('queue-list');
+    document.getElementById('queue-badge').innerText = localQueue.length;
+    document.getElementById('queue-badge').classList.toggle('hidden', localQueue.length === 0);
+
+    if (localQueue.length === 0) {
+        list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่มีคิวค้างชำระ</div>`;
+        return;
+    }
+
+    list.innerHTML = localQueue.map(o => `
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time}</p>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
+                    </div>
+                </div>
+                <div class="text-right">
+                     <p class="font-black text-xl text-slate-700 italic font-inter">฿${o.total}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs">ยกเลิก</button>
+                <button onclick='openPaymentModalOnline(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs shadow-lg uppercase">ชำระเงิน (${o.method === 'CASH' ? 'สด' : 'โอน'})</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// --- 3. เมื่อกดจ่ายเงิน ค่อยบันทึกลง Google Sheets ---
+async function confirmPayment() {
+    if (!activePaymentOrder) return;
+    
+    const btn = document.getElementById('btn-confirm-pay');
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึกข้อมูล...";
+
+    const payload = {
+        action: "SAVE_SALE",
+        ...activePaymentOrder // ส่งข้อมูลออเดอร์ทั้งหมดไปบันทึก
     };
 
     try {
-        // ส่งข้อมูลแบบ POST
         await fetch(SCRIPT_URL, { 
             method: 'POST', 
             mode: 'no-cors', 
-            body: JSON.stringify(orderData) 
+            body: JSON.stringify(payload) 
         });
 
-        // ล้างตะกร้าและปิด Modal
-        cart = [];
-        updateCartUI();
-        toggleCartModal();
-
-        // แจ้งเตือนผู้ใช้เล็กน้อยและสลับหน้า
-        alert("บันทึกคิวสำเร็จ!");
-        switchView('queue');
+        // จ่ายเสร็จแล้ว -> ลบออกจากคิวในเครื่อง
+        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
         
-        // รอ 1.5 วินาทีเพื่อให้ Google บันทึกไฟล์เสร็จ แล้วรีเฟรชข้อมูลหน้าคิว
-        setTimeout(() => {
-            syncOnlineData();
-        }, 1500);
-
+        closePaymentModal();
+        renderLocalQueue(); // อัปเดตหน้าคิว (รายการจะหายไป)
+        switchView('history'); // ไปหน้าประวัติเพื่อดูรายการที่บันทึก
+        
     } catch (e) {
-        console.error("Error:", e);
-        alert("เกิดข้อผิดพลาด: ไม่สามารถส่งข้อมูลได้ กรุณาเช็ค Internet หรือ Script URL");
+        alert("บันทึกข้อมูลล้มเหลว");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = originalHTML;
+        btn.innerText = "ยืนยันการชำระเงิน";
     }
 }
 
-        // --- 4. ซิงค์ข้อมูลจาก Google Sheets ---
-        async function syncOnlineData() {
-            const icon = document.getElementById('refresh-icon');
-            if(icon) icon.classList.add('loading-spinner');
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const allData = await response.json();
-                const validData = allData.filter(i => i.orderNo && i.orderNo !== "0");
-
-                renderQueue(validData.filter(i => i.status.toUpperCase() === "PENDING"));
-                renderHistory(validData.filter(i => i.status.toUpperCase() === "PAID"));
-            } catch (e) { console.error("Sync Error"); }
-            if(icon) icon.classList.remove('loading-spinner');
-        }
-
-        function renderQueue(data) {
-            const list = document.getElementById('queue-list');
-            document.getElementById('queue-badge').innerText = data.length;
-            document.getElementById('queue-badge').classList.toggle('hidden', data.length === 0);
-            
-            if (data.length === 0) {
-                list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบรายการค้างชำระ</div>`;
-                return;
-            }
-
-            list.innerHTML = data.map(o => `
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
-                            <div>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase font-inter">${o.time}</p>
-                                <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                             <p class="font-black text-xl text-slate-700 italic font-inter">฿${o.total}</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="cancelOrder(${o.rowId})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs uppercase hover:bg-red-50 hover:text-red-500 transition-colors">ยกเลิกคิว</button>
-                        <button onclick='openPaymentModalOnline(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs shadow-lg uppercase">ชำระเงิน (${o.method === 'CASH' ? 'สด' : 'โอน'})</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function renderHistory(data) {
-            const list = document.getElementById('history-list');
-            if (data.length === 0) {
-                list.innerHTML = `<p class="text-center py-20 text-slate-300 font-bold italic">ไม่มีประวัติการขาย</p>`;
-                return;
-            }
-            list.innerHTML = data.slice(0, 30).map(o => `
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                        <div>
-                            <p class="font-black text-sm italic">#${o.orderNo}</p>
-                            <p class="text-[9px] text-slate-400 font-bold font-inter">${o.time} • ${o.method}</p>
-                        </div>
-                    </div>
-                    <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
-                </div>
-            `).join('');
-        }
-
-        // --- 5. จัดการการจ่ายเงิน ---
-        function openPaymentModalOnline(order) {
-            activePaymentOrder = order;
-            const isCash = order.method === 'CASH';
-            document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
-            document.getElementById('pay-total-display').innerText = `฿${order.total}`;
-            document.getElementById('cash-input-section').classList.toggle('hidden', !isCash);
-            document.getElementById('cash-received').value = '';
-            document.getElementById('cash-change').innerText = '฿0';
-            document.getElementById('payment-modal').classList.remove('hidden');
-        }
-
-        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
-
-        function calcChange() {
-            const received = document.getElementById('cash-received').value || 0;
-            const change = received - activePaymentOrder.total;
-            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
-        }
-
-        async function confirmPayment() {
-            if (!activePaymentOrder) return;
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true; 
-            btn.innerText = "กำลังบันทึก...";
-            try {
-                await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify({ action: "UPDATE_STATUS", rowId: activePaymentOrder.rowId }) 
-                });
-                closePaymentModal();
-                switchView('history');
-            } catch (e) { alert("จ่ายเงินล้มเหลว"); }
-            finally { btn.disabled = false; btn.innerText = "ยืนยันการชำระเงิน"; }
-        }
-
-        async function cancelOrder(rowId) {
-            if(!confirm("ต้องการยกเลิกคิวนี้ใช่หรือไม่?")) return;
-            try {
-                await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify({ action: "CANCEL_ORDER", rowId: rowId }) 
-                });
-                syncOnlineData();
-            } catch (e) { alert("ไม่สามารถยกเลิกได้"); }
-        }
+// ยกเลิกคิว (ลบออกจากเครื่อง)
+function cancelLocalOrder(id) {
+    if(confirm("ยกเลิกคิวนี้?")) {
+        localQueue = localQueue.filter(q => q.id !== id);
+        renderLocalQueue();
+    }
+}
 
         // --- 6. ควบคุมหน้าจอ (Navigation) ---
         function switchView(v) {
@@ -388,4 +318,5 @@
     </script>
 </body>
 </html>
+
 
