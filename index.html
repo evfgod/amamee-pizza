@@ -96,7 +96,12 @@
                 <h2 id="pay-total-display" class="text-5xl font-black italic">฿0</h2>
             </div>
             <div id="cash-input-section" class="hidden space-y-4">
-                <input type="number" id="cash-received" oninput="calcChange()" class="w-full text-4xl font-black p-6 bg-slate-50 rounded-2xl text-center focus:outline-none border-2 border-transparent focus:border-red-500" placeholder="0">
+                <input type="number" 
+       id="cash-received" 
+       oninput="calcChange()" 
+       inputmode="decimal"
+       placeholder="0.00" 
+       class="w-full text-4xl font-black text-center py-4 border-2 border-slate-200 rounded-3xl focus:border-red-500 outline-none">
                 <div class="flex justify-between items-center p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
                     <span class="font-bold text-emerald-700 text-xs uppercase font-inter">Change</span>
                     <span id="cash-change" class="text-3xl font-black text-emerald-600 font-inter">฿0</span>
@@ -126,8 +131,8 @@
             { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
         ];
 
-        let cart = [];
-        let localQueue = []; 
+        let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
+        let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
         let activePaymentOrder = null;
 
         // --- 1. สลับหน้าจอและบังคับ Refresh ข้อมูล ---
@@ -165,11 +170,17 @@
                 </div>
             `).join('');
         }
+        
+        function saveData() {
+            localStorage.setItem('amamee_cart', JSON.stringify(cart));
+            localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
+        }
 
         function addToCart(id) {
             const item = MENU.find(x => x.id === id);
             const exists = cart.find(i => i.id === id);
             if (exists) exists.qty++; else cart.push({ ...item, qty: 1 });
+            saveData(); // บันทึก
             updateCartUI();
         }
 
@@ -178,6 +189,7 @@
             if (item) {
                 item.qty += d;
                 if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
+                saveData(); // บันทึก
                 updateCartUI();
             }
         }
@@ -210,12 +222,7 @@
 
         // --- แก้ไขฟังก์ชันส่งลงคิว ---
         function sendToQueue(method) {
-            if (cart.length === 0) {
-                alert("กรุณาเลือกเมนูอย่างน้อย 1 รายการ");
-                return;
-            }
-
-            // สร้างก้อนข้อมูลออเดอร์
+            if (cart.length === 0) return;
             const order = {
                 id: Date.now(),
                 orderNo: String(Date.now()).slice(-4),
@@ -224,23 +231,11 @@
                 total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
                 method: method
             };
-
-            // 1. เก็บเข้าตัวแปรคิวในเครื่อง
             localQueue.push(order);
-            
-            // 2. ล้างตะกร้าสินค้า
             cart = [];
+            saveData(); // บันทึกข้อมูลคิว
             updateCartUI();
-            
-            // 3. ปิดหน้าต่างตะกร้า
-            if (document.getElementById('cart-modal')) {
-                document.getElementById('cart-modal').classList.add('hidden');
-            }
-            
-            // 4. สั่งวาดข้อมูลหน้าคิว "ก่อน" สลับหน้า
-            renderLocalQueue(); 
-            
-            // 5. สลับไปหน้าคิว
+            toggleCartModal();
             switchView('queue');
         }
 
@@ -300,14 +295,15 @@
 
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
 
-            // ปลดล็อคปุ่มเมื่อเงินครบ
             if (received >= total) {
                 confirmBtn.disabled = false;
-                confirmBtn.style.opacity = "1";
+                // เปลี่ยนเป็นสีแดงสด (bg-red-600)
+                confirmBtn.className = "w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all scale-100";
                 confirmBtn.innerText = "ชำระเงินและบันทึก";
             } else {
                 confirmBtn.disabled = true;
-                confirmBtn.style.opacity = "0.5";
+                // สีเทาเมื่อเงินไม่พอ
+                confirmBtn.className = "w-full bg-slate-300 text-slate-500 py-6 rounded-2xl font-black text-xl shadow-none opacity-50 cursor-not-allowed";
                 confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
             }
         }
@@ -491,6 +487,7 @@
     </script>
 </body>
 </html>
+
 
 
 
