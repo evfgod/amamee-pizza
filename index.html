@@ -252,40 +252,87 @@
             }
         }
 
+        // --- 4. การชำระเงินและบันทึกลง Google Sheets ---
         function openPaymentModal(order) {
             activePaymentOrder = order;
             const isCash = order.method === 'CASH';
+            const confirmBtn = document.getElementById('btn-confirm-pay');
+            
             document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
-            document.getElementById('pay-total-display').innerText = `฿${order.total}`;
+            document.getElementById('pay-total-display').innerText = `฿${order.total.toLocaleString()}`;
             document.getElementById('cash-input-section').classList.toggle('hidden', !isCash);
             document.getElementById('cash-received').value = '';
             document.getElementById('cash-change').innerText = '฿0';
             document.getElementById('payment-modal').classList.remove('hidden');
-        }
 
-        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
+            // รีเซ็ตสถานะปุ่ม: ถ้าเป็นเงินสดต้องรอพิมพ์ก่อน ถ้าเป็นโอนให้กดได้เลย
+            if (isCash) {
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = "0.5";
+                confirmBtn.innerText = "กรุณาใส่จำนวนเงิน";
+            } else {
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = "1";
+                confirmBtn.innerText = "ชำระเงินและบันทึก";
+            }
+        }
 
         function calcChange() {
             const received = parseFloat(document.getElementById('cash-received').value) || 0;
             const total = activePaymentOrder.total;
             const change = received - total;
-            
-            const changeDisplay = document.getElementById('cash-change');
             const confirmBtn = document.getElementById('btn-confirm-pay');
-        
-            changeDisplay.innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
-        
-            // เงื่อนไขปลดล็อคปุ่ม
+
+            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
+
+            // ปลดล็อคปุ่มเมื่อเงินครบ
             if (received >= total) {
                 confirmBtn.disabled = false;
-                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
-                confirmBtn.classList.add('bg-red-600');
+                confirmBtn.style.opacity = "1";
                 confirmBtn.innerText = "ชำระเงินและบันทึก";
             } else {
                 confirmBtn.disabled = true;
-                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-400');
-                confirmBtn.classList.remove('bg-red-600');
-                confirmBtn.innerText = received > 0 ? `ค้างอีก ฿${(total - received).toLocaleString()}` : "กรุณาใส่จำนวนเงิน";
+                confirmBtn.style.opacity = "0.5";
+                confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
+            }
+        }
+
+        async function confirmPayment() {
+            if (!activePaymentOrder) return;
+            const btn = document.getElementById('btn-confirm-pay');
+            
+            // ป้องกันการกดซ้ำ
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึก...";
+
+            const params = new URLSearchParams();
+            params.append('time', activePaymentOrder.time);
+            params.append('orderNo', activePaymentOrder.orderNo);
+            params.append('itemSummary', activePaymentOrder.itemSummary);
+            params.append('total', activePaymentOrder.total);
+            params.append('method', activePaymentOrder.method);
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: params
+                });
+                
+                // ตรวจสอบว่าสำเร็จหรือไม่
+                if (response.ok) {
+                    // ลบคิวในเครื่อง
+                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                    renderLocalQueue();
+                    closePaymentModal();
+                    switchView('history');
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            } catch (e) {
+                console.error("Payment failed", e);
+                alert("บันทึกไม่สำเร็จ แต่ออเดอร์ยังอยู่ในคิว ลองกดใหม่อีกครั้ง");
+                btn.disabled = false;
+                btn.innerText = "ชำระเงินและบันทึก";
             }
         }
         
@@ -377,6 +424,7 @@
     </script>
 </body>
 </html>
+
 
 
 
