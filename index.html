@@ -253,47 +253,52 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuXJhsCGFWPHNoh9QTU_eG-AXp17tP_a75B0FDE_WqoAG02uIS_vIwjeFqQrffS5_GVw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzw3DBLF-nFRtTwj8DvwVpBOdR3H21vIZkWp_YW6LUYC00Vf3SjWqthEqYWn1baoCP11w/exec";
 
             async function confirmPayment() {
-                if (!activePaymentOrder) return;
-                const btn = document.getElementById('btn-confirm-pay');
-                
-                btn.disabled = true;
-                btn.innerText = "กำลังบันทึกข้อมูล...";
-            
-                const payload = { 
-                    action: "SAVE_SALE", 
-                    ...activePaymentOrder 
-                };
-            
-                try {
-                    // ส่งข้อมูลแบบ no-cors (จะมองไม่เห็น Response แต่ข้อมูลจะไปถึง Google)
-                    await fetch(SCRIPT_URL, { 
-                        method: 'POST', 
-                        mode: 'no-cors', 
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload) 
-                    });
-            
-                    // ลบออเดอร์ออกจากคิวในเครื่องทันที
-                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                    
-                    // ปิด Modal และรีเฟรชหน้าคิว
-                    closePaymentModal();
-                    renderLocalQueue(); 
-                    
-                    // ย้ายไปหน้า History ทันที
-                    switchView('history');
-            
-                } catch (e) {
-                    console.error("Confirm Payment Error:", e);
-                    alert("การบันทึกอาจขัดข้อง โปรดตรวจสอบ Google Sheet");
-                } finally {
-                    btn.disabled = false;
-                    btn.innerText = "ชำระเงินและบันทึก";
-                }
-            }
+    if (!activePaymentOrder) return;
+    const btn = document.getElementById('btn-confirm-pay');
+    btn.disabled = true;
+    btn.innerText = "กำลังเชื่อมต่อ Google Sheets...";
+
+    // เตรียมข้อมูล
+    const formData = JSON.stringify({
+        action: "SAVE_SALE",
+        time: activePaymentOrder.time,
+        orderNo: activePaymentOrder.orderNo,
+        itemSummary: activePaymentOrder.itemSummary,
+        total: activePaymentOrder.total,
+        method: activePaymentOrder.method
+    });
+
+    try {
+        // ส่งข้อมูลโดยใช้ฟีเจอร์พื้นฐานที่สุด
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // สำคัญมากสำหรับ Google Script
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: formData
+        });
+
+        // เนื่องจาก no-cors เราจะไม่รอคำตอบจาก Google (มันจะอ่านไม่ออกอยู่แล้ว)
+        // เราจะถือว่า "ส่งออกไปแล้ว" และทำงานต่อทันที
+        console.log("Data sent to Google Sheets");
+        
+        // ลบคิวในเครื่อง
+        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+        
+        closePaymentModal();
+        renderLocalQueue(); 
+        switchView('history'); // ไปหน้าประวัติ
+
+    } catch (e) {
+        alert("การส่งข้อมูลขัดข้อง: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "ชำระเงินและบันทึก";
+    }
+}
 
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
@@ -360,6 +365,7 @@
     </script>
 </body>
 </html>
+
 
 
 
