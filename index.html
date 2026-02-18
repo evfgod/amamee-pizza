@@ -159,7 +159,8 @@
                 updateCartUI();
             }
         }
-                    function renderHistoryUI(data) {
+        
+        function renderHistoryUI(data) {
                 const list = document.getElementById('history-list');
                 if (!data || data.length === 0) {
                     list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
@@ -275,41 +276,41 @@
         }
 
 
-            async function confirmPayment() {
-    if (!activePaymentOrder) return;
-    const btn = document.getElementById('btn-confirm-pay');
-    btn.disabled = true;
-    btn.innerText = "กำลังบันทึก...";
-
-    // เปลี่ยนมาใช้ URLSearchParams (วิธีที่เสถียรที่สุดสำหรับ Google Script)
-    const params = new URLSearchParams();
-    params.append('time', activePaymentOrder.time);
-    params.append('orderNo', activePaymentOrder.orderNo);
-    params.append('itemSummary', activePaymentOrder.itemSummary);
-    params.append('total', activePaymentOrder.total);
-    params.append('method', activePaymentOrder.method);
-
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // สั่งแบบยิงแล้วไม่ต้องรอคำตอบ
-            body: params
-        });
-
-        // หลังจากสั่งยิงข้อมูลเสร็จ ให้ทำงานในเครื่องต่อทันที ไม่ต้องรอ Google ตอบกลับ
-        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-        
-        closePaymentModal();
-        renderLocalQueue(); 
-        switchView('history'); 
-
-    } catch (e) {
-        alert("บันทึกไม่สำเร็จ");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "ชำระเงินและบันทึก";
-    }
-}
+        async function confirmPayment() {
+                if (!activePaymentOrder) return;
+                const btn = document.getElementById('btn-confirm-pay');
+                btn.disabled = true;
+                btn.innerText = "กำลังบันทึก...";
+            
+                // เปลี่ยนมาใช้ URLSearchParams (วิธีที่เสถียรที่สุดสำหรับ Google Script)
+                const params = new URLSearchParams();
+                params.append('time', activePaymentOrder.time);
+                params.append('orderNo', activePaymentOrder.orderNo);
+                params.append('itemSummary', activePaymentOrder.itemSummary);
+                params.append('total', activePaymentOrder.total);
+                params.append('method', activePaymentOrder.method);
+            
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors', // สั่งแบบยิงแล้วไม่ต้องรอคำตอบ
+                        body: params
+                    });
+            
+                    // หลังจากสั่งยิงข้อมูลเสร็จ ให้ทำงานในเครื่องต่อทันที ไม่ต้องรอ Google ตอบกลับ
+                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                    
+                    closePaymentModal();
+                    renderLocalQueue(); 
+                    switchView('history'); 
+            
+                } catch (e) {
+                    alert("บันทึกไม่สำเร็จ");
+                } finally {
+                    btn.disabled = false;
+                    btn.innerText = "ชำระเงินและบันทึก";
+                }
+            }
 
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
@@ -319,47 +320,48 @@
         }
 
         // --- 5. จัดการหน้าประวัติ (History) ---
-        async function syncHistoryData() {
-    const list = document.getElementById('history-list');
-    const icon = document.getElementById('refresh-icon');
-    if(icon) icon.classList.add('loading-spinner');
-
-    try {
-        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-        const text = await response.text();
+    async function syncHistoryData() {
+            const list = document.getElementById('history-list');
+            const icon = document.getElementById('refresh-icon');
+            if(icon) icon.classList.add('loading-spinner');
         
-        // ตรวจสอบว่าข้อมูลที่ได้มาเป็น JSON จริงๆ หรือไม่
-        if (text.startsWith('[') || text.startsWith('{')) {
-            const data = JSON.parse(text);
-            renderHistoryUI(data); // วาดตารางประวัติ
-        } else {
-            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังอัปเดตข้อมูลจาก Google...</p>`;
-            // ถ้ายังไม่ใช่ JSON ให้ลองใหม่ในอีก 3 วินาที (Auto Retry)
-            setTimeout(syncHistoryData, 3000);
+            try {
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                const text = await response.text();
+                
+                // ตรวจสอบว่าข้อมูลที่ได้มาเป็น JSON จริงๆ หรือไม่
+                if (text.startsWith('[') || text.startsWith('{')) {
+                    const data = JSON.parse(text);
+                    renderHistoryUI(data); // วาดตารางประวัติ
+                } else {
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังอัปเดตข้อมูลจาก Google...</p>`;
+                    // ถ้ายังไม่ใช่ JSON ให้ลองใหม่ในอีก 3 วินาที (Auto Retry)
+                    setTimeout(syncHistoryData, 3000);
+                }
+            } catch (e) {
+                console.log("Sync Error, retrying...");
+            }
+            if(icon) icon.classList.remove('loading-spinner');
         }
-    } catch (e) {
-        console.log("Sync Error, retrying...");
-    }
-    if(icon) icon.classList.remove('loading-spinner');
-}
-        function switchView(v) {
-            document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
-            document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
-            document.getElementById('view-history').classList.toggle('hidden', v !== 'history');
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-            document.getElementById(`btn-${v}`).classList.add('active-tab');
-
-            if (v === 'queue') renderLocalQueue();
-            if (v === 'history') syncHistoryData();
-        }
-
-        window.onload = () => { 
-    renderPOS(); 
-    // ไม่ต้องเรียก syncOnlineData แล้ว เพราะเราใช้ Local Queue
-};
+                function switchView(v) {
+                    document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
+                    document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
+                    document.getElementById('view-history').classList.toggle('hidden', v !== 'history');
+                    document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
+                    document.getElementById(`btn-${v}`).classList.add('active-tab');
+        
+                    if (v === 'queue') renderLocalQueue();
+                    if (v === 'history') syncHistoryData();
+                }
+        
+                window.onload = () => { 
+            renderPOS(); 
+            // ไม่ต้องเรียก syncOnlineData แล้ว เพราะเราใช้ Local Queue
+        };
     </script>
 </body>
 </html>
+
 
 
 
