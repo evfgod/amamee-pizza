@@ -130,18 +130,26 @@
         let localQueue = []; 
         let activePaymentOrder = null;
 
+        // --- 1. สลับหน้าจอและบังคับ Refresh ข้อมูล ---
         function switchView(viewId) {
+            // ซ่อนทุกหน้า
             document.getElementById('view-pos').classList.add('hidden');
             document.getElementById('view-queue').classList.add('hidden');
             document.getElementById('view-history').classList.add('hidden');
+            
+            // แสดงหน้าที่เลือก
             const target = document.getElementById('view-' + viewId);
             if (target) target.classList.remove('hidden');
+
+            // เปลี่ยนสีปุ่มเมนูด้านล่าง
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
             const activeBtn = document.getElementById('btn-' + viewId);
             if (activeBtn) activeBtn.classList.add('active-tab');
-            if (viewId === 'pos') renderPOS();
+
+            // บังคับแสดงข้อมูลตามหน้าจอที่ไป
             if (viewId === 'queue') renderLocalQueue();
             if (viewId === 'history') syncHistoryData();
+            if (viewId === 'pos') renderPOS();
         }
 
         function renderPOS() {
@@ -217,25 +225,34 @@
             switchView('queue');
         }
 
+        // --- 2. ฟังก์ชันแสดงหน้าคิว (Queue) ---
         function renderLocalQueue() {
             const list = document.getElementById('queue-list');
-            document.getElementById('queue-badge').innerText = localQueue.length;
-            document.getElementById('queue-badge').classList.toggle('hidden', localQueue.length === 0);
+            const badge = document.getElementById('queue-badge');
+            
+            // อัปเดตตัวเลขแจ้งเตือนบนปุ่มคิว
+            if (badge) {
+                badge.innerText = localQueue.length;
+                badge.classList.toggle('hidden', localQueue.length === 0);
+            }
+
+            if (!list) return;
             if (localQueue.length === 0) {
                 list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบรายการค้างชำระ</div>`;
                 return;
             }
+
             list.innerHTML = localQueue.map(o => `
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic font-inter">#${o.orderNo}</span>
                             <div>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase font-inter">${o.time}</p>
-                                <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time}</p>
+                                <h4 class="font-bold text-slate-800 text-sm">${o.itemSummary}</h4>
                             </div>
                         </div>
-                        <p class="font-black text-xl text-slate-700 font-inter italic">฿${o.total}</p>
+                        <p class="font-black text-xl text-slate-700">฿${o.total.toLocaleString()}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs">ยกเลิก</button>
@@ -244,7 +261,6 @@
                 </div>
             `).join('');
         }
-
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
                 localQueue = localQueue.filter(q => q.id !== id);
@@ -298,13 +314,11 @@
             }
         }
 
-        // ฟังก์ชันสำหรับปิดหน้าต่างชำระเงิน (ต้องมีตัวนี้ confirmPayment ถึงจะทำงานจบ)
+        // --- ฟังก์ชันปิด Modal (ต้องมีเพื่อให้ confirmPayment ไม่พัง) ---
         function closePaymentModal() {
             const modal = document.getElementById('payment-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                activePaymentOrder = null; // เคลียร์ค่าออเดอร์ที่ค้างไว้
-            }
+            if (modal) modal.classList.add('hidden');
+            activePaymentOrder = null;
         }
 
         // เพิ่มฟังก์ชันสลับหน้าจอ (เผื่อของเก่าหาย)
@@ -397,10 +411,20 @@
             }
         }
 
+        // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
             const list = document.getElementById('history-list');
             if (!list) return;
-            list.innerHTML = data.map(o => `
+
+            // กรองข้อมูล: ไม่เอาแถวที่ยอดเป็น 0 หรือไม่มีเลขที่ออเดอร์
+            const validData = data.filter(o => o.total > 0 && o.orderNo);
+
+            if (validData.length === 0) {
+                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+                return;
+            }
+
+            list.innerHTML = validData.map(o => `
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
@@ -419,6 +443,7 @@
     </script>
 </body>
 </html>
+
 
 
 
