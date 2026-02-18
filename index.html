@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGFuoT3JYSqqKa120F0cx5uQ4GVXbhVCeisg0utsOF5B0-luC-JoaoEcy3wlrIjS3FzQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLfT_LuyfftqGYrf5lYL3w68k7iMdNkbQnkj8nLkEgEl8CXex4ek0AGEQcbm5ykJ_WAQ/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -335,24 +335,30 @@
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
             const list = document.getElementById('history-list');
-            
+            const icon = document.getElementById('refresh-icon');
+            if (icon) icon.classList.add('loading-spinner');
+        
             try {
-                // ใช้ fetch แบบระบุ URL ตรงๆ และไม่ใส่ options อื่นเพื่อป้องกัน Google งง
-                const response = await fetch(SCRIPT_URL + "?action=read&t=" + Date.now());
-                const text = await response.text(); 
+                // ดึงข้อมูลแบบ GET บริสุทธิ์
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+                    method: 'GET', // ระบุให้ชัดเจน
+                    cache: 'no-store'
+                });
         
-                // ตรวจสอบ: ถ้าได้ Success หรือข้อมูลไม่ใช่รูปแบบ [ ... ] (JSON Array) ให้หยุดทันที!
-                if (text.trim() === "Success" || !text.trim().startsWith('[')) {
-                    console.error("Data mismatch: Received Success instead of JSON");
-                    return; // จบการทำงานตรงนี้ ห้ามสั่ง setTimeout ลองใหม่เด็ดขาด!
-                }
+                const text = await response.text();
         
-                const data = JSON.parse(text);
-                if (Array.isArray(data)) {
-                    renderHistoryUI(data); 
+                // ตรวจสอบว่าถ้าขึ้นต้นด้วย [ แสดงว่าเป็น JSON (ประวัติ)
+                if (text.trim().startsWith('[')) {
+                    const data = JSON.parse(text);
+                    renderHistoryUI(data);
+                } else {
+                    console.warn("ยังไม่มีข้อมูลใหม่ หรือระบบกำลังประมวลผล");
+                    // ไม่สั่งลองใหม่ (setTimeout) เพื่อหยุดลูปขยะ
                 }
             } catch (e) {
-                console.error("Sync failed:", e);
+                console.error("Fetch history failed:", e);
+            } finally {
+                if (icon) icon.classList.remove('loading-spinner');
             }
         }
             function goToHistory() {
@@ -393,6 +399,7 @@
     </script>
 </body>
 </html>
+
 
 
 
