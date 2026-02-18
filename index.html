@@ -393,11 +393,18 @@
                 btn.disabled = true;
                 btn.innerText = "กำลังบันทึก...";
             
+                // ✅ สร้างวันที่ format ตรงกับ Apps Script (dd/mm/yyyy พ.ศ.)
+                const now = new Date();
+                const day = now.getDate();
+                const month = now.getMonth() + 1;
+                const year = now.getFullYear() + 543;
+                const thaiDate = `${day}/${month}/${year}`;
+            
                 const params = new URLSearchParams();
-                params.append('date', new Date().toLocaleDateString('th-TH'));
-                params.append('type', activePaymentOrder.method);
-                params.append('amount', activePaymentOrder.total);
-                params.append('note', activePaymentOrder.itemSummary);
+                params.append('date', thaiDate);
+                params.append('type', activePaymentOrder.method || "-");
+                params.append('amount', activePaymentOrder.total || 0);
+                params.append('note', activePaymentOrder.itemSummary || "-");
             
                 try {
                     const response = await fetch(SCRIPT_URL, {
@@ -405,7 +412,10 @@
                         body: params
                     });
             
-                    const result = await response.json();
+                    const text = await response.text();
+                    console.log("Server response:", text);
+            
+                    const result = JSON.parse(text);
             
                     if (result.result === "success") {
                         localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
@@ -413,12 +423,12 @@
                         closePaymentModal();
                         switchView('history');
                     } else {
-                        throw new Error("Save failed");
+                        throw new Error(result.message || "Unknown error");
                     }
             
                 } catch (error) {
                     console.error("Payment Error:", error);
-                    alert("บันทึกไม่สำเร็จ");
+                    alert("บันทึกข้อมูลไม่สำเร็จ กรุณาตรวจสอบ Console");
                     btn.disabled = false;
                     btn.innerText = "ชำระเงินและบันทึก";
                 }
@@ -483,6 +493,7 @@
     </script>
 </body>
 </html>
+
 
 
 
