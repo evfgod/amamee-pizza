@@ -388,70 +388,69 @@
 
         async function confirmPayment() {
             if (!activePaymentOrder) return;
+        
             const btn = document.getElementById('btn-confirm-pay');
-            
             btn.disabled = true;
             btn.innerText = "กำลังบันทึก...";
-
+        
             const params = new URLSearchParams();
-            params.append('time', activePaymentOrder.time);
-            params.append('orderNo', activePaymentOrder.orderNo);
-            params.append('itemSummary', activePaymentOrder.itemSummary);
-            params.append('total', activePaymentOrder.total);
-            params.append('method', activePaymentOrder.method);
-
+            params.append('date', new Date().toLocaleDateString('th-TH'));
+            params.append('type', activePaymentOrder.method);
+            params.append('amount', activePaymentOrder.total);
+            params.append('note', activePaymentOrder.itemSummary);
+        
             try {
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: params
                 });
-                const data = await response.json();
-                
-                // ลบคิวในเครื่องเมื่อบันทึกสำเร็จ
-                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                renderLocalQueue();
-                closePaymentModal(); 
-                switchView('history');
-                
-                if (Array.isArray(data)) renderHistoryUI(data);
+        
+                const result = await response.json();
+        
+                if (result.result === "success") {
+                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                    renderLocalQueue();
+                    closePaymentModal();
+                    switchView('history');
+                    await syncHistoryData(); // ✅ ดึงข้อมูลใหม่หลังบันทึก
+                } else {
+                    alert("บันทึกไม่สำเร็จ");
+                    btn.disabled = false;
+                    btn.innerText = "ชำระเงินและบันทึก";
+                }
+        
             } catch (e) {
                 console.error("Payment Error:", e);
-                alert("บันทึกไม่สำเร็จ แต่ออเดอร์ยังอยู่ในคิว");
+                alert("บันทึกไม่สำเร็จ");
                 btn.disabled = false;
                 btn.innerText = "ชำระเงินและบันทึก";
             }
         }
 
+
         async function syncHistoryData() {
-    const list = document.getElementById('history-list');
-    if (!list) return;
-
-    try {
-        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-        const text = await response.text(); // อ่านเป็นข้อความธรรมดาก่อนเพื่อเช็ค
-
-        try {
-            const data = JSON.parse(text); // ค่อยแปลงเป็น JSON
-            if (Array.isArray(data)) {
-                renderHistoryUI(data);
-            }
-        } catch (jsonError) {
-            // ถ้าไม่ใช่ JSON (เช่น เป็นคำว่า Success) ให้ลองโหลดใหม่หรือข้ามไป
-            console.warn("Received non-JSON response:", text);
-            if (text.includes("Success")) {
-                // ถ้าขึ้น Success แสดงว่าบันทึกผ่านแล้ว แต่อาจจะดึงข้อมูลทันทีไม่ได้ 
-                // ให้รอ 1 วินาทีแล้วดึงใหม่อีกครั้ง
-                setTimeout(syncHistoryData, 1000);
+            const list = document.getElementById('history-list');
+            if (!list) return;
+        
+            list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังโหลดข้อมูล...</p>`;
+        
+            try {
+                // ✅ สำคัญ: ต้องมี action=get
+                const response = await fetch(`${SCRIPT_URL}?action=get&t=${Date.now()}`);
+                const data = await response.json();
+        
+                if (Array.isArray(data)) {
+                    renderHistoryUI(data);
+                } else {
+                    list.innerHTML = `<p class="text-center py-10 text-red-400 italic">รูปแบบข้อมูลไม่ถูกต้อง</p>`;
+                }
+        
+            } catch (e) {
+                console.error("Sync Error:", e);
+                list.innerHTML = `<p class="text-center py-10 text-red-400 italic">ไม่สามารถโหลดข้อมูลได้</p>`;
             }
         }
-    } catch (e) {
-        console.error("Sync Error:", e);
-        // ป้องกันข้อมูลหาย: ถ้าในหน้าจอมีข้อมูลอยู่แล้ว ไม่ต้องพ่น Error ทับ
-        if (list.innerHTML.trim() === "" || list.innerHTML.includes("ไม่สามารถ")) {
-            list.innerHTML = `<p class="text-center py-10 text-slate-400 italic">กำลังเชื่อมต่อฐานข้อมูล...</p>`;
-        }
-    }
-}
+
 
         // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
@@ -485,6 +484,7 @@
     </script>
 </body>
 </html>
+
 
 
 
