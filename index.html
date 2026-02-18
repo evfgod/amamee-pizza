@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywDazM196UrF3EQGQkchxzZ0GdlVAdBUoaVpRJuTRH5Hcf1ZJvMP5qHA9o0MaA_WF60w/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3uOSeOMa_jq-YosSamzBPerNDr7838UQFEdIkuWZBT_GQeewD_sSWHuB_BSEK-BI2/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -324,29 +324,28 @@
         }
 
         // --- 5. จัดการหน้าประวัติ (History) ---
-    async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            const icon = document.getElementById('refresh-icon');
-            if(icon) icon.classList.add('loading-spinner');
-        
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const text = await response.text();
+            async function syncHistoryData() {
+                    const list = document.getElementById('history-list');
+                    const icon = document.getElementById('refresh-icon');
+                    if(icon) icon.classList.add('loading-spinner');
                 
-                // ตรวจสอบว่าข้อมูลที่ได้มาเป็น JSON จริงๆ หรือไม่
-                if (text.startsWith('[') || text.startsWith('{')) {
-                    const data = JSON.parse(text);
-                    renderHistoryUI(data); // วาดตารางประวัติ
-                } else {
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังอัปเดตข้อมูลจาก Google...</p>`;
-                    // ถ้ายังไม่ใช่ JSON ให้ลองใหม่ในอีก 3 วินาที (Auto Retry)
-                    setTimeout(syncHistoryData, 3000);
+                    try {
+                        // ดึงข้อมูลแบบ GET เท่านั้น (ห้ามใส่ Body)
+                        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+                            method: 'GET'
+                        });
+                        const text = await response.text();
+                        
+                        if (text.startsWith('[') || text.startsWith('{')) {
+                            const data = JSON.parse(text);
+                            renderHistoryUI(data);
+                        }
+                    } catch (e) {
+                        console.error("Sync Error");
+                    } finally {
+                        if(icon) icon.classList.remove('loading-spinner');
+                    }
                 }
-            } catch (e) {
-                console.log("Sync Error, retrying...");
-            }
-            if(icon) icon.classList.remove('loading-spinner');
-        }
                 function switchView(v) {
                     document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
                     document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
@@ -365,6 +364,7 @@
     </script>
 </body>
 </html>
+
 
 
 
