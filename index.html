@@ -340,22 +340,29 @@
             if(icon) icon.classList.add('loading-spinner');
             
             try {
-                // ดึงข้อมูลด้วย GET และป้องกัน Cache
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                // บังคับให้เป็น GET เท่านั้นเพื่อไม่ให้ไปโดนฟังก์ชัน doPost บันทึกซ้ำ
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+        
+                const text = await response.text(); // อ่านเป็น Text ก่อนเพื่อเช็ค
                 
-                // ตรวจสอบสถานะการตอบกลับ
-                if (!response.ok) throw new Error('Network response was not ok');
+                // ถ้าผลลัพธ์คือ Success หรือไม่ใช่ JSON ให้หยุดทำงาน
+                if (text === "Success" || !text.trim().startsWith('[')) {
+                    console.log("ได้รับค่า Success หรือรูปแบบไม่ใช่ JSON, กำลังลองใหม่...");
+                    setTimeout(syncHistoryData, 1000); // รอ 1 วินาทีแล้วลองใหม่
+                    return;
+                }
+        
+                const data = JSON.parse(text); // แปลงเป็น JSON เมื่อมั่นใจแล้วว่าเป็น Array
                 
-                const data = await response.json();
-                
-                if (Array.isArray(data) && data.length > 0) {
+                if (Array.isArray(data)) {
                     renderHistoryUI(data); 
-                } else {
-                    list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบประวัติการขาย</div>`;
                 }
             } catch (e) {
                 console.error("Fetch history failed:", e);
-                list.innerHTML = `<div class="text-center py-20 text-red-300 italic">ไม่สามารถดึงข้อมูลจาก Server ได้</div>`;
+                list.innerHTML = `<div class="text-center py-20 text-slate-300 italic">กำลังเชื่อมต่อฐานข้อมูล...</div>`;
             } finally {
                 if(icon) icon.classList.remove('loading-spinner');
             }
@@ -395,6 +402,7 @@
     </script>
 </body>
 </html>
+
 
 
 
