@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLfT_LuyfftqGYrf5lYL3w68k7iMdNkbQnkj8nLkEgEl8CXex4ek0AGEQcbm5ykJ_WAQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwbOENgCTDGPQ10SCjYGrE7Af2lgPxUPmze6Sc0qLZe7XduUy7oOwLfSjF04SdMLNETaA/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -299,31 +299,22 @@
             params.append('method', activePaymentOrder.method);
         
             try {
-                // 3. ส่งข้อมูลแบบ POST
-                await fetch(SCRIPT_URL, {
+                const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     body: params
                 });
-        
-                // 4. รอสักครู่เพื่อให้มั่นใจว่าส่งออกไปแล้วจริงๆ
-                await new Promise(resolve => setTimeout(resolve, 500));
-        
-                // 5. เคลียร์คิวในเครื่องและปิดหน้าต่าง
-                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                activePaymentOrder = null; // ล้างค่าทิ้งป้องกันการส่งซ้ำ
+            
+                const data = await response.json(); // รับข้อมูลประวัติที่ส่งกลับมาทันที
                 
+                if (Array.isArray(data)) {
+                    renderHistoryUI(data); // อัปเดตหน้าจอด้วยข้อมูลใหม่
+                }
+            
                 closePaymentModal();
-                renderLocalQueue(); 
-                switchView('history'); 
-        
+                switchView('history'); // สลับไปหน้าประวัติ
             } catch (e) {
-                alert("เกิดข้อผิดพลาด: " + e.message);
-                btn.disabled = false;
-                btn.innerText = "ชำระเงินและบันทึก";
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                console.error("Payment failed", e);
             }
-        }
 
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
@@ -339,24 +330,15 @@
             if (icon) icon.classList.add('loading-spinner');
         
             try {
-                // ดึงข้อมูลแบบ GET บริสุทธิ์
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`, {
-                    method: 'GET', // ระบุให้ชัดเจน
-                    cache: 'no-store'
-                });
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+                const data = await response.json(); // เปลี่ยนจาก .text() เป็น .json() เลย
         
-                const text = await response.text();
-        
-                // ตรวจสอบว่าถ้าขึ้นต้นด้วย [ แสดงว่าเป็น JSON (ประวัติ)
-                if (text.trim().startsWith('[')) {
-                    const data = JSON.parse(text);
-                    renderHistoryUI(data);
-                } else {
-                    console.warn("ยังไม่มีข้อมูลใหม่ หรือระบบกำลังประมวลผล");
-                    // ไม่สั่งลองใหม่ (setTimeout) เพื่อหยุดลูปขยะ
+                if (Array.isArray(data)) {
+                    renderHistoryUI(data); // นำข้อมูลไปโชว์ในหน้า History
                 }
             } catch (e) {
-                console.error("Fetch history failed:", e);
+                console.error("Sync Error:", e);
+                list.innerHTML = `<p class="text-center py-10 text-slate-400">ไม่สามารถโหลดข้อมูลได้</p>`;
             } finally {
                 if (icon) icon.classList.remove('loading-spinner');
             }
@@ -399,6 +381,7 @@
     </script>
 </body>
 </html>
+
 
 
 
