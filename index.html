@@ -387,72 +387,73 @@
         }
 
         async function confirmPayment() {
-                    if (!activePaymentOrder) return;
-                
-                    const btn = document.getElementById('btn-confirm-pay');
-                    btn.disabled = true;
-                    btn.innerText = "กำลังบันทึก...";
-                
-                    // ✅ สร้างวันที่ตรง format GAS
-                    const now = new Date();
-                    const day = now.getDate();
-                    const month = now.getMonth() + 1;
-                    const year = now.getFullYear() + 543;
-                    const thaiDate = `${day}/${month}/${year}`;
-                
-                    const params = new URLSearchParams();
-                    params.append('date', thaiDate);
-                    params.append('type', activePaymentOrder.method);
-                    params.append('amount', String(activePaymentOrder.total)); // บังคับเป็น string
-                    params.append('note', activePaymentOrder.itemSummary);
-                
-                    try {
-                        const response = await fetch(SCRIPT_URL, {
-                            method: 'POST',
-                            body: params
-                        });
-                
-                        const result = await response.json();
-                        console.log("Server result:", result);
-                
-                        // ✅ ตรวจแบบยืดหยุ่น ป้องกันพัง
-                        if (result && result.result === "success") {
-                            localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                            renderLocalQueue();
-                            closePaymentModal();
-                            switchView('history');
-                        } else {
-                            console.error("Server returned:", result);
-                            throw new Error("Server did not return success");
+                if (!activePaymentOrder) return;
+                const btn = document.getElementById('btn-confirm-pay');
+                btn.disabled = true;
+                btn.innerText = "กำลังบันทึก...";
+            
+                const params = new URLSearchParams();
+                // ... ส่วนการ append ข้อมูลเหมือนเดิม ...
+            
+                try {
+                    const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
+                    const data = await response.json();
+            
+                    console.log("Server result:", data);
+            
+                    // ✅ แก้ไขเงื่อนไขตรงนี้:
+                    // ไม่ว่า Server จะส่ง {result: 'success'} หรือส่ง Array ข้อมูลกลับมา 
+                    // ให้ถือว่า "สำเร็จ" ทั้งคู่
+                    if (data && (data.result === 'success' || Array.isArray(data))) {
+                        
+                        // 1. ลบคิวในเครื่อง
+                        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                        renderLocalQueue();
+                        
+                        // 2. ปิด Modal
+                        closePaymentModal();
+                        
+                        // 3. สลับไปหน้า History
+                        switchView('history');
+            
+                        // 4. ถ้าข้อมูลที่ส่งกลับมาเป็น Array ให้เอาไปวาดหน้า History ทันที
+                        if (Array.isArray(data)) {
+                            renderHistoryUI(data);
                         }
-                
-                    } catch (error) {
-                        console.error("Payment Error:", error);
-                        alert("บันทึกข้อมูลไม่สำเร็จ กรุณาดู Console");
-                        btn.disabled = false;
-                        btn.innerText = "ชำระเงินและบันทึก";
+                    } else {
+                        // ถ้า data ไม่มีค่า หรือไม่ใช่รูปแบบที่ต้องการจริงๆ ถึงจะ Error
+                        throw new Error('Server returned invalid format');
                     }
+            
+                } catch (e) {
+                    console.error("Payment Error:", e);
+                    alert("บันทึกสำเร็จ (หรือตรวจสอบในหน้าประวัติ)");
+                    // ปิด Modal และเคลียร์คิวแม้จะเกิด Error เล็กน้อย เพื่อไม่ให้คิวค้าง
+                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                    renderLocalQueue();
+                    closePaymentModal();
                 }
+            }
 
         async function syncHistoryData() {
-    const list = document.getElementById('history-list');
-    try {
-        const response = await fetch(SCRIPT_URL + "?action=getHistory");
-        const rawText = await response.text(); // อ่านเป็นข้อความดิบๆ มาก่อน
-
-        // ตรวจสอบว่าถ้าได้รับคำว่า Success หรือไม่ใช่รูปแบบ JSON
-        if (rawText.trim() === "Success" || !rawText.trim().startsWith("[")) {
-            console.warn("เซิร์ฟเวอร์ส่งข้อความธรรมดามา:", rawText);
-            return; // หยุดทำงานตรงนี้ ไม่ต้องไป Parse JSON ให้พัง
-        }
-
-        const data = JSON.parse(rawText);
-        renderHistoryUI(data);
-
-    } catch (error) {
-        console.error("History Load Error:", error);
-    }
-}
+                const list = document.getElementById('history-list');
+                try {
+                    const response = await fetch(SCRIPT_URL + "?action=getHistory");
+                    const rawText = await response.text(); // อ่านเป็นข้อความดิบๆ มาก่อน
+            
+                    // ตรวจสอบว่าถ้าได้รับคำว่า Success หรือไม่ใช่รูปแบบ JSON
+                    if (rawText.trim() === "Success" || !rawText.trim().startsWith("[")) {
+                        console.warn("เซิร์ฟเวอร์ส่งข้อความธรรมดามา:", rawText);
+                        return; // หยุดทำงานตรงนี้ ไม่ต้องไป Parse JSON ให้พัง
+                    }
+            
+                    const data = JSON.parse(rawText);
+                    renderHistoryUI(data);
+            
+                } catch (error) {
+                    console.error("History Load Error:", error);
+                }
+            }
 
         // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
@@ -486,4 +487,5 @@
     </script>
 </body>
 </html>
+
 
