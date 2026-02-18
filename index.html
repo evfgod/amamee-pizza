@@ -109,7 +109,7 @@
 
     <script>
         
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcqVq_aNpYxCSBDl5ZKOD45GYSVKB4mdm_fCxcSbaeMYM2ciYgaAOXSx5CdxECAnDcSA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwT8MTluJLUZlFgJX-IcG_IifPL8zjXGbG7fxSLRj0RZH6xUbVYz_i3exC0C3wInzRAxA/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -334,28 +334,32 @@
 
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                const icon = document.getElementById('refresh-icon');
+            const list = document.getElementById('history-list');
+            const icon = document.getElementById('refresh-icon');
+            
+            if(icon) icon.classList.add('loading-spinner');
+            
+            try {
+                // ดึงข้อมูลด้วย GET และป้องกัน Cache
+                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
                 
-                if(icon) icon.classList.add('loading-spinner');
+                // ตรวจสอบสถานะการตอบกลับ
+                if (!response.ok) throw new Error('Network response was not ok');
                 
-                try {
-                    // ดึงข้อมูล (ส่งแค่ t=... เพื่อป้องกันแคช ไม่ส่งค่าอื่น)
-                    const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                    const data = await response.json();
-                    
-                    if (Array.isArray(data) && data.length > 0) {
-                        renderHistoryUI(data); // เรียกฟังก์ชันวาดข้อมูล
-                    } else {
-                        list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่พบประวัติการขาย</p>`;
-                    }
-                } catch (e) {
-                    console.error("Error sync history:", e);
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่สามารถดึงข้อมูลได้</p>`;
-                } finally {
-                    if(icon) icon.classList.remove('loading-spinner');
+                const data = await response.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    renderHistoryUI(data); 
+                } else {
+                    list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบประวัติการขาย</div>`;
                 }
+            } catch (e) {
+                console.error("Fetch history failed:", e);
+                list.innerHTML = `<div class="text-center py-20 text-red-300 italic">ไม่สามารถดึงข้อมูลจาก Server ได้</div>`;
+            } finally {
+                if(icon) icon.classList.remove('loading-spinner');
             }
+        }
             
             // เพิ่ม/แก้ไขฟังก์ชันนี้เพื่อให้แสดงผลบนหน้าจอด้วย
             function renderHistoryUI(data) {
@@ -391,6 +395,7 @@
     </script>
 </body>
 </html>
+
 
 
 
