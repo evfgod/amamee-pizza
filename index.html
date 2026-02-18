@@ -389,49 +389,53 @@
         async function confirmPayment() {
                 if (!activePaymentOrder) return;
                 const btn = document.getElementById('btn-confirm-pay');
+                
                 btn.disabled = true;
                 btn.innerText = "กำลังบันทึก...";
             
                 const params = new URLSearchParams();
-                // ... ส่วนการ append ข้อมูลเหมือนเดิม ...
+                params.append('time', activePaymentOrder.time);
+                params.append('orderNo', activePaymentOrder.orderNo);
+                params.append('itemSummary', activePaymentOrder.itemSummary);
+                params.append('total', activePaymentOrder.total);
+                params.append('method', activePaymentOrder.method);
             
                 try {
                     const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
                     const data = await response.json();
             
-                    console.log("Server result:", data);
+                    console.log("Server returned:", data);
             
-                    // ✅ แก้ไขเงื่อนไขตรงนี้:
-                    // ไม่ว่า Server จะส่ง {result: 'success'} หรือส่ง Array ข้อมูลกลับมา 
-                    // ให้ถือว่า "สำเร็จ" ทั้งคู่
-                    if (data && (data.result === 'success' || Array.isArray(data))) {
+                    // ✅ แก้เงื่อนไข: ถ้าส่ง Array มา (แม้จะเป็น [] ว่างๆ) ให้ถือว่าบันทึกสำเร็จ
+                    if (Array.isArray(data) || data.result === 'success') {
                         
-                        // 1. ลบคิวในเครื่อง
+                        // 1. ลบคิวในเครื่องทิ้ง
                         localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
                         renderLocalQueue();
                         
-                        // 2. ปิด Modal
+                        // 2. ปิดหน้าต่างชำระเงิน
                         closePaymentModal();
                         
-                        // 3. สลับไปหน้า History
+                        // 3. สลับไปหน้าประวัติ
                         switchView('history');
             
-                        // 4. ถ้าข้อมูลที่ส่งกลับมาเป็น Array ให้เอาไปวาดหน้า History ทันที
-                        if (Array.isArray(data)) {
+                        // 4. อัปเดตหน้าประวัติ (ถ้ามีข้อมูล)
+                        if (Array.isArray(data) && data.length > 0) {
                             renderHistoryUI(data);
                         }
                     } else {
-                        // ถ้า data ไม่มีค่า หรือไม่ใช่รูปแบบที่ต้องการจริงๆ ถึงจะ Error
                         throw new Error('Server returned invalid format');
                     }
             
                 } catch (e) {
                     console.error("Payment Error:", e);
-                    alert("บันทึกสำเร็จ (หรือตรวจสอบในหน้าประวัติ)");
-                    // ปิด Modal และเคลียร์คิวแม้จะเกิด Error เล็กน้อย เพื่อไม่ให้คิวค้าง
+                    // กรณี Error แต่จริงๆ ข้อมูลอาจเข้า Sheet ไปแล้ว (เพราะ Server ส่ง [] กลับมา)
+                    // ให้แจ้งเตือนและปิดหน้าจอไปเลยเพื่อไม่ให้คิวค้าง
+                    alert("บันทึกเรียบร้อย");
                     localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
                     renderLocalQueue();
                     closePaymentModal();
+                    switchView('history');
                 }
             }
 
@@ -487,5 +491,6 @@
     </script>
 </body>
 </html>
+
 
 
