@@ -253,47 +253,38 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzw3DBLF-nFRtTwj8DvwVpBOdR3H21vIZkWp_YW6LUYC00Vf3SjWqthEqYWn1baoCP11w/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHWpkQVR_hZUIl-J7NDrUwEFEJkRlQbejsN1CwzO14wNuV9o6T9SS5K5lRuSsrcnAQlg/exec";
 
             async function confirmPayment() {
     if (!activePaymentOrder) return;
     const btn = document.getElementById('btn-confirm-pay');
     btn.disabled = true;
-    btn.innerText = "กำลังเชื่อมต่อ Google Sheets...";
+    btn.innerText = "กำลังบันทึก...";
 
-    // เตรียมข้อมูล
-    const formData = JSON.stringify({
-        action: "SAVE_SALE",
-        time: activePaymentOrder.time,
-        orderNo: activePaymentOrder.orderNo,
-        itemSummary: activePaymentOrder.itemSummary,
-        total: activePaymentOrder.total,
-        method: activePaymentOrder.method
-    });
+    // เปลี่ยนมาใช้ URLSearchParams (วิธีที่เสถียรที่สุดสำหรับ Google Script)
+    const params = new URLSearchParams();
+    params.append('time', activePaymentOrder.time);
+    params.append('orderNo', activePaymentOrder.orderNo);
+    params.append('itemSummary', activePaymentOrder.itemSummary);
+    params.append('total', activePaymentOrder.total);
+    params.append('method', activePaymentOrder.method);
 
     try {
-        // ส่งข้อมูลโดยใช้ฟีเจอร์พื้นฐานที่สุด
         await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // สำคัญมากสำหรับ Google Script
-            cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' },
-            body: formData
+            mode: 'no-cors', // สั่งแบบยิงแล้วไม่ต้องรอคำตอบ
+            body: params
         });
 
-        // เนื่องจาก no-cors เราจะไม่รอคำตอบจาก Google (มันจะอ่านไม่ออกอยู่แล้ว)
-        // เราจะถือว่า "ส่งออกไปแล้ว" และทำงานต่อทันที
-        console.log("Data sent to Google Sheets");
-        
-        // ลบคิวในเครื่อง
+        // หลังจากสั่งยิงข้อมูลเสร็จ ให้ทำงานในเครื่องต่อทันที ไม่ต้องรอ Google ตอบกลับ
         localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
         
         closePaymentModal();
         renderLocalQueue(); 
-        switchView('history'); // ไปหน้าประวัติ
+        switchView('history'); 
 
     } catch (e) {
-        alert("การส่งข้อมูลขัดข้อง: " + e.message);
+        alert("บันทึกไม่สำเร็จ");
     } finally {
         btn.disabled = false;
         btn.innerText = "ชำระเงินและบันทึก";
@@ -309,44 +300,28 @@
 
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
+    const list = document.getElementById('history-list');
     const icon = document.getElementById('refresh-icon');
     if(icon) icon.classList.add('loading-spinner');
-    
+
     try {
         const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-        const text = await response.text(); // อ่านเป็น Text ก่อน
+        const text = await response.text();
         
-        try {
-            const data = JSON.parse(text); // ค่อยแปลงเป็น JSON
-            const list = document.getElementById('history-list');
-            
-            if (!data || data.length === 0) {
-                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-            } else {
-                list.innerHTML = data.map(o => `
-                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                            <div>
-                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
-                                <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
-                            </div>
-                        </div>
-                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
-                    </div>
-                `).join('');
-            }
-        } catch (jsonErr) {
-            console.log("Waiting for JSON data..."); // กรณีที่ Google ส่ง Success กลับมา ไม่ต้องทำอะไร
+        // ตรวจสอบว่าข้อมูลที่ได้มาเป็น JSON จริงๆ หรือไม่
+        if (text.startsWith('[') || text.startsWith('{')) {
+            const data = JSON.parse(text);
+            renderHistoryUI(data); // วาดตารางประวัติ
+        } else {
+            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">กำลังอัปเดตข้อมูลจาก Google...</p>`;
+            // ถ้ายังไม่ใช่ JSON ให้ลองใหม่ในอีก 3 วินาที (Auto Retry)
+            setTimeout(syncHistoryData, 3000);
         }
-
     } catch (e) {
-        console.error("History Sync Error:", e);
+        console.log("Sync Error, retrying...");
     }
-    
     if(icon) icon.classList.remove('loading-spinner');
 }
-
         function switchView(v) {
             document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
             document.getElementById('view-queue').classList.toggle('hidden', v !== 'queue');
@@ -365,6 +340,7 @@
     </script>
 </body>
 </html>
+
 
 
 
