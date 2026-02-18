@@ -289,28 +289,37 @@
 
         // --- 5. จัดการหน้าประวัติ (History) ---
         async function syncHistoryData() {
-            const icon = document.getElementById('refresh-icon');
-            if(icon) icon.classList.add('loading-spinner');
-            try {
-                const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
-                const data = await response.json();
-                const list = document.getElementById('history-list');
-                if (data.length === 0) {
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                } else {
-                    list.innerHTML = data.map(o => `
-                        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                                <div><p class="font-black text-sm italic font-inter">#${o.orderNo}</p><p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p></div>
-                            </div>
-                            <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
+    const icon = document.getElementById('refresh-icon');
+    if(icon) icon.classList.add('loading-spinner');
+    try {
+        const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
+        const data = await response.json();
+        const list = document.getElementById('history-list');
+        
+        // กรองเอาเฉพาะรายการที่มีข้อมูลจริง
+        const validData = data.filter(o => o.orderNo !== "");
+        
+        if (validData.length === 0) {
+            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+        } else {
+            list.innerHTML = validData.map(o => `
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
+                        <div>
+                            <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                            <p class="text-[9px] text-slate-400 font-bold">${o.time} • ${o.method}</p>
                         </div>
-                    `).join('');
-                }
-            } catch (e) { console.error("Sync Error"); }
-            if(icon) icon.classList.remove('loading-spinner');
+                    </div>
+                    <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
+                </div>
+            `).join('');
         }
+    } catch (e) { 
+        console.error("History Sync Error:", e); 
+    }
+    if(icon) icon.classList.remove('loading-spinner');
+}
 
         function switchView(v) {
             document.getElementById('view-pos').classList.toggle('hidden', v !== 'pos');
@@ -323,7 +332,11 @@
             if (v === 'history') syncHistoryData();
         }
 
-        window.onload = () => { renderPOS(); };
+        window.onload = () => { 
+    renderPOS(); 
+    // ไม่ต้องเรียก syncOnlineData แล้ว เพราะเราใช้ Local Queue
+};
     </script>
 </body>
 </html>
+
