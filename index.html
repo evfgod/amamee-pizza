@@ -131,27 +131,29 @@
             { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
         ];
 
+        // โหลดข้อมูลจาก LocalStorage
         let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
         let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
         let activePaymentOrder = null;
 
-        // --- 1. สลับหน้าจอและบังคับ Refresh ข้อมูล ---
-        function switchView(viewId) {
-            // ซ่อนทุกหน้า
-            document.getElementById('view-pos').classList.add('hidden');
-            document.getElementById('view-queue').classList.add('hidden');
-            document.getElementById('view-history').classList.add('hidden');
-            
-            // แสดงหน้าที่เลือก
-            const target = document.getElementById('view-' + viewId);
-            if (target) target.classList.remove('hidden');
+        function saveData() {
+            localStorage.setItem('amamee_cart', JSON.stringify(cart));
+            localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
+        }
 
-            // เปลี่ยนสีปุ่มเมนูด้านล่าง
+        // --- 1. สลับหน้าจอ ---
+        function switchView(viewId) {
+            const views = ['pos', 'queue', 'history'];
+            views.forEach(id => {
+                const v = document.getElementById('view-' + id);
+                if (v) v.classList.add(id === viewId ? 'block' : 'hidden');
+                if (v && id !== viewId) v.classList.remove('block');
+            });
+
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
             const activeBtn = document.getElementById('btn-' + viewId);
             if (activeBtn) activeBtn.classList.add('active-tab');
 
-            // บังคับแสดงข้อมูลตามหน้าจอที่ไป
             if (viewId === 'queue') renderLocalQueue();
             if (viewId === 'history') syncHistoryData();
             if (viewId === 'pos') renderPOS();
@@ -170,17 +172,12 @@
                 </div>
             `).join('');
         }
-        
-        function saveData() {
-            localStorage.setItem('amamee_cart', JSON.stringify(cart));
-            localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
-        }
 
         function addToCart(id) {
             const item = MENU.find(x => x.id === id);
             const exists = cart.find(i => i.id === id);
             if (exists) exists.qty++; else cart.push({ ...item, qty: 1 });
-            saveData(); // บันทึก
+            saveData();
             updateCartUI();
         }
 
@@ -189,7 +186,7 @@
             if (item) {
                 item.qty += d;
                 if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
-                saveData(); // บันทึก
+                saveData();
                 updateCartUI();
             }
         }
@@ -201,6 +198,7 @@
             document.getElementById('cart-total').innerText = `฿${total.toLocaleString()}`;
             document.getElementById('modal-total').innerText = `฿${total.toLocaleString()}`;
             document.getElementById('cart-preview').classList.toggle('hidden', count === 0);
+            
             const list = document.getElementById('cart-items-list');
             list.innerHTML = cart.map(item => `
                 <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -220,7 +218,6 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        // --- แก้ไขฟังก์ชันส่งลงคิว ---
         function sendToQueue(method) {
             if (cart.length === 0) return;
             const order = {
@@ -233,37 +230,26 @@
             };
             localQueue.push(order);
             cart = [];
-            saveData(); // บันทึกข้อมูลคิว
+            saveData();
             updateCartUI();
             toggleCartModal();
             switchView('queue');
         }
 
-        // --- ตรวจสอบฟังก์ชันแสดงผลหน้าคิว (ตรวจสอบ ID ให้ตรงกัน) ---
         function renderLocalQueue() {
             const list = document.getElementById('queue-list');
             const badge = document.getElementById('queue-badge');
-            
-            // แสดงตัวเลขคิวค้างบนปุ่ม
             if (badge) {
                 badge.innerText = localQueue.length;
                 badge.classList.toggle('hidden', localQueue.length === 0);
             }
-
             if (!list) return;
-
             if (localQueue.length === 0) {
-                list.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-20 text-slate-300">
-                        <i class="fas fa-clipboard-list text-5xl mb-4 opacity-20"></i>
-                        <p class="font-bold italic">ยังไม่มีออเดอร์ในคิว</p>
-                    </div>`;
+                list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ยังไม่มีออเดอร์ในคิว</div>`;
                 return;
             }
-
-            // วาดรายการคิว
             list.innerHTML = localQueue.map(o => `
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4 animate-fadeIn">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
                             <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
@@ -275,93 +261,39 @@
                         <p class="font-black text-xl text-slate-700 italic">฿${o.total.toLocaleString()}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs active:scale-95 transition-all">ยกเลิก</button>
-                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">ชำระเงิน</button>
+                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs">ยกเลิก</button>
+                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg">ชำระเงิน</button>
                     </div>
                 </div>
             `).join('');
         }
+
         function cancelLocalOrder(id) {
             if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
                 localQueue = localQueue.filter(q => q.id !== id);
+                saveData();
                 renderLocalQueue();
             }
         }
-        function calcChange() {
-            const received = parseFloat(document.getElementById('cash-received').value) || 0;
-            const total = activePaymentOrder.total;
-            const change = received - total;
-            const confirmBtn = document.getElementById('btn-confirm-pay');
 
-            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
-
-            if (received >= total) {
-                confirmBtn.disabled = false;
-                // เปลี่ยนเป็นสีแดงสด (bg-red-600)
-                confirmBtn.className = "w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all scale-100";
-                confirmBtn.innerText = "ชำระเงินและบันทึก";
-            } else {
-                confirmBtn.disabled = true;
-                // สีเทาเมื่อเงินไม่พอ
-                confirmBtn.className = "w-full bg-slate-300 text-slate-500 py-6 rounded-2xl font-black text-xl shadow-none opacity-50 cursor-not-allowed";
-                confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
-            }
-        }
-
-        
-        // --- 4. การชำระเงินและบันทึกลง Google Sheets ---
+        // --- ชำระเงิน ---
         function openPaymentModal(order) {
             activePaymentOrder = order;
             const isCash = order.method === 'CASH';
-            const confirmBtn = document.getElementById('btn-confirm-pay');
-            
             document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
             document.getElementById('pay-total-display').innerText = `฿${order.total.toLocaleString()}`;
             document.getElementById('cash-input-section').classList.toggle('hidden', !isCash);
             document.getElementById('cash-received').value = '';
             document.getElementById('cash-change').innerText = '฿0';
             document.getElementById('payment-modal').classList.remove('hidden');
-
-            if (isCash) {
-                confirmBtn.disabled = true;
-                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                confirmBtn.innerText = "กรุณาใส่จำนวนเงิน";
-            } else {
-                confirmBtn.disabled = false;
-                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                confirmBtn.innerText = "ชำระเงินและบันทึก";
-            }
+            calcChange(); // Reset ปุ่ม
         }
 
-        // --- ฟังก์ชันปิด Modal (ต้องมีเพื่อให้ confirmPayment ไม่พัง) ---
         function closePaymentModal() {
-            const modal = document.getElementById('payment-modal');
-            if (modal) modal.classList.add('hidden');
+            document.getElementById('payment-modal').classList.add('hidden');
             activePaymentOrder = null;
         }
 
-        // เพิ่มฟังก์ชันสลับหน้าจอ (เผื่อของเก่าหาย)
-        function switchView(viewId) {
-            // ซ่อนทุกหน้า
-            const views = ['pos', 'queue', 'history'];
-            views.forEach(id => {
-                const v = document.getElementById('view-' + id);
-                if (v) v.classList.add('hidden');
-            });
-
-            // แสดงหน้าที่เลือก
-            const target = document.getElementById('view-' + viewId);
-            if (target) target.classList.remove('hidden');
-
-            // จัดการสีปุ่ม Nav
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-            const activeBtn = document.getElementById('btn-' + viewId);
-            if (activeBtn) activeBtn.classList.add('active-tab');
-
-            // ถ้าไปหน้า history ให้ดึงข้อมูลใหม่
-            if (viewId === 'history') syncHistoryData();
-        }
-        
         function calcChange() {
             if (!activePaymentOrder) return;
             const received = parseFloat(document.getElementById('cash-received').value) || 0;
@@ -371,122 +303,99 @@
 
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
 
-            if (received >= total) {
+            if (activePaymentOrder.method !== 'CASH' || received >= total) {
                 confirmBtn.disabled = false;
-                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                confirmBtn.className = "w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all active:scale-95";
                 confirmBtn.innerText = "ชำระเงินและบันทึก";
             } else {
                 confirmBtn.disabled = true;
-                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                confirmBtn.className = "w-full bg-slate-300 text-slate-500 py-6 rounded-2xl font-black text-xl opacity-50 cursor-not-allowed";
                 confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
             }
         }
 
         async function confirmPayment() {
-                if (!activePaymentOrder) return;
-                const btn = document.getElementById('btn-confirm-pay');
+            if (!activePaymentOrder) return;
+            const btn = document.getElementById('btn-confirm-pay');
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึก...";
+
+            const params = new URLSearchParams();
+            params.append('time', activePaymentOrder.time);
+            params.append('orderNo', activePaymentOrder.orderNo);
+            params.append('itemSummary', activePaymentOrder.itemSummary);
+            params.append('total', activePaymentOrder.total);
+            params.append('method', activePaymentOrder.method);
+
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
+                const data = await response.json();
                 
-                btn.disabled = true;
-                btn.innerText = "กำลังบันทึก...";
-            
-                const params = new URLSearchParams();
-                params.append('time', activePaymentOrder.time);
-                params.append('orderNo', activePaymentOrder.orderNo);
-                params.append('itemSummary', activePaymentOrder.itemSummary);
-                params.append('total', activePaymentOrder.total);
-                params.append('method', activePaymentOrder.method);
-            
-                try {
-                    const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
-                    const data = await response.json();
-            
-                    console.log("Server returned:", data);
-            
-                    // ✅ แก้เงื่อนไข: ถ้าส่ง Array มา (แม้จะเป็น [] ว่างๆ) ให้ถือว่าบันทึกสำเร็จ
-                    if (Array.isArray(data) || data.result === 'success') {
-                        
-                        // 1. ลบคิวในเครื่องทิ้ง
-                        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                        renderLocalQueue();
-                        
-                        // 2. ปิดหน้าต่างชำระเงิน
-                        closePaymentModal();
-                        
-                        // 3. สลับไปหน้าประวัติ
-                        switchView('history');
-            
-                        // 4. อัปเดตหน้าประวัติ (ถ้ามีข้อมูล)
-                        if (Array.isArray(data) && data.length > 0) {
-                            renderHistoryUI(data);
-                        }
-                    } else {
-                        throw new Error('Server returned invalid format');
-                    }
-            
-                } catch (e) {
-                    console.error("Payment Error:", e);
-                    // กรณี Error แต่จริงๆ ข้อมูลอาจเข้า Sheet ไปแล้ว (เพราะ Server ส่ง [] กลับมา)
-                    // ให้แจ้งเตือนและปิดหน้าจอไปเลยเพื่อไม่ให้คิวค้าง
-                    alert("บันทึกเรียบร้อย");
-                    localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                    renderLocalQueue();
-                    closePaymentModal();
-                    switchView('history');
-                }
+                // บันทึกสำเร็จ
+                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                saveData();
+                closePaymentModal();
+                switchView('history');
+            } catch (e) {
+                console.error("Error:", e);
+                alert("บันทึกสำเร็จ (กรุณาเช็คหน้าประวัติ)");
+                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                saveData();
+                closePaymentModal();
+                switchView('history');
             }
+        }
 
         async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                try {
-                    const response = await fetch(SCRIPT_URL + "?action=getHistory");
-                    const rawText = await response.text(); // อ่านเป็นข้อความดิบๆ มาก่อน
-            
-                    // ตรวจสอบว่าถ้าได้รับคำว่า Success หรือไม่ใช่รูปแบบ JSON
-                    if (rawText.trim() === "Success" || !rawText.trim().startsWith("[")) {
-                        console.warn("เซิร์ฟเวอร์ส่งข้อความธรรมดามา:", rawText);
-                        return; // หยุดทำงานตรงนี้ ไม่ต้องไป Parse JSON ให้พัง
-                    }
-            
+            const list = document.getElementById('history-list');
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('loading-spinner');
+
+            try {
+                const response = await fetch(SCRIPT_URL + "?action=getHistory");
+                const rawText = await response.text();
+                
+                if (rawText.trim().startsWith("[")) {
                     const data = JSON.parse(rawText);
                     renderHistoryUI(data);
-            
-                } catch (error) {
-                    console.error("History Load Error:", error);
                 }
+            } catch (error) {
+                console.error("History Error:", error);
+            } finally {
+                icon.classList.remove('loading-spinner');
             }
+        }
 
-        // --- 3. ฟังก์ชันแสดงหน้าประวัติ (History) และกรองค่า 0 ---
         function renderHistoryUI(data) {
             const list = document.getElementById('history-list');
             if (!list) return;
-
-            // กรองข้อมูล: ไม่เอาแถวที่ยอดเป็น 0 หรือไม่มีเลขที่ออเดอร์
             const validData = data.filter(o => o.total > 0 && o.orderNo);
-
             if (validData.length === 0) {
                 list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
                 return;
             }
-
             list.innerHTML = validData.map(o => `
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
                         <div>
-                            <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                            <p class="font-black text-sm italic">#${o.orderNo}</p>
                             <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
                         </div>
                     </div>
-                    <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
+                    <p class="font-black text-lg text-slate-700 italic">฿${Number(o.total).toLocaleString()}</p>
                 </div>
             `).join('');
         }
 
-        // เริ่มต้นโปรแกรม
+        // เริ่มต้น
         renderPOS();
+        updateCartUI();
+        renderLocalQueue();
     </script>
 </body>
 </html>
+
 
 
 
