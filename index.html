@@ -128,27 +128,20 @@
         let localQueue = []; 
         let activePaymentOrder = null;
 
-        // --- 1. จัดการหน้าจอ (Navigation) ---
         function switchView(viewId) {
-            // ซ่อนทุกหน้า (แก้จาก .view เป็นการหา div ที่เป็นลูกของ main)
             document.getElementById('view-pos').classList.add('hidden');
             document.getElementById('view-queue').classList.add('hidden');
             document.getElementById('view-history').classList.add('hidden');
-            
-            // แสดงหน้าที่เลือก
             const target = document.getElementById('view-' + viewId);
             if (target) target.classList.remove('hidden');
-
-            // จัดการสีปุ่ม Nav
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-            document.getElementById('btn-' + viewId).classList.add('active-tab');
-
+            const activeBtn = document.getElementById('btn-' + viewId);
+            if (activeBtn) activeBtn.classList.add('active-tab');
             if (viewId === 'pos') renderPOS();
             if (viewId === 'queue') renderLocalQueue();
             if (viewId === 'history') syncHistoryData();
         }
 
-        // --- 2. POS & Cart System ---
         function renderPOS() {
             const grid = document.getElementById('view-pos');
             grid.innerHTML = MENU.map(item => `
@@ -186,7 +179,6 @@
             document.getElementById('cart-total').innerText = `฿${total.toLocaleString()}`;
             document.getElementById('modal-total').innerText = `฿${total.toLocaleString()}`;
             document.getElementById('cart-preview').classList.toggle('hidden', count === 0);
-
             const list = document.getElementById('cart-items-list');
             list.innerHTML = cart.map(item => `
                 <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -206,7 +198,6 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        // --- 3. Queue System ---
         function sendToQueue(method) {
             if (cart.length === 0) return;
             const order = {
@@ -228,7 +219,6 @@
             const list = document.getElementById('queue-list');
             document.getElementById('queue-badge').innerText = localQueue.length;
             document.getElementById('queue-badge').classList.toggle('hidden', localQueue.length === 0);
-            
             if (localQueue.length === 0) {
                 list.innerHTML = `<div class="text-center py-20 text-slate-300 font-bold italic">ไม่พบรายการค้างชำระ</div>`;
                 return;
@@ -260,7 +250,6 @@
             }
         }
 
-        // --- 4. Payment & Google Sheets ---
         function openPaymentModal(order) {
             activePaymentOrder = order;
             const isCash = order.method === 'CASH';
@@ -285,21 +274,16 @@
             const btn = document.getElementById('btn-confirm-pay');
             btn.disabled = true;
             btn.innerText = "กำลังบันทึก...";
-
             const params = new URLSearchParams();
             params.append('time', activePaymentOrder.time);
             params.append('orderNo', activePaymentOrder.orderNo);
             params.append('itemSummary', activePaymentOrder.itemSummary);
             params.append('total', activePaymentOrder.total);
             params.append('method', activePaymentOrder.method);
-
             try {
                 const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
                 const data = await response.json();
-                
-                // ลบคิวออกจากเครื่องหลังจากบันทึกสำเร็จ
                 localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                
                 closePaymentModal();
                 switchView('history'); 
                 if (Array.isArray(data)) renderHistoryUI(data);
@@ -312,12 +296,10 @@
             }
         }
 
-        // --- 5. History System ---
         async function syncHistoryData() {
             const list = document.getElementById('history-list');
             const icon = document.getElementById('refresh-icon');
             if (icon) icon.classList.add('loading-spinner');
-
             try {
                 const response = await fetch(`${SCRIPT_URL}?t=${Date.now()}`);
                 const data = await response.json();
@@ -349,10 +331,10 @@
             `).join('');
         }
 
-        // เริ่มต้นโปรแกรม
         renderPOS();
     </script>
 </body>
 </html>
+
 
 
