@@ -253,32 +253,33 @@
             document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
         }
 
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8gHpLyucWSueN9DaVmWhBfqzwpkrHlu_yZhhCC9nytv260knzWK16pnraaEw1GJnYtg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyJE2QPa6KCbeOmVLEdlgAEBvZLAOkC9aCBF2iJnAgARjuxOPqaQCzczlavbXDyczt7Wg/exec";
 
 async function confirmPayment() {
     if (!activePaymentOrder) return;
     const btn = document.getElementById('btn-confirm-pay');
     btn.disabled = true;
-    btn.innerText = "กำลังบันทึกข้อมูล...";
+    btn.innerText = "กำลังบันทึก...";
 
     try {
-        // ส่งข้อมูลไปบันทึกที่ Google Sheets
+        // 1. ส่งข้อมูลไป Google Sheets
         await fetch(SCRIPT_URL, { 
             method: 'POST', 
-            mode: 'no-cors', // สำคัญ: ต้องเป็น no-cors สำหรับ Google Apps Script
+            mode: 'no-cors', // ใช้โหมดนี้เพื่อเลี่ยงปัญหา CORS
             body: JSON.stringify({ action: "SAVE_SALE", ...activePaymentOrder }) 
         });
 
-        // เมื่อบันทึกสำเร็จ (หรือส่งออกไปแล้ว) ให้ลบออกจากคิวในเครื่องทันที
+        // 2. เมื่อส่งสำเร็จ (ถึงแม้จะอ่าน JSON ไม่ได้เพราะ no-cors) 
+        // ให้ลบออกจากคิวในเครื่องเราทันที
         localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
         
         closePaymentModal();
-        renderLocalQueue(); // อัปเดตรายการหน้าคิว (รายการที่จ่ายแล้วจะหายไป)
+        renderLocalQueue(); // อัปเดตหน้าคิวให้รายการหายไป
         switchView('history'); // สลับไปหน้าประวัติ
         
     } catch (e) {
-        console.error("Confirm Payment Error:", e);
-        alert("ไม่สามารถบันทึกข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต");
+        console.error("Error:", e);
+        alert("บันทึกไม่สำเร็จ");
     } finally {
         btn.disabled = false;
         btn.innerText = "ชำระเงินและบันทึก";
@@ -350,6 +351,7 @@ async function confirmPayment() {
     </script>
 </body>
 </html>
+
 
 
 
