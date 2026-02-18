@@ -108,7 +108,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyI-VePVOc8aK_rUxBiBlO1e6zbz7cyJK1xnPCQQjZoO8Fy2ehVfn2RsIYMX9xY_6QV7g/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2a0GPlX59W5WxVnr-eTVMFjgcgGBuQsC0KW_oXc1vBIqdgNHonx51QxsuOLFVT0H-tg/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -264,35 +264,54 @@
         function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
 
         function calcChange() {
-            const received = document.getElementById('cash-received').value || 0;
-            const change = received - activePaymentOrder.total;
-            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
+            const received = parseFloat(document.getElementById('cash-received').value) || 0;
+            const total = activePaymentOrder.total;
+            const change = received - total;
+            
+            const changeDisplay = document.getElementById('cash-change');
+            const confirmBtn = document.getElementById('btn-confirm-pay');
+        
+            // แสดงเงินทอน
+            changeDisplay.innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
+        
+            // ตรวจสอบเงื่อนไขการเปิดปุ่มจ่ายเงิน
+            if (activePaymentOrder.method === 'CASH') {
+                if (received >= total) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    confirmBtn.classList.add('bg-red-600');
+                    confirmBtn.innerText = "ชำระเงินและบันทึก";
+                } else {
+                    confirmBtn.disabled = true;
+                    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    confirmBtn.classList.remove('bg-red-600');
+                    confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
+                }
+            }
         }
-
-        async function confirmPayment() {
-            if (!activePaymentOrder) return;
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-            const params = new URLSearchParams();
-            params.append('time', activePaymentOrder.time);
-            params.append('orderNo', activePaymentOrder.orderNo);
-            params.append('itemSummary', activePaymentOrder.itemSummary);
-            params.append('total', activePaymentOrder.total);
-            params.append('method', activePaymentOrder.method);
-            try {
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: params });
-                const data = await response.json();
-                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-                closePaymentModal();
-                switchView('history'); 
-                if (Array.isArray(data)) renderHistoryUI(data);
-            } catch (e) {
-                console.error("Payment Error:", e);
-                alert("บันทึกไม่สำเร็จ แต่ยอดจะยังอยู่ในคิว");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "ชำระเงินและบันทึก";
+        
+        // แก้ไขฟังก์ชันเปิด Modal ให้รีเซ็ตปุ่มด้วย
+        function openPaymentModal(order) {
+            activePaymentOrder = order;
+            const isCash = order.method === 'CASH';
+            const confirmBtn = document.getElementById('btn-confirm-pay');
+            
+            document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
+            document.getElementById('pay-total-display').innerText = `฿${order.total.toLocaleString()}`;
+            document.getElementById('cash-input-section').classList.toggle('hidden', !isCash);
+            document.getElementById('cash-received').value = '';
+            document.getElementById('cash-change').innerText = '฿0';
+            document.getElementById('payment-modal').classList.remove('hidden');
+        
+            // ถ้าเป็นโอนเงิน ให้กดจ่ายได้เลย แต่ถ้าเป็นเงินสด ต้องรอเช็คยอดเงินก่อน
+            if (isCash) {
+                confirmBtn.disabled = true;
+                confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                confirmBtn.innerText = "กรุณาใส่จำนวนเงิน";
+            } else {
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                confirmBtn.innerText = "ยืนยันการโอนเงิน";
             }
         }
 
@@ -359,6 +378,7 @@
     </script>
 </body>
 </html>
+
 
 
 
