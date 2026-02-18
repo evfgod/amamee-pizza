@@ -298,10 +298,37 @@
             }
         }
 
-        function closePaymentModal() { 
-            document.getElementById('payment-modal').classList.add('hidden'); 
+        // ฟังก์ชันสำหรับปิดหน้าต่างชำระเงิน (ต้องมีตัวนี้ confirmPayment ถึงจะทำงานจบ)
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                activePaymentOrder = null; // เคลียร์ค่าออเดอร์ที่ค้างไว้
+            }
         }
 
+        // เพิ่มฟังก์ชันสลับหน้าจอ (เผื่อของเก่าหาย)
+        function switchView(viewId) {
+            // ซ่อนทุกหน้า
+            const views = ['pos', 'queue', 'history'];
+            views.forEach(id => {
+                const v = document.getElementById('view-' + id);
+                if (v) v.classList.add('hidden');
+            });
+
+            // แสดงหน้าที่เลือก
+            const target = document.getElementById('view-' + viewId);
+            if (target) target.classList.remove('hidden');
+
+            // จัดการสีปุ่ม Nav
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
+            const activeBtn = document.getElementById('btn-' + viewId);
+            if (activeBtn) activeBtn.classList.add('active-tab');
+
+            // ถ้าไปหน้า history ให้ดึงข้อมูลใหม่
+            if (viewId === 'history') syncHistoryData();
+        }
+        
         function calcChange() {
             if (!activePaymentOrder) return;
             const received = parseFloat(document.getElementById('cash-received').value) || 0;
@@ -346,7 +373,7 @@
                 // ลบคิวในเครื่องเมื่อบันทึกสำเร็จ
                 localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
                 renderLocalQueue();
-                closePaymentModal();
+                closePaymentModal(); 
                 switchView('history');
                 
                 if (Array.isArray(data)) renderHistoryUI(data);
@@ -392,6 +419,7 @@
     </script>
 </body>
 </html>
+
 
 
 
