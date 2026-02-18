@@ -112,7 +112,7 @@
 
     <script>
         // เปลี่ยน URL นี้เป็น URL ของ Google Script ของคุณ
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLYrnw_BvplbJE27IoeIsfe7LFwnLOate2-bFncFYOchhZElNcFhhyIDs4b9-m5x6pow/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfUd1EkFgYvNPzijK7M0iPUKkoul4w1ESb_PkLqaoP6VuM9Q9LFwQe8-Wqu-LAhLtQdg/exec";
 
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -200,35 +200,57 @@
 
         // --- 3. ส่งข้อมูลไปจองคิว (PENDING) ---
         async function sendToQueue(method) {
-            if (cart.length === 0) return;
-            const btn = event.currentTarget;
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerText = "กำลังส่งคิว...";
+    if (cart.length === 0) {
+        alert("กรุณาเลือกเมนูก่อนครับ");
+        return;
+    }
 
-            const order = {
-                orderNo: String(Date.now()).slice(-4),
-                time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
-                total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-                method: method,
-                status: "PENDING"
-            };
+    const btn = event.currentTarget;
+    const originalHTML = btn.innerHTML;
+    
+    // ล็อคปุ่มป้องกันการกดซ้ำ
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner loading-spinner mr-2"></i>กำลังบันทึกคิว...';
 
-            try {
-                await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(order) });
-                cart = [];
-                updateCartUI();
-                toggleCartModal();
-                switchView('queue'); // สลับไปหน้าคิวทันที
-                setTimeout(syncOnlineData, 1000); // รอรีเฟรชข้อมูล
-            } catch (e) {
-                alert("เกิดข้อผิดพลาดในการบันทึก");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-            }
-        }
+    const orderData = {
+        orderNo: String(Date.now()).slice(-4),
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
+        total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
+        method: method,
+        status: "PENDING" // ต้องระบุเป็นตัวพิมพ์ใหญ่เพื่อให้ Filter ตรวจเจอ
+    };
+
+    try {
+        // ส่งข้อมูลแบบ POST
+        await fetch(SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify(orderData) 
+        });
+
+        // ล้างตะกร้าและปิด Modal
+        cart = [];
+        updateCartUI();
+        toggleCartModal();
+
+        // แจ้งเตือนผู้ใช้เล็กน้อยและสลับหน้า
+        alert("บันทึกคิวสำเร็จ!");
+        switchView('queue');
+        
+        // รอ 1.5 วินาทีเพื่อให้ Google บันทึกไฟล์เสร็จ แล้วรีเฟรชข้อมูลหน้าคิว
+        setTimeout(() => {
+            syncOnlineData();
+        }, 1500);
+
+    } catch (e) {
+        console.error("Error:", e);
+        alert("เกิดข้อผิดพลาด: ไม่สามารถส่งข้อมูลได้ กรุณาเช็ค Internet หรือ Script URL");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
 
         // --- 4. ซิงค์ข้อมูลจาก Google Sheets ---
         async function syncOnlineData() {
@@ -366,3 +388,4 @@
     </script>
 </body>
 </html>
+
