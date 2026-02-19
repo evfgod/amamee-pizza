@@ -353,13 +353,12 @@
                 const data = await res.json();
                 
                 list.innerHTML = data.reverse().map(h => {
-                    // --- ส่วนที่เพิ่ม: แปลง Format วันที่ ---
-                    let displayTime = h.time; // ค่าสำรองกรณีแปลงไม่สำเร็จ
+                    // --- เริ่มต้นการแปลงรูปแบบวันที่และเวลา ---
+                    let displayTime = "";
                     try {
-                        // สมมติว่า h.time ส่งค่ามาเป็น "19/2/2026, 14:24:35"
-                        // หรือถ้าส่งมาแค่ "14:24" เราจะใช้ข้อมูลจากคอลัมน์ DateTime แทน (ถ้ามีส่งมา)
-                        // ในที่นี้ผมจะสร้าง Date object จากค่าที่ส่งมา
-                        const dateObj = new Date(h.time.includes('/') ? h.time : new Date().toLocaleDateString() + ' ' + h.time);
+                        // แยกวันที่และเวลาออกจากค่าที่ได้จาก Google Sheets (เช่น "19/2/2026, 14:24:35")
+                        // ใช้การสร้าง Date Object เพื่อความแม่นยำ
+                        const dateObj = new Date(h.time.replace(',', '')); 
                         
                         const d = dateObj.getDate();
                         const m = dateObj.getMonth() + 1;
@@ -369,14 +368,15 @@
                         
                         displayTime = `${d}/${m}/${y} เวลา ${hh}:${mm} น.`;
                     } catch (err) {
-                        console.error("Date error:", err);
+                        // หากแปลงไม่ได้ ให้โชว์ค่าเดิมจากระบบ
+                        displayTime = h.time;
                     }
-                    // -----------------------------------
+                    // ---------------------------------------
         
                     return `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
                             <div>
-                                <p class="text-[10px] font-bold text-slate-400">${displayTime}</p>
+                                <p class="text-[10px] font-bold text-slate-400 mb-1">${displayTime}</p>
                                 <p class="text-sm font-bold text-slate-700">${h.items}</p>
                             </div>
                             <div class="text-right">
@@ -390,10 +390,10 @@
                 list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลออนไลน์ได้</p>';
             }
         }
-
         window.onload = () => { initMenu(); renderQueue(); };
     </script>
 </body>
 </html>
+
 
 
