@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คิวรอรับสินค้า - AMAMEE PIZZA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; overflow: hidden; background-color: #0F172A; }
+        .video-bg { height: 100vh; width: 70%; float: left; position: relative; }
+        .queue-panel { height: 100vh; width: 30%; float: right; background: #fff; box-shadow: -5px 0 20px rgba(0,0,0,0.5); }
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="flex">
+
+    <div class="video-bg bg-black">
+        <iframe class="w-full h-full" 
+            src="https://www.youtube.com/embed/วิดีโอIDของคุณ?autoplay=1&mute=1&loop=1&playlist=วิดีโอIDของคุณ" 
+            frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+        </iframe>
+        <div class="absolute bottom-10 left-10 bg-red-600 text-white p-6 rounded-3xl shadow-2xl">
+            <h1 class="text-4xl font-black">AMAMEE PIZZA</h1>
+            <p class="text-xl">สั่งอาหารล่วงหน้า โทร: 0XX-XXX-XXXX</p>
+        </div>
+    </div>
+
+    <div class="queue-panel flex flex-col">
+        <div class="flex-1 p-6 border-b-4 border-slate-100 overflow-hidden">
+            <h2 class="text-3xl font-black text-slate-400 uppercase mb-4 flex items-center gap-2">
+                <span class="w-3 h-3 bg-orange-500 rounded-full"></span> กำลังทำ
+            </h2>
+            <div id="cooking-list" class="flex flex-wrap gap-4 content-start">
+                </div>
+        </div>
+
+        <div class="flex-1 p-6 bg-emerald-50 overflow-hidden">
+            <h2 class="text-3xl font-black text-emerald-600 uppercase mb-4 flex items-center gap-2">
+                <span class="w-3 h-3 bg-emerald-500 rounded-full blink"></span> เชิญรับสินค้า
+            </h2>
+            <div id="ready-list" class="space-y-4">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = 'URL_เดียวกับหน้า_POS_ของคุณ';
+
+        async function updateDisplay() {
+            try {
+                const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
+                const data = await res.json();
+                
+                // กรองข้อมูล (เอาเฉพาะคิวของวันนี้ และสถานะไม่เป็น "รับแล้ว")
+                const cooking = data.filter(h => h.status === 'Cooking').reverse();
+                const ready = data.filter(h => h.status === 'Ready').reverse();
+
+                // วาดคิวที่กำลังทำ
+                document.getElementById('cooking-list').innerHTML = cooking.map(o => `
+                    <div class="bg-white border-2 border-orange-200 text-orange-600 w-24 h-24 rounded-2xl flex items-center justify-center text-4xl font-black shadow-sm">
+                        ${extractQ(o.items)}
+                    </div>
+                `).join('');
+
+                // วาดคิวที่เสร็จแล้ว
+                document.getElementById('ready-list').innerHTML = ready.map(o => `
+                    <div class="bg-emerald-600 text-white p-6 rounded-3xl flex justify-between items-center shadow-lg transform scale-105 transition-all">
+                        <span class="text-6xl font-black">คิวที่ ${extractQ(o.items)}</span>
+                        <i class="fas fa-check-circle text-4xl"></i>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error("Update failed");
+            }
+        }
+
+        // ฟังก์ชันดึงเลขคิวจากข้อความ "(คิว 1) ผักโขม..."
+        function extractQ(str) {
+            const match = str.match(/คิว (\d+)/);
+            return match ? match[1] : '??';
+        }
+
+        // สั่งให้หน้าจอรีเฟรชข้อมูลทุกๆ 5 วินาที
+        setInterval(updateDisplay, 5000);
+        updateDisplay();
+    </script>
+</body>
+</html>
