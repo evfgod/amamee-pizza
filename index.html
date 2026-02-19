@@ -135,6 +135,7 @@
         let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
         let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
         let activePaymentOrder = null;
+        let cart = []; // เก็บข้อมูลในเครื่องก่อน
 
         function saveData() {
             localStorage.setItem('amamee_cart', JSON.stringify(cart));
@@ -184,16 +185,24 @@
         }
         
         // ตัวอย่างฟังก์ชันเพิ่มเมนูลงตะกร้า (อยู่เฉพาะในเครื่อง)
-        function addToCart(product) {
-            const existing = cart.find(item => item.name === product.name);
-            if (existing) {
-                existing.qty++;
-            } else {
-                cart.push({ ...product, qty: 1 });
+        function addToCart(item) {
+            try {
+                const existing = cart.find(i => i.name === item.name);
+                if (existing) {
+                    existing.qty++;
+                } else {
+                    cart.push({ ...item, qty: 1 });
+                }
+                
+                // หลังจากเพิ่มเสร็จ ให้วาดหน้าจอ POS ใหม่
+                renderPOS(); 
+                
+                // 💡 เพิ่มบรรทัดนี้เพื่อเช็คว่าโค้ดรันถึงจุดนี้ไหม
+                console.log("เพิ่มลงตะกร้าแล้ว:", cart); 
+            } catch (err) {
+                console.error("Error ที่ฟังก์ชัน addToCart:", err);
             }
-            renderPOS(); // วาดหน้าจอ POS ใหม่เพื่อโชว์รายการในตะกร้า
         }
-
         function changeQty(id, d) {
             const item = cart.find(x => x.id === id);
             if (item) {
@@ -359,25 +368,34 @@
 
             // ฟังก์ชันเมื่อกดปุ่ม "ลงคิว"
                 async function submitBooking() {
-                    if (cart.length === 0) return alert("ยังไม่ได้เลือกเมนู!");
+                    if (cart.length === 0) return alert("กรุณาเลือกเมนูก่อนครับ");
                 
-                    const orderId = "ID-" + Date.now(); // สร้าง ID เฉพาะของคิวนี้
+                    // สร้าง ID เฉพาะให้คิวนี้ (เพื่อใช้อ้างอิงตอนยกเลิก หรือเปลี่ยนสี)
+                    const orderId = "ID-" + Date.now(); 
+                
                     const params = new URLSearchParams();
                     params.append('action', 'addQueue');
                     params.append('id', orderId);
-                    params.append('time', new Date().toLocaleTimeString());
-                    params.append('orderNo', currentOrderNumber);
+                    params.append('time', new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
+                    params.append('orderNo', orderNumber);
                     params.append('itemSummary', cart.map(i => `${i.name}x${i.qty}`).join(', '));
                     params.append('total', totalAmount);
                 
                     try {
-                        await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-                        cart = []; // ล้างตะกร้าในเครื่องหลังจากบันทึกแล้ว
-                        alert("ลงคิวสำเร็จ!");
+                        // ส่งข้อมูลไปบันทึกที่ Google Sheet (Queues)
+                        await fetch(SCRIPT_URL, { 
+                            method: 'POST', 
+                            body: params, 
+                            mode: 'no-cors' 
+                        });
+                
+                        alert("จองคิวสำเร็จ!");
+                        cart = []; // ล้างตะกร้าในเครื่อง
                         renderPOS();
-                        syncQueues(); // โหลดหน้าคิวใหม่ทันที
+                        switchView('queue'); // สลับไปหน้าคิว
+                        syncQueues(); // ดึงข้อมูลคิวจากทุกเครื่องมาโชว์
                     } catch (e) {
-                        alert("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+                        alert("ไม่สามารถลงคิวได้ กรุณาลองใหม่");
                     }
                 }
                 
@@ -603,6 +621,7 @@
     </script>
 </body>
 </html>
+
 
 
 
