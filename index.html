@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMKIHaRh0xB1VFIHbwHgyMxbIkpGLtjqZJsnFpwot-QI2fw4oVF5c_PZilV3QJe_Bh/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcWgguu7pVS5IddPa-B6_6wl4o_5EQDPMQ9mCk2i0Y8BEkKj5lSU-M0O0MTd8V1bRfOg/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -343,30 +343,27 @@
         }
 
             async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                if (!list) return;
-            
-                // แสดงสถานะการโหลดในหน้า History
-                list.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-10 text-slate-400">
-                        <i class="fas fa-sync-alt loading-spinner text-3xl mb-3"></i>
-                        <p class="text-xs font-bold animate-pulse">กำลังดึงข้อมูลล่าสุด...</p>
-                    </div>`;
-            
-                try {
-                    // เติม _=${Date.now()} เพื่อป้องกัน Cache (ทำให้เห็นข้อมูลใหม่ทันที)
-                    const response = await fetch(`${SCRIPT_URL}?action=getHistory&_=${Date.now()}`);
-                    
-                    if (!response.ok) throw new Error('Fetch failed');
-                    
-                    const data = await response.json();
-                    renderHistoryUI(data); // นำข้อมูลไปวาดบนหน้าจอ
-                    
-                } catch (error) {
-                    console.error("History Error:", error);
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่</p>`;
+                    const list = document.getElementById('history-list');
+                    if (!list) return;
+                
+                    try {
+                        const response = await fetch(`${SCRIPT_URL}?action=getHistory&t=${Date.now()}`);
+                        const text = await response.text(); // อ่านเป็นข้อความก่อน
+                
+                        try {
+                            const data = JSON.parse(text); // ค่อยลองแปลงเป็น JSON
+                            renderHistoryUI(data);
+                        } catch (jsonError) {
+                            console.error("JSON Parse Error. Server sent:", text);
+                            // ถ้า Server ยังส่งคำว่า Success มาอีก ระบบจะรู้ตัวแล้วไม่ค้าง
+                            if (text.trim() === "Success") {
+                                list.innerHTML = `<p class="text-center py-20 text-slate-400 italic">บันทึกสำเร็จ แต่ยังดึงข้อมูลไม่ได้เนื่องจาก URL เก่า<br>โปรดใช้ URL จากการ Deploy ล่าสุด</p>`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error("History Error:", error);
+                    }
                 }
-            }
 
         async function confirmPayment() {
             if (!activePaymentOrder) return;
@@ -447,6 +444,7 @@
     </script>
 </body>
 </html>
+
 
 
 
