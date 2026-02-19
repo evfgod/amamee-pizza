@@ -20,7 +20,7 @@
     <header class="bg-[#0F172A] text-white px-5 py-4 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
             <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
-            <h1 class="text-xl font-black italic">AMAMEE <span class="text-red-500">PIZZA</span></h1>
+            <h1 class="text-xl font-black italic uppercase">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
         <div id="connection-status" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30 font-bold uppercase">Online</div>
     </header>
@@ -109,7 +109,6 @@
     </div>
 
     <script>
-        // --- ส่วนที่ต้องแก้ไข: ใส่ URL ของ Google Apps Script ของคุณที่นี่ ---
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwE6zQeUd9LAaeIUejSto5kiw1M7Mqyhc6v_sWNtkXEw1zzqlWC53jJoL3BkheCRPf_3A/exec'; 
 
         let cart = [];
@@ -140,10 +139,9 @@
             if(id === 'history') syncHistory();
         }
 
-        // --- POS & Cart ---
         function initMenu() {
             document.getElementById('menu-grid').innerHTML = menu.map(p => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 text-center active:scale-95 transition-all" onclick="add(${p.id})">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 text-center active:scale-95 transition-all" onclick="add('${p.id}')">
                     <div class="text-4xl mb-2">${p.icon}</div>
                     <div class="font-extrabold text-sm text-slate-700">${p.name}</div>
                     <div class="text-red-500 font-black">฿${p.price}</div>
@@ -170,9 +168,9 @@
                 <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
                     <div><p class="font-bold">${i.name}</p><p class="text-xs text-slate-400">฿${i.price}</p></div>
                     <div class="flex items-center gap-4">
-                        <button onclick="changeQty(${i.id}, -1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-red-500">-</button>
+                        <button onclick="changeQty('${i.id}', -1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-red-500">-</button>
                         <span class="font-black text-lg">${i.qty}</span>
-                        <button onclick="changeQty(${i.id}, 1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-blue-500">+</button>
+                        <button onclick="changeQty('${i.id}', 1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-blue-500">+</button>
                     </div>
                 </div>
             `).join('');
@@ -189,7 +187,6 @@
 
         function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        // --- Queue Management ---
         function pushToQueue(method) {
             const order = {
                 uid: Date.now(),
@@ -244,7 +241,6 @@
             }
         }
 
-        // --- Payment & History ---
         let currentOrder = null;
         function openPay(order) {
             currentOrder = order;
@@ -276,30 +272,25 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
 
-            // เตรียมข้อมูลส่งไป Google Sheets
-            const formData = new URLSearchParams();
-            formData.append('action', 'saveSale');
-            formData.append('time', currentOrder.time);
-            formData.append('items', currentOrder.summary);
-            formData.append('total', currentOrder.total);
-            formData.append('method', currentOrder.method);
+            const params = new URLSearchParams({
+                action: 'saveSale',
+                time: currentOrder.time,
+                items: currentOrder.summary,
+                total: currentOrder.total,
+                method: currentOrder.method
+            });
 
             try {
-                // ส่งข้อมูลไปหลังบ้าน
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // ใช้ no-cors สำหรับ Google Apps Script เบื้องต้น
-                    body: formData
-                });
-
-                // ถ้าส่งสำเร็จ (หรือสมมติสำเร็จสำหรับ no-cors)
+                // ส่งแบบ GET แทน POST เพื่อหลีกเลี่ยงปัญหา CORS ในหลายอุปกรณ์
+                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+                
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
                 saveQueue();
                 closePayment();
-                switchView('history'); 
-                alert('การขายเสร็จสมบูรณ์!');
+                alert('บันทึกสำเร็จ!');
+                switchView('history');
             } catch (e) {
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่');
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
                 btn.disabled = false;
                 btn.innerText = 'ยืนยันการขาย';
             }
@@ -323,9 +314,9 @@
                             <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
                         </div>
                     </div>
-                `).join('');
+                `).join('') || '<p class="text-center py-10 text-slate-300">ยังไม่มีประวัติการขาย</p>';
             } catch (e) {
-                list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลประวัติได้</p>';
+                list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลได้</p>';
             }
         }
 
