@@ -115,27 +115,24 @@
     </div>
 
     <script>
-        // --- 1. ประกาศตัวแปร Global ไว้ที่นี่ที่เดียว ---
-    let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
+    let cart = JSON.parse(localStorage.getItem('amamee_cart')) || []; 
     let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
     let activePaymentOrder = null;
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec'; 
-    let cart = []; // <--- เก็บอันนี้ไว้ที่เดียวพอ
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec';
     let orderNumber = 1;
     let products = [
         { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
-            { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
-            { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
-            { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-            { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
-            { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
-            { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
-            { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
-            { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
-            { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
-            { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
-        ];
-
+        { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
+        { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
+        { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
+        { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
+        { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
+        { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
+        { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
+        { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
+        { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
+        { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
+    ];
         function saveData() {
             localStorage.setItem('amamee_cart', JSON.stringify(cart));
             localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
@@ -171,19 +168,21 @@
 
         // 2. ฟังก์ชันแสดงเมนู (POS)
             function renderPOS() {
-                const menuGrid = document.getElementById('menu-grid');
-                if (!menuGrid) return;
-                
-                menuGrid.innerHTML = products.map(product => `
-                    <div class="menu-card" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})">
-                        <h3>${product.name}</h3>
-                        <p>${product.price} ฿</p>
-                    </div>
-                `).join('');
-                
-                updateCartUI(); // วาดตะกร้าสินค้า
-            }
-            
+        const menuGrid = document.getElementById('menu-grid');
+        if (!menuGrid) return;
+        
+        menuGrid.innerHTML = products.map(product => `
+            <div class="bg-white p-4 rounded-2xl shadow-sm text-center cursor-pointer hover:bg-orange-50 transition" 
+                 onclick='addToCart(${JSON.stringify(product)})'>
+                <div class="text-4xl mb-2">${product.icon}</div>
+                <div class="font-bold text-sm">${product.name}</div>
+                <div class="text-red-500 font-bold">${product.price} ฿</div>
+            </div>
+        `).join('');
+    }
+
+    // เรียกใช้ตอนโหลดหน้าจอ
+    window.onload = renderPOS;
             // 3. ฟังก์ชันเพิ่มลงตะกร้า (ห้ามประกาศ let cart ซ้ำในนี้!)
             function addToCart(product) {
                 const existing = cart.find(item => item.name === product.name);
@@ -612,6 +611,7 @@
     </script>
 </body>
 </html>
+
 
 
 
