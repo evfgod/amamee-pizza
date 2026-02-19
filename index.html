@@ -115,8 +115,6 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec";
-        
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
             { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
@@ -135,7 +133,9 @@
         let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
         let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
         let activePaymentOrder = null;
-        let cart = []; // เก็บข้อมูลในเครื่องก่อน
+        let cart = []; 
+        let orderNumber = 1;
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec';
 
         function saveData() {
             localStorage.setItem('amamee_cart', JSON.stringify(cart));
@@ -170,39 +170,31 @@
             if (viewId === 'pos') renderPOS();
         }
 
-        function renderPOS() {
-            const grid = document.getElementById('view-pos');
-            grid.innerHTML = MENU.map(item => `
-                <div onclick="addToCart('${item.id}')" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-40 relative active:scale-95 transition-all cursor-pointer">
-                    <span class="absolute top-4 right-4 text-3xl opacity-20">${item.icon}</span>
-                    <h3 class="font-black text-slate-800 pr-8 text-sm">${item.name}</h3>
-                    <div class="flex justify-between items-end">
-                        <span class="text-xl font-black text-red-600">฿${item.price}</span>
-                        <div class="w-8 h-8 bg-red-600 text-white rounded-lg flex items-center justify-center"><i class="fas fa-plus text-[10px]"></i></div>
+        // 2. ฟังก์ชันแสดงเมนู (POS)
+            function renderPOS() {
+                const menuGrid = document.getElementById('menu-grid');
+                if (!menuGrid) return;
+                
+                menuGrid.innerHTML = products.map(product => `
+                    <div class="menu-card" onclick="addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})">
+                        <h3>${product.name}</h3>
+                        <p>${product.price} ฿</p>
                     </div>
-                </div>
-            `).join('');
-        }
-        
-        // ตัวอย่างฟังก์ชันเพิ่มเมนูลงตะกร้า (อยู่เฉพาะในเครื่อง)
-        function addToCart(item) {
-            try {
-                const existing = cart.find(i => i.name === item.name);
+                `).join('');
+                
+                updateCartUI(); // วาดตะกร้าสินค้า
+            }
+            
+            // 3. ฟังก์ชันเพิ่มลงตะกร้า (ห้ามประกาศ let cart ซ้ำในนี้!)
+            function addToCart(product) {
+                const existing = cart.find(item => item.name === product.name);
                 if (existing) {
                     existing.qty++;
                 } else {
-                    cart.push({ ...item, qty: 1 });
+                    cart.push({ ...product, qty: 1 });
                 }
-                
-                // หลังจากเพิ่มเสร็จ ให้วาดหน้าจอ POS ใหม่
                 renderPOS(); 
-                
-                // 💡 เพิ่มบรรทัดนี้เพื่อเช็คว่าโค้ดรันถึงจุดนี้ไหม
-                console.log("เพิ่มลงตะกร้าแล้ว:", cart); 
-            } catch (err) {
-                console.error("Error ที่ฟังก์ชัน addToCart:", err);
             }
-        }
         function changeQty(id, d) {
             const item = cart.find(x => x.id === id);
             if (item) {
@@ -621,6 +613,7 @@
     </script>
 </body>
 </html>
+
 
 
 
