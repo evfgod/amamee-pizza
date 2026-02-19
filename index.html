@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxcWgguu7pVS5IddPa-B6_6wl4o_5EQDPMQ9mCk2i0Y8BEkKj5lSU-M0O0MTd8V1bRfOg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4fkoH83j265Aet9UICA4W5VtUm01tLhUmY7k88DOYnQPNjPvkuCmLfe0dcK24_EmjmA/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -342,28 +342,23 @@
             }
         }
 
+            
             async function syncHistoryData() {
-                    const list = document.getElementById('history-list');
-                    if (!list) return;
-                
-                    try {
-                        const response = await fetch(`${SCRIPT_URL}?action=getHistory&t=${Date.now()}`);
-                        const text = await response.text(); // อ่านเป็นข้อความก่อน
-                
-                        try {
-                            const data = JSON.parse(text); // ค่อยลองแปลงเป็น JSON
-                            renderHistoryUI(data);
-                        } catch (jsonError) {
-                            console.error("JSON Parse Error. Server sent:", text);
-                            // ถ้า Server ยังส่งคำว่า Success มาอีก ระบบจะรู้ตัวแล้วไม่ค้าง
-                            if (text.trim() === "Success") {
-                                list.innerHTML = `<p class="text-center py-20 text-slate-400 italic">บันทึกสำเร็จ แต่ยังดึงข้อมูลไม่ได้เนื่องจาก URL เก่า<br>โปรดใช้ URL จากการ Deploy ล่าสุด</p>`;
-                            }
-                        }
-                    } catch (error) {
-                        console.error("History Error:", error);
-                    }
+                const list = document.getElementById('history-list');
+                try {
+                    // ต้องมี ?action=getHistory ต่อท้าย URL เสมอ
+                    const response = await fetch(`${SCRIPT_URL}?action=getHistory&t=${Date.now()}`);
+                    const rawData = await response.text();
+            
+                    console.log("Raw Server Data:", rawData); // ดูใน Console ว่าค่าที่ส่งมาเป็นอย่างไร
+            
+                    const data = JSON.parse(rawData);
+                    renderHistoryUI(data);
+                } catch (e) {
+                    console.error("History Error:", e);
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ดึงข้อมูลไม่สำเร็จ: ${e.message}</p>`;
                 }
+            }
 
         async function confirmPayment() {
             if (!activePaymentOrder) return;
@@ -444,6 +439,7 @@
     </script>
 </body>
 </html>
+
 
 
 
