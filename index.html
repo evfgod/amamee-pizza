@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxeOf44fBnLDa2aDHnZW1Cd5m391E8VmcZKeSpz9EggBKUSQJJ1mxc5hDLOCV7_Hz4ACg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4WEARdozyNkRfNkKiIPh46D3XGwXKeHIQ2lF9GxNyp9bj0uAFvj5skpozsGo4AwYzjg/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -382,46 +382,58 @@
             }
 
         async function syncHistoryData() {
-            const list = document.getElementById('history-list');
-            const icon = document.getElementById('refresh-icon');
-            icon.classList.add('loading-spinner');
-
-            try {
-                const response = await fetch(SCRIPT_URL + "?action=getHistory");
-                const rawText = await response.text();
-                
-                if (rawText.trim().startsWith("[")) {
-                    const data = JSON.parse(rawText);
-                    renderHistoryUI(data);
+                const list = document.getElementById('history-list');
+                const icon = document.getElementById('refresh-icon');
+                if (icon) icon.classList.add('loading-spinner');
+            
+                try {
+                    const response = await fetch(SCRIPT_URL + "?action=getHistory&t=" + Date.now());
+                    const rawText = await response.text();
+            
+                    // ตรวจสอบเบื้องต้นว่าไม่ใช่ข้อความ error "Success" ลอยๆ
+                    if (rawText.trim().startsWith("[")) {
+                        const data = JSON.parse(rawText);
+                        renderHistoryUI(data);
+                    } else {
+                        console.warn("Data format incorrect:", rawText);
+                        if (list.innerHTML === "") {
+                            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">เซิร์ฟเวอร์ยังไม่มีข้อมูล</p>`;
+                        }
+                    }
+                } catch (error) {
+                    console.error("History Error:", error);
+                } finally {
+                    if (icon) icon.classList.remove('loading-spinner');
                 }
-            } catch (error) {
-                console.error("History Error:", error);
-            } finally {
-                icon.classList.remove('loading-spinner');
             }
-        }
 
         function renderHistoryUI(data) {
-            const list = document.getElementById('history-list');
-            if (!list) return;
-            const validData = data.filter(o => o.total > 0 && o.orderNo);
-            if (validData.length === 0) {
-                list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                return;
-            }
-            list.innerHTML = validData.map(o => `
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs"><i class="fas fa-check"></i></div>
-                        <div>
-                            <p class="font-black text-sm italic">#${o.orderNo}</p>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
+                const list = document.getElementById('history-list');
+                if (!list) return;
+            
+                // ✅ กรองอีกชั้น: เอาเฉพาะออเดอร์ที่มีเลขที่ออเดอร์ และ ยอดเงินต้อง > 0 เท่านั้น
+                const validData = data.filter(o => o.orderNo && parseFloat(o.total) > 0);
+            
+                if (validData.length === 0) {
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
+                    return;
+                }
+            
+                list.innerHTML = validData.map(o => `
+                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm animate-fadeIn">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div>
+                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
+                            </div>
                         </div>
+                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
                     </div>
-                    <p class="font-black text-lg text-slate-700 italic">฿${Number(o.total).toLocaleString()}</p>
-                </div>
-            `).join('');
-        }
+                `).join('');
+            }
 
         // เริ่มต้น
         renderPOS();
@@ -430,6 +442,7 @@
     </script>
 </body>
 </html>
+
 
 
 
