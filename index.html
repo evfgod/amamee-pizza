@@ -2,14 +2,14 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">menu-gridmenu-grid
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AMAMEE PIZZA POS ONLINE</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --brand-red: #E11D48; }
-        body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .active-tab { color: var(--brand-red) !important; }
         .loading-spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -22,13 +22,14 @@
             <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
             <h1 class="text-xl font-black italic">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
-        <div class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30 font-bold uppercase">Local Queue Mode</div>
+        <div class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30 font-bold uppercase">Online Mode</div>
     </header>
 
     <main class="flex-1 overflow-y-auto pb-32" id="main-scroll">
         <div id="view-pos" class="p-4">
-        <div id="menu-grid" class="grid grid-cols-2 gap-3"></div>
+            <div id="menu-grid" class="grid grid-cols-2 gap-3"></div>
         </div>
+
         <div id="view-queue" class="hidden p-4 space-y-4">
             <h2 class="text-2xl font-black italic uppercase text-slate-800">Orders in Queue</h2>
             <div id="queue-list" class="space-y-4"></div>
@@ -68,7 +69,7 @@
 
     <div id="cart-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden flex flex-col justify-end">
         <div class="bg-white rounded-t-[2.5rem] h-[80vh] flex flex-col">
-            <div class="p-6 text-center border-b">
+            <div class="p-6 text-center border-b relative">
                 <h3 class="text-xl font-black">ตะกร้าสินค้า</h3>
                 <button onclick="toggleCartModal()" class="absolute right-6 top-6 text-slate-300"><i class="fas fa-times text-xl"></i></button>
             </div>
@@ -80,10 +81,10 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="sendToQueue('CASH')" class="bg-slate-900 text-white py-5 rounded-2xl font-black flex flex-col items-center shadow-lg active:scale-95 transition-all">
-                        <i class="fas fa-clock mb-1"></i>ลงคิวเงินสด
+                        <i class="fas fa-money-bill-wave mb-1"></i>เงินสด
                     </button>
                     <button onclick="sendToQueue('TRANSFER')" class="bg-blue-600 text-white py-5 rounded-2xl font-black flex flex-col items-center shadow-lg active:scale-95 transition-all">
-                        <i class="fas fa-clock mb-1"></i>ลงคิวโอนเงิน
+                        <i class="fas fa-mobile-alt mb-1"></i>โอนเงิน
                     </button>
                 </div>
             </div>
@@ -97,584 +98,250 @@
                 <h2 id="pay-total-display" class="text-5xl font-black italic">฿0</h2>
             </div>
             <div id="cash-input-section" class="hidden space-y-4">
-                <input type="number" 
-       id="cash-received" 
-       oninput="calcChange()" 
-       inputmode="decimal"
-       placeholder="0.00" 
-       class="w-full text-4xl font-black text-center py-4 border-2 border-slate-200 rounded-3xl focus:border-red-500 outline-none">
+                <input type="number" id="cash-received" oninput="calcChange()" inputmode="decimal" placeholder="0.00" 
+                    class="w-full text-4xl font-black text-center py-4 border-2 border-slate-200 rounded-3xl focus:border-red-500 outline-none">
                 <div class="flex justify-between items-center p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
                     <span class="font-bold text-emerald-700 text-xs uppercase font-inter">Change</span>
                     <span id="cash-change" class="text-3xl font-black text-emerald-600 font-inter">฿0</span>
                 </div>
             </div>
             <button id="btn-confirm-pay" onclick="confirmPayment()" class="w-full bg-slate-400 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all opacity-50 cursor-not-allowed">
-    กรุณาใส่จำนวนเงิน
-</button>
+                ยืนยันการชำระเงิน
+            </button>
             <button onclick="closePaymentModal()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
         </div>
     </div>
 
     <script>
-    <script>
-    // --- 1. ประกาศตัวแปร (ลบอันที่ซ้ำออกแล้ว) ---
-    let cart = JSON.parse(localStorage.getItem('amamee_cart')) || []; 
-    let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
-    let activePaymentOrder = null;
-    let orderNumber = 1;
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec'; 
+        // --- Configuration & Variables ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec'; 
+        let cart = JSON.parse(localStorage.getItem('amamee_cart')) || [];
+        let localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
+        let activePaymentOrder = null;
+        let orderNumber = parseInt(localStorage.getItem('amamee_order_no')) || 1;
 
-    const products = [
-        { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
-        { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
-        { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
-        { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-        { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
-        { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
-        { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
-        { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
-        { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
-        { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
-        { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
-    ];
+        const products = [
+            { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
+            { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
+            { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
+            { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
+            { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
+            { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
+            { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
+            { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
+            { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
+            { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
+            { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '➕' }
+        ];
+
+        // --- Core Functions ---
         function saveData() {
             localStorage.setItem('amamee_cart', JSON.stringify(cart));
             localStorage.setItem('amamee_queue', JSON.stringify(localQueue));
+            localStorage.setItem('amamee_order_no', orderNumber);
         }
 
-        // --- ปรับปรุงการสลับหน้าจอให้บังคับโหลดคิวใหม่ทุกครั้ง ---
         function switchView(viewId) {
-            const views = ['pos', 'queue', 'history'];
-            views.forEach(id => {
-                const v = document.getElementById('view-' + id);
-                if (v) {
-                    if (id === viewId) {
-                        v.classList.remove('hidden');
-                        v.classList.add('block');
-                    } else {
-                        v.classList.add('hidden');
-                        v.classList.remove('block');
-                    }
-                }
+            ['pos', 'queue', 'history'].forEach(id => {
+                document.getElementById('view-' + id).classList.add('hidden');
+                document.getElementById('btn-' + id).classList.remove('active-tab');
             });
-
-            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-            const activeBtn = document.getElementById('btn-' + viewId);
-            if (activeBtn) activeBtn.classList.add('active-tab');
-
-            // บังคับวาดหน้าจอใหม่ทันทีที่สลับหน้า
-            if (viewId === 'queue') {
-                renderLocalQueue(); 
-            }
-            if (viewId === 'history') syncHistoryData();
-            if (viewId === 'pos') renderPOS();
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            document.getElementById('btn-' + viewId).classList.add('active-tab');
+            if(viewId === 'queue') renderLocalQueue();
+            if(viewId === 'history') syncHistoryData();
         }
 
-        // 2. ฟังก์ชันแสดงเมนู (POS)
-           function renderPOS() {
-                const menuGrid = document.getElementById('menu-grid');
-                if (!menuGrid) return;
-                
-                menuGrid.innerHTML = products.map(product => `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm text-center cursor-pointer hover:bg-orange-50 transition border border-transparent hover:border-orange-200" 
-                         onclick='addToCart(${JSON.stringify(product)})'>
-                        <div class="text-4xl mb-2">${product.icon}</div>
-                        <div class="font-bold text-sm">${product.name}</div>
-                        <div class="text-red-500 font-bold">${product.price} ฿</div>
-                    </div>
-                `).join('');
-                
-                updateCartUI(); // อัปเดตรายการในตะกร้า (ถ้ามีฟังก์ชันนี้)
-            }
-                // --- 3. ฟังก์ชันเพิ่มสินค้าลงตะกร้า ---
-                    function addToCart(product) {
-                        const existing = cart.find(item => item.id === product.id);
-                        if (existing) {
-                            existing.qty++;
-                        } else {
-                            cart.push({ ...product, qty: 1 });
-                        }
-                        localStorage.setItem('amamee_cart', JSON.stringify(cart)); // เซฟลงเครื่องเผื่อหน้าเว็บหลุด
-                        renderPOS(); 
-                    }
-                
-                    // --- 4. สั่งให้ทำงานเมื่อโหลดหน้าจอ ---
-                    window.onload = function() {
-                        renderPOS();
-                        // syncQueues(); // ถ้าคุณมีฟังก์ชันดึงคิวออนไลน์ให้เปิดใช้บรรทัดนี้
-                    };
-        function changeQty(id, d) {
-            const item = cart.find(x => x.id === id);
-            if (item) {
-                item.qty += d;
-                if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
+        // --- POS Logic ---
+        function renderPOS() {
+            const grid = document.getElementById('menu-grid');
+            grid.innerHTML = products.map(p => `
+                <div class="bg-white p-4 rounded-2xl shadow-sm text-center cursor-pointer active:scale-95 transition-all border border-slate-100" onclick='addToCart(${JSON.stringify(p)})'>
+                    <div class="text-4xl mb-2">${p.icon}</div>
+                    <div class="font-bold text-sm">${p.name}</div>
+                    <div class="text-red-500 font-black">${p.price} ฿</div>
+                </div>
+            `).join('');
+            updateCartUI();
+        }
+
+        function addToCart(product) {
+            const item = cart.find(i => i.id === product.id);
+            if(item) item.qty++; else cart.push({...product, qty: 1});
+            saveData();
+            updateCartUI();
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if(item) {
+                item.qty += delta;
+                if(item.qty <= 0) cart = cart.filter(i => i.id !== id);
                 saveData();
                 updateCartUI();
             }
         }
-        async function addQueueToServer(order) {
-            const params = new URLSearchParams();
-            params.append('action', 'addQueue');
-            params.append('id', order.id);
-            params.append('time', order.time);
-            params.append('orderNo', order.orderNo);
-            params.append('itemSummary', order.itemSummary);
-            params.append('total', order.total);
-        
-            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-            syncQueueData(); // สั่งให้ทุกเครื่องอัปเดตหน้าจอคิว
-        }
 
-            // ให้ดึงข้อมูลคิวใหม่จาก Server ทุกๆ 10 วินาที
-            setInterval(() => {
-                syncQueueData();
-            }, 10000); 
+        function updateCartUI() {
+            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            const count = cart.reduce((s, i) => s + i.qty, 0);
+            document.getElementById('cart-preview').classList.toggle('hidden', cart.length === 0);
+            document.getElementById('cart-count').innerText = count;
+            document.getElementById('cart-total').innerText = `฿${total}`;
+            document.getElementById('modal-total').innerText = `฿${total}`;
             
-            async function syncQueueData() {
-                try {
-                    const response = await fetch(`${SCRIPT_URL}?action=getQueues&t=${Date.now()}`);
-                    const data = await response.json();
-                    renderQueueUI(data);
-                } catch (e) {
-                    console.log("Error syncing queue:", e);
-                }
-            }
-        
-            // เพิ่มฟังก์ชันคำนวณยอดรวม (เพื่อให้ระบบลงคิวทำงานได้)
-    function getTotalAmount() {
-        return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    }
-
-            function updateCartUI() {
-                const total = getTotalAmount();
-                // อัปเดตตัวเลขหน้าจอ POS
-                const preview = document.getElementById('cart-preview');
-                if (cart.length > 0) {
-                    preview.classList.remove('hidden');
-                    document.getElementById('cart-count').innerText = cart.reduce((s, i) => s + i.qty, 0);
-                    document.getElementById('cart-total').innerText = `฿${total}`;
-                } else {
-                    preview.classList.add('hidden');
-                }
-        
-                // อัปเดตรายการใน Modal ตะกร้า
-                const modalList = document.getElementById('cart-items-list');
-                if (modalList) {
-                    modalList.innerHTML = cart.map(item => `
-                        <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
-                            <div>
-                                <p class="font-bold">${item.name}</p>
-                                <p class="text-xs text-slate-400">฿${item.price} x ${item.qty}</p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 rounded-full bg-white shadow-sm">-</button>
-                                <span class="font-bold">${item.qty}</span>
-                                <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 rounded-full bg-white shadow-sm">+</button>
-                            </div>
-                        </div>
-                    `).join('');
-                    document.getElementById('modal-total').innerText = `฿${total}`;
-                }
-            }
-        
-        function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
-
-        // ฟังก์ชันนี้เรียกใช้งานเมื่อกดปุ่ม "จองคิว" ในหน้าจอ POS
-            async function handleBooking() {
-                if (cart.length === 0) return alert("กรุณาเลือกเมนูก่อนลงคิว");
-            
-                const orderData = {
-                    id: Date.now().toString(), // ใช้ timestamp เป็น ID เพื่อใช้อ้างอิงตอนยกเลิก
-                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                    orderNo: orderNumber.toString().padStart(3, '0'),
-                    itemSummary: cart.map(i => `${i.name} x ${i.qty}`).join(', '),
-                    total: totalAmount
-                };
-            
-                try {
-                    // ส่งข้อมูลไปบันทึกที่ Google Sheets (สถานะเริ่มต้นคือ 'แดง')
-                    const params = new URLSearchParams();
-                    params.append('action', 'addQueue');
-                    params.append('id', orderData.id);
-                    params.append('time', orderData.time);
-                    params.append('orderNo', orderData.orderNo);
-                    params.append('itemSummary', orderData.itemSummary);
-                    params.append('total', orderData.total);
-            
-                    await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-            
-                    // ล้างตะกร้าหลังจากบันทึกสำเร็จ
-                    cart = [];
-                    orderNumber++;
-                    renderPOS();
-                    switchView('queue'); // สลับไปหน้าคิว
-                    syncQueues(); // โหลดข้อมูลคิวล่าสุดจาก Server
-                } catch (e) {
-                    alert("เกิดข้อผิดพลาดในการลงคิว");
-                }
-            }
-                    /// ฟังก์ชันส่งคิวไปเซิร์ฟเวอร์
-            function sendToQueue(method) {
-                if (cart.length === 0) return;
-                
-                const orderData = {
-                    id: Date.now(),
-                    orderNo: orderNumber.toString().padStart(3, '0'),
-                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                    itemSummary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
-                    total: getTotalAmount(),
-                    method: method // 'CASH' หรือ 'TRANSFER'
-                };
-            
-                localQueue.push(orderData);
-                orderNumber++;
-                cart = [];
-                saveData();
-                
-                toggleCartModal();
-                renderPOS();
-                renderLocalQueue();
-                switchView('queue');
-                
-                // ส่งไป Google Sheets แบบ Background
-                const params = new URLSearchParams();
-                params.append('action', 'addQueue');
-                params.append('id', orderData.id);
-                params.append('time', orderData.time);
-                params.append('orderNo', orderData.orderNo);
-                params.append('itemSummary', orderData.itemSummary);
-                params.append('total', orderData.total);
-                
-                fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-            }
-            
-            // ฟังก์ชันดึงข้อมูลคิวมาแสดง
-            async function syncQueues() {
-                const resp = await fetch(`${SCRIPT_URL}?action=getQueues&_=${Date.now()}`);
-                const data = await resp.json();
-                const list = document.getElementById('queue-list');
-                
-                list.innerHTML = data.map(q => {
-                    let colorClass = q.status === 'แดง' ? 'bg-red-500' : 'bg-yellow-500';
-                    return `
-                        <div class="p-4 mb-2 bg-white rounded-2xl border-l-8 ${q.status === 'แดง' ? 'border-red-500' : 'border-yellow-500'} shadow-sm flex justify-between items-center">
-                            <div>
-                                <h3 class="font-black italic">#${q.orderNo}</h3>
-                                <p class="text-[10px] text-slate-400">${q.itemSummary}</p>
-                            </div>
-                            <select onchange="updateStatus('${q.id}', this.value)" class="${colorClass} text-white text-[10px] font-bold rounded-lg px-2 py-1 outline-none">
-                                <option value="แดง" ${q.status === 'แดง' ? 'selected' : ''}>แดง: รอคิว</option>
-                                <option value="เหลือง" ${q.status === 'เหลือง' ? 'selected' : ''}>เหลือง: กำลังทำ</option>
-                                <option value="เขียว">เขียว: เสร็จสิ้น/จ่ายเงิน</option>
-                            </select>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            // อัปเดตสถานะคิว
-            async function updateStatus(id, newStatus) {
-                const params = new URLSearchParams();
-                params.append('action', 'updateStatus');
-                params.append('id', id);
-                params.append('status', newStatus);
-                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-                syncQueues();
-            }
-            
-            // ให้ระบบ Sync คิวทุก 10 วินาทีอัตโนมัติ (ทุกเครื่องจะเห็นเหมือนกัน)
-            setInterval(syncQueues, 10000);
-    // ฟังก์ชันสำหรับกดปุ่มยกเลิกจากหน้าจอ
-            async function cancelBooking(id) {
-                if (!confirm("ยืนยันการยกเลิกคิวนี้?")) return;
-            
-                const params = new URLSearchParams();
-                params.append('action', 'cancelQueue');
-                params.append('id', id);
-            
-                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-                syncQueues(); // อัปเดตหน้าจอทันที
-            }
-
-            // ฟังก์ชันเมื่อกดปุ่ม "ลงคิว"
-                async function submitBooking() {
-                    if (cart.length === 0) return alert("กรุณาเลือกเมนูก่อนครับ");
-                
-                    // สร้าง ID เฉพาะให้คิวนี้ (เพื่อใช้อ้างอิงตอนยกเลิก หรือเปลี่ยนสี)
-                    const orderId = "ID-" + Date.now(); 
-                
-                    const params = new URLSearchParams();
-                    params.append('action', 'addQueue');
-                    params.append('id', orderId);
-                    params.append('time', new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
-                    params.append('orderNo', orderNumber);
-                    params.append('itemSummary', cart.map(i => `${i.name}x${i.qty}`).join(', '));
-                    params.append('total', totalAmount);
-                
-                    try {
-                        // ส่งข้อมูลไปบันทึกที่ Google Sheet (Queues)
-                        await fetch(SCRIPT_URL, { 
-                            method: 'POST', 
-                            body: params, 
-                            mode: 'no-cors' 
-                        });
-                
-                        alert("จองคิวสำเร็จ!");
-                        cart = []; // ล้างตะกร้าในเครื่อง
-                        renderPOS();
-                        switchView('queue'); // สลับไปหน้าคิว
-                        syncQueues(); // ดึงข้อมูลคิวจากทุกเครื่องมาโชว์
-                    } catch (e) {
-                        alert("ไม่สามารถลงคิวได้ กรุณาลองใหม่");
-                    }
-                }
-                
-                // ฟังก์ชันยกเลิกคิว
-                async function cancelOrder(orderId) {
-                    if (!confirm("ต้องการยกเลิกคิวนี้ใช่หรือไม่?")) return;
-                
-                    const params = new URLSearchParams();
-                    params.append('action', 'cancelQueue');
-                    params.append('id', orderId);
-                
-                    await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-                    syncQueues(); // โหลดหน้าคิวใหม่
-                }
-        
-            // ปรับปรุงส่วนแสดงผลคิว (ให้มีปุ่มยกเลิก)
-            function renderQueueUI(data) {
-                const list = document.getElementById('queue-list');
-                list.innerHTML = data.map(q => `
-                    <div class="p-4 mb-2 bg-white rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between">
-                        <div>
-                            <p class="font-bold">#${q.orderNo}</p>
-                            <p class="text-xs text-gray-500">${q.itemSummary}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="cancelBooking('${q.id}')" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-lg text-xs">ยกเลิก</button>
-                            <select onchange="updateStatus('${q.id}', this.value)" ...> </select>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-        // --- ปรับปรุงฟังก์ชันแสดงคิวให้แม่นยำขึ้น ---
-        function renderLocalQueue() {
-            // ดึงข้อมูลล่าสุดจาก localStorage ก่อนเผื่อมีการอัปเดต
-            localQueue = JSON.parse(localStorage.getItem('amamee_queue')) || [];
-            
-            const list = document.getElementById('queue-list');
-            const badge = document.getElementById('queue-badge');
-            
-            // อัปเดต Badge ตัวเลข
-            if (badge) {
-                badge.innerText = localQueue.length;
-                if (localQueue.length > 0) {
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            }
-
-            if (!list) return;
-
-            if (localQueue.length === 0) {
-                list.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-20 text-slate-300">
-                        <i class="fas fa-clipboard-list text-5xl mb-4 opacity-20"></i>
-                        <p class="font-bold italic">ยังไม่มีออเดอร์ในคิว</p>
-                    </div>`;
-                return;
-            }
-
-            // แสดงรายการคิว
-            list.innerHTML = localQueue.map(o => `
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm mb-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="bg-red-50 text-red-600 w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl italic">#${o.orderNo}</span>
-                            <div>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
-                                <h4 class="font-bold text-slate-800 text-sm leading-tight">${o.itemSummary}</h4>
-                            </div>
-                        </div>
-                        <p class="font-black text-xl text-slate-700 italic">฿${o.total.toLocaleString()}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="cancelLocalOrder(${o.id})" class="bg-slate-100 text-slate-400 py-3 rounded-2xl font-bold text-xs active:scale-95 transition-all">ยกเลิก</button>
-                        <button onclick='openPaymentModal(${JSON.stringify(o)})' class="w-full ${o.method === 'CASH' ? 'bg-slate-900' : 'bg-blue-600'} text-white py-3 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">ชำระเงิน</button>
+            const list = document.getElementById('cart-items-list');
+            list.innerHTML = cart.map(i => `
+                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                    <div><p class="font-bold text-sm">${i.name}</p><p class="text-xs text-slate-400">฿${i.price} x ${i.qty}</p></div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="changeQty('${i.id}', -1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">-</button>
+                        <span class="font-bold">${i.qty}</span>
+                        <button onclick="changeQty('${i.id}', 1)" class="w-8 h-8 rounded-full bg-white shadow-sm font-bold">+</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function cancelLocalOrder(id) {
-            if(confirm("ยกเลิกคิวนี้ใช่หรือไม่?")) {
+        function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
+
+        // --- Queue Logic ---
+        function sendToQueue(method) {
+            if(cart.length === 0) return;
+            const order = {
+                id: Date.now(),
+                orderNo: orderNumber.toString().padStart(3, '0'),
+                time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
+                itemSummary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
+                total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
+                method: method
+            };
+            localQueue.push(order);
+            orderNumber++;
+            cart = [];
+            saveData();
+            toggleCartModal();
+            switchView('queue');
+        }
+
+        function renderLocalQueue() {
+            const list = document.getElementById('queue-list');
+            const badge = document.getElementById('queue-badge');
+            badge.innerText = localQueue.length;
+            badge.classList.toggle('hidden', localQueue.length === 0);
+            
+            list.innerHTML = localQueue.map(o => `
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg font-black text-xs">#${o.orderNo}</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</span>
+                        </div>
+                        <p class="font-bold text-slate-800 text-sm">${o.itemSummary}</p>
+                    </div>
+                    <div class="text-right ml-4">
+                        <p class="font-black text-lg italic mb-2">฿${o.total}</p>
+                        <div class="flex gap-2 justify-end">
+                            <button onclick="deleteQueue(${o.id})" class="text-xs text-slate-300 underline">ลบ</button>
+                            <button onclick='openPaymentModal(${JSON.stringify(o)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold">จ่ายเงิน</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('') || '<div class="text-center py-20 text-slate-300 italic">ไม่มีคิวค้าง</div>';
+        }
+
+        function deleteQueue(id) {
+            if(confirm('ยกเลิกคิวนี้?')) {
                 localQueue = localQueue.filter(q => q.id !== id);
                 saveData();
                 renderLocalQueue();
             }
         }
 
-        // --- ชำระเงิน ---
+        // --- Payment Logic ---
         function openPaymentModal(order) {
             activePaymentOrder = order;
             const isCash = order.method === 'CASH';
             document.getElementById('pay-method-label').innerText = isCash ? 'ยอดชำระเงินสด' : 'ยอดชำระเงินโอน';
-            document.getElementById('pay-total-display').innerText = `฿${order.total.toLocaleString()}`;
+            document.getElementById('pay-total-display').innerText = `฿${order.total}`;
             document.getElementById('cash-input-section').classList.toggle('hidden', !isCash);
-            document.getElementById('cash-received').value = '';
-            document.getElementById('cash-change').innerText = '฿0';
             document.getElementById('payment-modal').classList.remove('hidden');
-            calcChange(); // Reset ปุ่ม
+            document.getElementById('cash-received').value = '';
+            calcChange();
         }
 
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.add('hidden');
-            activePaymentOrder = null;
-        }
+        function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); }
 
         function calcChange() {
-            if (!activePaymentOrder) return;
+            if(!activePaymentOrder) return;
             const received = parseFloat(document.getElementById('cash-received').value) || 0;
             const total = activePaymentOrder.total;
             const change = received - total;
-            const confirmBtn = document.getElementById('btn-confirm-pay');
-
-            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change.toLocaleString()}` : '฿0';
-
-            if (activePaymentOrder.method !== 'CASH' || received >= total) {
-                confirmBtn.disabled = false;
-                confirmBtn.className = "w-full bg-red-600 text-white py-6 rounded-2xl font-black text-xl shadow-lg transition-all active:scale-95";
-                confirmBtn.innerText = "ชำระเงินและบันทึก";
+            const btn = document.getElementById('btn-confirm-pay');
+            
+            document.getElementById('cash-change').innerText = change >= 0 ? `฿${change}` : '฿0';
+            
+            if(activePaymentOrder.method !== 'CASH' || received >= total) {
+                btn.disabled = false;
+                btn.classList.replace('bg-slate-400', 'bg-red-600');
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
             } else {
-                confirmBtn.disabled = true;
-                confirmBtn.className = "w-full bg-slate-300 text-slate-500 py-6 rounded-2xl font-black text-xl opacity-50 cursor-not-allowed";
-                confirmBtn.innerText = `ค้างอีก ฿${(total - received).toLocaleString()}`;
+                btn.disabled = true;
+                btn.classList.replace('bg-red-600', 'bg-slate-400');
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
 
-            
-            async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                try {
-                    // ต้องมี ?action=getHistory ต่อท้าย URL เสมอ
-                    const response = await fetch(`${SCRIPT_URL}?action=getHistory&t=${Date.now()}`);
-                    const rawData = await response.text();
-            
-                    console.log("Raw Server Data:", rawData); // ดูใน Console ว่าค่าที่ส่งมาเป็นอย่างไร
-            
-                    const data = JSON.parse(rawData);
-                    renderHistoryUI(data);
-                } catch (e) {
-                    console.error("History Error:", e);
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ดึงข้อมูลไม่สำเร็จ: ${e.message}</p>`;
-                }
-            }
-
         async function confirmPayment() {
-            if (!activePaymentOrder) return;
             const btn = document.getElementById('btn-confirm-pay');
-            
-            // แสดงสถานะกำลังทำงาน
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner loading-spinner mr-2"></i> กำลังบันทึก...';
-        
+            btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
+            
             const params = new URLSearchParams();
+            params.append('action', 'addQueue'); // ปรับตาม action ใน Apps Script
             params.append('time', activePaymentOrder.time);
             params.append('orderNo', activePaymentOrder.orderNo);
             params.append('itemSummary', activePaymentOrder.itemSummary);
             params.append('total', activePaymentOrder.total);
             params.append('method', activePaymentOrder.method);
-        
+
             try {
-                // ส่งข้อมูลไปบันทึก
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: params,
-                    mode: 'no-cors' // ข้ามปัญหา CORS สำหรับการส่งข้อมูล
-                });
-        
-                // --- ส่วนที่แก้ไข ---
-                // 1. ลบคิวในเครื่อง
+                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
                 localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
                 saveData();
-                
-                // 2. ปิด Modal ชำระเงิน
                 closePaymentModal();
-                
-                // 3. สลับไปหน้าประวัติ (History)
                 switchView('history');
-                
-                // 4. บังคับให้โหลดข้อมูลใหม่จาก Server ทันที (ไม่ต้อง Alert)
-                syncHistoryData(); 
-        
             } catch (e) {
-                console.error("Error saving data:", e);
-                // กรณีผิดพลาดจริงๆ ค่อยแจ้งเตือน
+                alert("บันทึกไม่สำเร็จ แต่ข้อมูลยังอยู่ในเครื่อง");
                 btn.disabled = false;
-                btn.innerText = "ลองใหม่อีกครั้ง";
+                btn.innerText = "ยืนยันการชำระเงิน";
             }
         }
-        function renderHistoryUI(data) {
-                const list = document.getElementById('history-list');
-                if (!list) return;
-            
-                // ✅ กรองอีกชั้น: เอาเฉพาะออเดอร์ที่มีเลขที่ออเดอร์ และ ยอดเงินต้อง > 0 เท่านั้น
-                const validData = data.filter(o => o.orderNo && parseFloat(o.total) > 0);
-            
-                if (validData.length === 0) {
-                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic font-bold">ไม่พบประวัติการขาย</p>`;
-                    return;
-                }
-            
-                list.innerHTML = validData.map(o => `
-                    <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm animate-fadeIn">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
-                                <i class="fas fa-check"></i>
-                            </div>
-                            <div>
-                                <p class="font-black text-sm italic font-inter">#${o.orderNo}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase">${o.time} • ${o.method}</p>
-                            </div>
-                        </div>
-                        <p class="font-black text-lg text-slate-700 italic font-inter">฿${Number(o.total).toLocaleString()}</p>
-                    </div>
-                `).join('');
-            }
 
-        // เริ่มต้น
-        renderPOS();
-        updateCartUI();
-        renderLocalQueue();
+        async function syncHistoryData() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner loading-spinner text-2xl text-slate-300"></i></div>';
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getHistory&t=${Date.now()}`);
+                const data = await res.json();
+                list.innerHTML = data.map(o => `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm">#${o.orderNo} <span class="text-[10px] font-normal text-slate-400">${o.time}</span></p>
+                            <p class="text-xs text-slate-500">${o.itemSummary}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-emerald-600 italic">฿${o.total}</p>
+                            <p class="text-[9px] font-bold text-slate-300 uppercase">${o.method}</p>
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-center py-10 text-slate-300">ไม่มีประวัติการขาย</p>';
+            } catch (e) {
+                list.innerHTML = '<p class="text-center py-10 text-slate-300 italic">ดึงข้อมูลประวัติไม่สำเร็จ</p>';
+            }
+        }
+
+        window.onload = () => { renderPOS(); renderLocalQueue(); };
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
