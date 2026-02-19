@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AMAMEE PIZZA POS</title>
     <meta name="apple-mobile-web-app-title" content="Amamee PIZZA POS">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2497/2497913.png">
@@ -253,7 +252,6 @@
             }
         }
 
-        // ฟังก์ชันรีเซ็ตเลขคิวใหม่
         function resetAllQueues() {
             if(confirm('ต้องการรีเซ็ตตัวนับคิวใหม่เป็น 1 และล้างคิวที่ค้างอยู่ทั้งหมดใช่หรือไม่?')) {
                 queue = [];
@@ -278,11 +276,9 @@
 
         function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
 
-        // แก้ไขฟังก์ชันคำนวณเงินทอน / ยอดค้าง
         function doChange() {
             const received = parseFloat(document.getElementById('cash-in').value) || 0;
             const diff = received - currentOrder.total;
-            
             const display = document.getElementById('change-display');
             const label = document.getElementById('change-label');
             const text = document.getElementById('change-text');
@@ -291,27 +287,18 @@
             if (currentOrder.method === 'CASH') {
                 if (received === 0) {
                     display.className = "flex justify-between items-center p-4 rounded-xl bg-slate-50 text-slate-400";
-                    label.innerText = "เงินทอน";
-                    text.innerText = "฿0";
-                    btn.disabled = true;
+                    label.innerText = "เงินทอน"; text.innerText = "฿0"; btn.disabled = true;
                     btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
                 } else if (diff < 0) {
-                    // เงินยังไม่ครบ
                     display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
-                    label.innerText = "ยังขาดอีก";
-                    text.innerText = `฿${Math.abs(diff)}`;
-                    btn.disabled = true;
+                    label.innerText = "ยังขาดอีก"; text.innerText = `฿${Math.abs(diff)}`; btn.disabled = true;
                     btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
                 } else {
-                    // เงินครบหรือเกิน
                     display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
-                    label.innerText = "เงินทอน";
-                    text.innerText = `฿${diff}`;
-                    btn.disabled = false;
+                    label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; btn.disabled = false;
                     btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
                 }
             } else {
-                // กรณีโอนเงิน
                 btn.disabled = false;
                 btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
             }
@@ -321,7 +308,6 @@
             const btn = document.getElementById('btn-final');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
-
             const params = new URLSearchParams({
                 action: 'saveSale',
                 time: currentOrder.time,
@@ -329,16 +315,13 @@
                 total: currentOrder.total,
                 method: currentOrder.method
             });
-
             try {
                 await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
                 saveQueue();
                 closePayment();
-                // เอา Alert ออกตามคำขอ
                 switchView('history');
             } catch (e) {
-                // แม้เน็ตจะหลุด ก็ลบคิวในเครื่องทิ้งเพื่อให้ทำงานต่อได้
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
                 saveQueue();
                 closePayment();
@@ -348,38 +331,27 @@
 
         async function syncHistory() {
             const list = document.getElementById('history-list');
-            if (!list) return; // กัน Error ถ้าหา Element ไม่เจอ
-        
+            if (!list) return;
             list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
-            
             try {
                 const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
                 const data = await res.json();
-                
-                // ตรวจสอบว่ามีข้อมูลส่งมาไหม
                 if (!data || data.length === 0) {
                     list.innerHTML = '<p class="text-center py-10 text-slate-300">ยังไม่มีประวัติการขาย</p>';
                     return;
                 }
-        
-                list.innerHTML = data.reverse().map(h => {
-                    // ดึงค่าวันที่มาแสดงตรงๆ ตามที่คุณต้องการ
-                    const displayDate = h.time || "ไม่ระบุวันที่";
-        
-                    return `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                            <div>
-                                <p class="text-[11px] font-bold text-slate-500 mb-1">${displayDate}</p>
-                                <p class="text-sm font-bold text-slate-700">${h.items || 'ไม่มีรายการ'}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-black text-emerald-600">฿${h.total || 0}</p>
-                                <p class="text-[9px] font-black text-slate-300 uppercase">${h.method || 'CASH'}</p>
-                            </div>
+                list.innerHTML = data.reverse().map(h => `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-500 mb-1">${h.time || "ไม่ระบุวันที่"}</p>
+                            <p class="text-sm font-bold text-slate-700">${h.items || 'ไม่มีรายการ'}</p>
                         </div>
-                    `;
-                }).join(''); // ตรวจสอบว่ามีวงเล็บปิดตรงนี้ครบถสอบ
-        
+                        <div class="text-right">
+                            <p class="font-black text-emerald-600">฿${h.total || 0}</p>
+                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method || 'CASH'}</p>
+                        </div>
+                    </div>
+                `).join('');
             } catch (e) {
                 console.error("Sync Error:", e);
                 list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลออนไลน์ได้</p>';
@@ -389,14 +361,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
