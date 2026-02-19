@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIBv2th7bguhAcx2QO0w_ibDplUpSDg_elmYaBs_c_z2h0W6LI4q2DdVBNtGpYx-5lSw/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwMKIHaRh0xB1VFIHbwHgyMxbIkpGLtjqZJsnFpwot-QI2fw4oVF5c_PZilV3QJe_Bh/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -342,68 +342,58 @@
             }
         }
 
-        async function confirmPayment() {
-            if (!activePaymentOrder) return;
-            const btn = document.getElementById('btn-confirm-pay');
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-        
-            const params = new URLSearchParams();
-            params.append('time', activePaymentOrder.time);
-            params.append('orderNo', activePaymentOrder.orderNo);
-            params.append('itemSummary', activePaymentOrder.itemSummary);
-            params.append('total', activePaymentOrder.total);
-            params.append('method', activePaymentOrder.method);
-        
-            try {
-                // ใช้โหมด cors ปกติ แต่จัดการที่ตัวรับ
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: params,
-                    mode: 'cors' 
-                });
-        
-                // ลบคิวในเครื่องทันทีเพราะ "Success" มาแล้ว (แม้ fetch จะบอกว่าพังในบางครั้ง)
-                processSuccessPayment();
-        
-            } catch (e) {
-                console.log("Network error but checking success...");
-                // 💡 เทคนิค: ถ้าใน Google Sheet ข้อมูลเข้าแล้ว ให้ถือว่าผ่านเลย
-                processSuccessPayment();
-            }
-        }
-        function processSuccessPayment() {
-            localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-            saveData();
-            closePaymentModal();
-            switchView('history');
-            alert("บันทึกข้อมูลเรียบร้อย");
-        }
         async function syncHistoryData() {
-                const list = document.getElementById('history-list');
-                const icon = document.getElementById('refresh-icon');
-                if (icon) icon.classList.add('loading-spinner');
-            
-                try {
-                    const response = await fetch(SCRIPT_URL + "?action=getHistory&t=" + Date.now());
-                    const rawText = await response.text();
-            
-                    // ตรวจสอบเบื้องต้นว่าไม่ใช่ข้อความ error "Success" ลอยๆ
-                    if (rawText.trim().startsWith("[")) {
-                        const data = JSON.parse(rawText);
-                        renderHistoryUI(data);
-                    } else {
-                        console.warn("Data format incorrect:", rawText);
-                        if (list.innerHTML === "") {
-                            list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">เซิร์ฟเวอร์ยังไม่มีข้อมูล</p>`;
-                        }
-                    }
-                } catch (error) {
-                    console.error("History Error:", error);
-                } finally {
-                    if (icon) icon.classList.remove('loading-spinner');
-                }
-            }
+    const list = document.getElementById('history-list');
+    try {
+        // เติม ?action=getHistory และเลี่ยง Cache
+        const response = await fetch(`${SCRIPT_URL}?action=getHistory&_=${Date.now()}`);
+        
+        // ตรวจสอบว่า Response โอเคไหม
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        renderHistoryUI(data);
+    } catch (error) {
+        console.error("History Error:", error);
+        // ถ้าดึงไม่ได้ ให้ลองตรวจสอบ URL อีกครั้ง
+        list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</p>`;
+    }
+}
+
+// ฟังก์ชันบันทึกการชำระเงิน
+async function confirmPayment() {
+    if (!activePaymentOrder) return;
+    const btn = document.getElementById('btn-confirm-pay');
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึก...";
+
+    const params = new URLSearchParams();
+    params.append('time', activePaymentOrder.time);
+    params.append('orderNo', activePaymentOrder.orderNo);
+    params.append('itemSummary', activePaymentOrder.itemSummary);
+    params.append('total', activePaymentOrder.total);
+    params.append('method', activePaymentOrder.method);
+
+    try {
+        // ส่งแบบ POST
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: params,
+            mode: 'no-cors' // ใช้ no-cors เพื่อให้บันทึกได้แม้จะติด CORS header
+        });
+
+        // เนื่องด้วยโหมด no-cors เราจะไม่อ่านค่าตอบกลับ แต่ให้ถือว่าสำเร็จถ้าไม่มี Error
+        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+        saveData();
+        closePaymentModal();
+        switchView('history');
+        alert("บันทึกสำเร็จ!");
+    } catch (e) {
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        btn.disabled = false;
+        btn.innerText = "ชำระเงินและบันทึก";
+    }
+}
 
         function renderHistoryUI(data) {
                 const list = document.getElementById('history-list');
@@ -440,6 +430,7 @@
     </script>
 </body>
 </html>
+
 
 
 
