@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4fkoH83j265Aet9UICA4W5VtUm01tLhUmY7k88DOYnQPNjPvkuCmLfe0dcK24_EmjmA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIas7LGAqTaXfG7IiULmav4n_c14GvkmCe5qKKJp5ZgCYcPgeVl-g6CLLQUSYQsvy3KA/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -200,7 +200,34 @@
                 updateCartUI();
             }
         }
+        async function addQueueToServer(order) {
+            const params = new URLSearchParams();
+            params.append('action', 'addQueue');
+            params.append('id', order.id);
+            params.append('time', order.time);
+            params.append('orderNo', order.orderNo);
+            params.append('itemSummary', order.itemSummary);
+            params.append('total', order.total);
+        
+            await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+            syncQueueData(); // สั่งให้ทุกเครื่องอัปเดตหน้าจอคิว
+        }
 
+            // ให้ดึงข้อมูลคิวใหม่จาก Server ทุกๆ 10 วินาที
+            setInterval(() => {
+                syncQueueData();
+            }, 10000); 
+            
+            async function syncQueueData() {
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?action=getQueues&t=${Date.now()}`);
+                    const data = await response.json();
+                    renderQueueUI(data);
+                } catch (e) {
+                    console.log("Error syncing queue:", e);
+                }
+            }
+        
         function updateCartUI() {
             const count = cart.reduce((s, i) => s + i.qty, 0);
             const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
@@ -228,24 +255,81 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        function sendToQueue(method) {
-            if (cart.length === 0) return;
-            const order = {
-                id: Date.now(),
-                orderNo: String(Date.now()).slice(-4),
-                time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
-                itemSummary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
-                total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-                method: method
-            };
-            localQueue.push(order);
-            cart = [];
-            saveData();
-            updateCartUI();
-            toggleCartModal();
-            switchView('queue');
+                    /// ฟังก์ชันส่งคิวไปเซิร์ฟเวอร์
+            async function sendToQueue(order) {
+                const params = new URLSearchParams();
+                params.append('action', 'addQueue');
+                params.append('time', order.time);
+                params.append('orderNo', order.orderNo);
+                params.append('itemSummary', order.itemSummary);
+                params.append('total', order.total);
+                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+                syncQueues(); // โหลดคิวใหม่ทันที
+            }
+            
+            // ฟังก์ชันดึงข้อมูลคิวมาแสดง
+            async function syncQueues() {
+                const resp = await fetch(`${SCRIPT_URL}?action=getQueues&_=${Date.now()}`);
+                const data = await resp.json();
+                const list = document.getElementById('queue-list');
+                
+                list.innerHTML = data.map(q => {
+                    let colorClass = q.status === 'แดง' ? 'bg-red-500' : 'bg-yellow-500';
+                    return `
+                        <div class="p-4 mb-2 bg-white rounded-2xl border-l-8 ${q.status === 'แดง' ? 'border-red-500' : 'border-yellow-500'} shadow-sm flex justify-between items-center">
+                            <div>
+                                <h3 class="font-black italic">#${q.orderNo}</h3>
+                                <p class="text-[10px] text-slate-400">${q.itemSummary}</p>
+                            </div>
+                            <select onchange="updateStatus('${q.id}', this.value)" class="${colorClass} text-white text-[10px] font-bold rounded-lg px-2 py-1 outline-none">
+                                <option value="แดง" ${q.status === 'แดง' ? 'selected' : ''}>แดง: รอคิว</option>
+                                <option value="เหลือง" ${q.status === 'เหลือง' ? 'selected' : ''}>เหลือง: กำลังทำ</option>
+                                <option value="เขียว">เขียว: เสร็จสิ้น/จ่ายเงิน</option>
+                            </select>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // อัปเดตสถานะคิว
+            async function updateStatus(id, newStatus) {
+                const params = new URLSearchParams();
+                params.append('action', 'updateStatus');
+                params.append('id', id);
+                params.append('status', newStatus);
+                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+                syncQueues();
+            }
+            
+            // ให้ระบบ Sync คิวทุก 10 วินาทีอัตโนมัติ (ทุกเครื่องจะเห็นเหมือนกัน)
+            setInterval(syncQueues, 10000);
+    function renderQueueUI(queues) {
+            const queueList = document.getElementById('queue-list');
+            queueList.innerHTML = queues.map(q => {
+                // กำหนดสีตามสถานะ
+                let statusColor = "";
+                if (q.status === "แดง") statusColor = "bg-red-500";
+                if (q.status === "เหลือง") statusColor = "bg-yellow-500";
+                if (q.status === "เขียว") statusColor = "bg-green-500";
+        
+                return `
+                    <div class="p-4 mb-2 border rounded shadow-sm flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-lg">${q.orderNo}</span>
+                            <p class="text-sm text-gray-500">${q.itemSummary}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select onchange="updateQueueStatus('${q.id}', this.value)" class="${statusColor} text-white px-2 py-1 rounded cursor-pointer">
+                                <option value="แดง" ${q.status === 'แดง' ? 'selected' : ''}>ยังไม่ทำ (แดง)</option>
+                                <option value="เหลือง" ${q.status === 'เหลือง' ? 'selected' : ''}>กำลังทำ (เหลือง)</option>
+                                <option value="เขียว" ${q.status === 'เขียว' ? 'selected' : ''}>เสร็จแล้ว (เขียว)</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-
+        
         // --- ปรับปรุงฟังก์ชันแสดงคิวให้แม่นยำขึ้น ---
         function renderLocalQueue() {
             // ดึงข้อมูลล่าสุดจาก localStorage ก่อนเผื่อมีการอัปเดต
@@ -439,6 +523,7 @@
     </script>
 </body>
 </html>
+
 
 
 
