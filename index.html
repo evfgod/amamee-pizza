@@ -88,31 +88,44 @@
                     <span class="text-slate-400 font-bold uppercase text-xs">ยอดรวม</span>
                     <span id="modal-total" class="text-4xl font-black text-red-600">฿0</span>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="pushToQueue('CASH')" class="bg-slate-900 text-white py-4 rounded-2xl font-black flex flex-col items-center"><i class="fas fa-money-bill-wave mb-1"></i>เงินสด</button>
-                    <button onclick="pushToQueue('TRANSFER')" class="bg-blue-600 text-white py-4 rounded-2xl font-black flex flex-col items-center"><i class="fas fa-mobile-alt mb-1"></i>โอนเงิน</button>
-                </div>
+                <div class="w-full">
+    <button onclick="pushToQueue()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
+        <i class="fas fa-paper-plane mr-2"></i>จองคิวและเริ่มทำ
+    </button>
+</div>
             </div>
         </div>
     </div>
 
     <div id="payment-modal" class="fixed inset-0 bg-slate-900/95 z-[70] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
-            <div class="text-center">
-                <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
-                <h2 id="pay-amount" class="text-5xl font-black italic">฿0</h2>
-            </div>
-            <div id="cash-box" class="space-y-4">
-                <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-3xl font-black text-center py-4 border-2 border-slate-100 rounded-2xl focus:border-red-500 outline-none">
-                <div id="change-display" class="flex justify-between items-center p-4 rounded-xl transition-colors bg-slate-50 text-slate-400">
-                    <span id="change-label" class="font-bold text-xs uppercase">เงินทอน</span>
-                    <span id="change-text" class="text-2xl font-black">฿0</span>
-                </div>
-            </div>
-            <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl shadow-lg transition-all" disabled>ยืนยันและปิดคิว</button>
-            <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
+    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
+        <div class="text-center">
+            <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
+            <h2 id="pay-amount" class="text-5xl font-black italic">฿0</h2>
         </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="selectMethod('CASH')" class="border-2 border-slate-100 focus:border-red-500 p-4 rounded-2xl flex flex-col items-center">
+                <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
+                <span class="text-[10px] font-bold">เงินสด</span>
+            </button>
+            <button onclick="selectMethod('TRANSFER')" class="border-2 border-slate-100 focus:border-blue-500 p-4 rounded-2xl flex flex-col items-center">
+                <i class="fas fa-mobile-alt text-blue-500 mb-1"></i>
+                <span class="text-[10px] font-bold">เงินโอน</span>
+            </button>
+        </div>
+
+        <div id="cash-box" class="space-y-4 hidden">
+            <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-3xl font-black text-center py-4 border-2 border-slate-100 rounded-2xl focus:border-red-500 outline-none">
+            <div id="change-display" class="flex justify-between items-center p-4 rounded-xl transition-colors bg-slate-50 text-slate-400">
+                <span id="change-label" class="font-bold text-xs uppercase">เงินทอน</span>
+                <span id="change-text" class="text-2xl font-black">฿0</span>
+            </div>
+        </div>
+        <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl shadow-lg transition-all" disabled>ยืนยันบันทึกประวัติ</button>
+        <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
     </div>
+</div>
 
     <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSqqDsn0ZdnrNk2MznakTElpQwiy1Bm-4znFoR2pbK9SNICXC-tyIfpZz9OqQbWRQd0A/exec'; 
@@ -194,15 +207,17 @@
 
         function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        function pushToQueue(method) {
+        // แก้ไข: จองคิวทันทีโดยยังไม่ต้องระบุประเภทการจ่ายเงิน
+        function pushToQueue() {
+            if (cart.length === 0) return;
             const order = {
                 uid: Date.now(),
                 q_no: queueCounter,
                 time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
                 summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
                 total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-                method: method,
-                status: 'Wait'
+                status: 'Wait', // เริ่มต้นที่สถานะรอ
+                method: '' // ยังไม่มีวิธีจ่ายเงิน
             };
             queue.push(order);
             queueCounter++;
@@ -226,11 +241,15 @@
             badge.classList.toggle('hidden', queue.length === 0);
             document.getElementById('queue-count-text').innerText = `${queue.length} รายการ`;
 
-            list.innerHTML = queue.map(o => `
+            list.innerHTML = queue.map(o => {
+                const isReady = o.status === 'Ready';
+                const statusColor = o.status === 'Cooking' ? 'text-orange-500' : (o.status === 'Ready' ? 'text-emerald-500' : 'text-slate-400');
+                
+                return `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative mb-3">
                     <div class="flex justify-between items-start mb-2">
                         <div class="bg-red-600 text-white px-3 py-1 rounded-lg font-black text-lg">คิวที่ ${o.q_no}</div>
-                        <button onclick="cancelQueue(${o.uid})" class="text-slate-300 p-2"><i class="fas fa-trash-alt"></i></button>
+                        <span class="text-[10px] font-bold uppercase ${statusColor}">${o.status}</span>
                     </div>
                     <div class="space-y-3">
                         <p class="font-bold text-slate-800 leading-tight">${o.summary}</p>
@@ -240,62 +259,58 @@
                         </div>
                         <div class="flex justify-between items-center pt-3 border-t">
                             <p class="font-black text-xl text-slate-900">฿${o.total}</p>
-                            <button onclick='openPay(${JSON.stringify(o)})' class="bg-slate-900 text-white px-8 py-2 rounded-xl text-xs font-black">PAY</button>
+                            <button onclick='openPay(${JSON.stringify(o)})' 
+                                class="px-8 py-2 rounded-xl text-xs font-black transition-all ${isReady ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}"
+                                ${isReady ? '' : 'disabled'}>
+                                PAY
+                            </button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         async function changeStatus(uid, status) {
             const order = queue.find(q => q.uid == uid);
             if(!order) return;
+            order.status = status;
+            saveQueue();
             
+            // ส่งอัปเดตไปจอเสริม (Optional)
             try {
-                // อัปเดตสถานะในตัวแปร local
-                order.status = status;
-                saveQueue();
-
-                const params = new URLSearchParams({
-                    action: 'updateStatus',
-                    time: order.time, // ใช้เวลาเป็น key หรือคุณจะปรับเป็น UID ใน Google Sheet ก็ได้
-                    status: status
-                });
-                
-                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                alert('อัปเดตสถานะเป็น: ' + status);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function cancelQueue(uid) {
-            if(confirm('ต้องการยกเลิกคิวนี้ใช่หรือไม่?')) {
-                queue = queue.filter(q => q.uid !== uid);
-                saveQueue();
-            }
-        }
-
-        function resetAllQueues() {
-            if(confirm('ต้องการรีเซ็ตตัวนับคิวใหม่เป็น 1 และล้างคิวที่ค้างอยู่ทั้งหมดใช่หรือไม่?')) {
-                queue = [];
-                queueCounter = 1;
-                localStorage.setItem('amamee_q_counter', 1);
-                saveQueue();
-                alert('รีเซ็ตระบบคิวใหม่แล้ว');
-            }
+                const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
+                fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            } catch(e) {}
         }
 
         let currentOrder = null;
         function openPay(order) {
             currentOrder = order;
-            const isCash = order.method === 'CASH';
             document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
             document.getElementById('pay-amount').innerText = `฿${order.total}`;
-            document.getElementById('cash-box').classList.toggle('hidden', !isCash);
             document.getElementById('payment-modal').classList.remove('hidden');
             document.getElementById('cash-in').value = '';
-            doChange();
+            document.getElementById('cash-box').classList.add('hidden'); // ซ่อนช่องใส่เงินไว้ก่อนจนกว่าจะเลือก CASH
+            
+            // ปรับปุ่มกดยืนยันให้เทาก่อนเลือกวิธีจ่าย
+            const btn = document.getElementById('btn-final');
+            btn.disabled = true;
+            btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+        }
+
+        // ฟังก์ชันเลือกวิธีจ่ายเงิน
+        function selectMethod(method) {
+            currentOrder.method = method;
+            const isCash = method === 'CASH';
+            document.getElementById('cash-box').classList.toggle('hidden', !isCash);
+            
+            if (!isCash) {
+                const btn = document.getElementById('btn-final');
+                btn.disabled = false;
+                btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+            } else {
+                doChange();
+            }
         }
 
         function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
@@ -309,22 +324,18 @@
             const btn = document.getElementById('btn-final');
 
             if (currentOrder.method === 'CASH') {
-                if (received === 0) {
-                    display.className = "flex justify-between items-center p-4 rounded-xl bg-slate-50 text-slate-400";
-                    label.innerText = "เงินทอน"; text.innerText = "฿0"; btn.disabled = true;
-                    btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
-                } else if (diff < 0) {
+                if (received === 0 || diff < 0) {
                     display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
-                    label.innerText = "ยังขาดอีก"; text.innerText = `฿${Math.abs(diff)}`; btn.disabled = true;
+                    label.innerText = diff < 0 ? "ยังขาดอีก" : "รอรับเงิน";
+                    text.innerText = `฿${Math.abs(diff)}`; 
+                    btn.disabled = true;
                     btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
                 } else {
                     display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
-                    label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; btn.disabled = false;
+                    label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; 
+                    btn.disabled = false;
                     btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
                 }
-            } else {
-                btn.disabled = false;
-                btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
             }
         }
 
@@ -332,6 +343,7 @@
             const btn = document.getElementById('btn-final');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
+            
             const params = new URLSearchParams({
                 action: 'saveSale',
                 time: currentOrder.time,
@@ -339,6 +351,7 @@
                 total: currentOrder.total,
                 method: currentOrder.method
             });
+
             try {
                 await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
@@ -360,25 +373,20 @@
             try {
                 const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
                 const data = await res.json();
-                if (!data || data.length === 0) {
-                    list.innerHTML = '<p class="text-center py-10 text-slate-300">ยังไม่มีประวัติการขาย</p>';
-                    return;
-                }
                 list.innerHTML = data.reverse().map(h => `
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
                         <div>
-                            <p class="text-[11px] font-bold text-slate-500 mb-1">${h.time || "ไม่ระบุวันที่"}</p>
-                            <p class="text-sm font-bold text-slate-700">${h.items || 'ไม่มีรายการ'}</p>
+                            <p class="text-[11px] font-bold text-slate-500 mb-1">${h.time}</p>
+                            <p class="text-sm font-bold text-slate-700">${h.items}</p>
                         </div>
                         <div class="text-right">
-                            <p class="font-black text-emerald-600">฿${h.total || 0}</p>
-                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method || 'CASH'}</p>
+                            <p class="font-black text-emerald-600">฿${h.total}</p>
+                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
                         </div>
                     </div>
                 `).join('');
             } catch (e) {
-                console.error("Sync Error:", e);
-                list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลออนไลน์ได้</p>';
+                list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลได้</p>';
             }
         }
 
@@ -386,6 +394,7 @@
     </script>
 </body>
 </html>
+
 
 
 
