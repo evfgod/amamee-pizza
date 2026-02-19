@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzPIbVGySZihO5tfUh-DHsy8pFZn7XNYK1EJqPnSDii4_fnXp8tvHRBeIBl-v0Q8l7eCg/exec'; 
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSqqDsn0ZdnrNk2MznakTElpQwiy1Bm-4znFoR2pbK9SNICXC-tyIfpZz9OqQbWRQd0A/exec'; 
 
         let cart = [];
         let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -201,7 +201,8 @@
                 time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
                 summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
                 total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-                method: method
+                method: method,
+                status: 'Wait'
             };
             queue.push(order);
             queueCounter++;
@@ -231,19 +232,12 @@
                         <div class="bg-red-600 text-white px-3 py-1 rounded-lg font-black text-lg">คิวที่ ${o.q_no}</div>
                         <button onclick="cancelQueue(${o.uid})" class="text-slate-300 p-2"><i class="fas fa-trash-alt"></i></button>
                     </div>
-                    
                     <div class="space-y-3">
                         <p class="font-bold text-slate-800 leading-tight">${o.summary}</p>
-                        
                         <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="changeStatus('${o.time}', 'Cooking')" class="bg-orange-100 text-orange-600 py-2 rounded-xl text-[10px] font-black uppercase">
-                                <i class="fas fa-fire-alt mr-1"></i> เริ่มทำ
-                            </button>
-                            <button onclick="changeStatus('${o.time}', 'Ready')" class="bg-emerald-100 text-emerald-600 py-2 rounded-xl text-[10px] font-black uppercase">
-                                <i class="fas fa-bell mr-1"></i> เสร็จแล้ว
-                            </button>
+                            <button onclick="changeStatus('${o.uid}', 'Cooking')" class="bg-orange-100 text-orange-600 py-2 rounded-xl text-[10px] font-black uppercase">เริ่มทำ</button>
+                            <button onclick="changeStatus('${o.uid}', 'Ready')" class="bg-emerald-100 text-emerald-600 py-2 rounded-xl text-[10px] font-black uppercase">เสร็จแล้ว</button>
                         </div>
-            
                         <div class="flex justify-between items-center pt-3 border-t">
                             <p class="font-black text-xl text-slate-900">฿${o.total}</p>
                             <button onclick='openPay(${JSON.stringify(o)})' class="bg-slate-900 text-white px-8 py-2 rounded-xl text-xs font-black">PAY</button>
@@ -251,6 +245,29 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        async function changeStatus(uid, status) {
+            const order = queue.find(q => q.uid == uid);
+            if(!order) return;
+            
+            try {
+                // อัปเดตสถานะในตัวแปร local
+                order.status = status;
+                saveQueue();
+
+                const params = new URLSearchParams({
+                    action: 'updateStatus',
+                    time: order.time, // ใช้เวลาเป็น key หรือคุณจะปรับเป็น UID ใน Google Sheet ก็ได้
+                    status: status
+                });
+                
+                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+                alert('อัปเดตสถานะเป็น: ' + status);
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
         function cancelQueue(uid) {
             if(confirm('ต้องการยกเลิกคิวนี้ใช่หรือไม่?')) {
@@ -258,11 +275,6 @@
                 saveQueue();
             }
         }
-
-        function updateOrderStatus(uid, status) {
-  // ส่ง fetch ไปที่ WEB_APP_URL พร้อม action: 'updateStatus'
-  // เมื่อสำเร็จ ให้เรียก syncHistory() หรือ renderQueue() ใหม่
-}
 
         function resetAllQueues() {
             if(confirm('ต้องการรีเซ็ตตัวนับคิวใหม่เป็น 1 และล้างคิวที่ค้างอยู่ทั้งหมดใช่หรือไม่?')) {
@@ -313,24 +325,6 @@
             } else {
                 btn.disabled = false;
                 btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
-            }
-        }
-        async function changeStatus(time, status) {
-            // แสดง loading ที่ปุ่ม (Optional)
-            try {
-                const params = new URLSearchParams({
-                    action: 'updateStatus',
-                    time: time,
-                    status: status
-                });
-                // ส่งแบบ no-cors เหมือนการบันทึกปกติ
-                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                
-                // อัปเดต UI ในเครื่องทันที (ถ้าต้องการ) หรือรอ Sync
-                alert('อัปเดตสถานะคิวแล้ว');
-                renderQueue(); // วาดหน้าคิวใหม่
-            } catch (e) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
             }
         }
 
@@ -387,9 +381,11 @@
                 list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลออนไลน์ได้</p>';
             }
         }
+
         window.onload = () => { initMenu(); renderQueue(); };
     </script>
 </body>
 </html>
+
 
 
