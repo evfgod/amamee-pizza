@@ -255,16 +255,54 @@
 
         function toggleCartModal() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
+        // ฟังก์ชันนี้เรียกใช้งานเมื่อกดปุ่ม "จองคิว" ในหน้าจอ POS
+            async function handleBooking() {
+                if (cart.length === 0) return;
+            
+                const orderData = {
+                    id: Date.now(), // สร้าง ID แบบไม่ซ้ำ
+                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                    orderNo: orderNumber.toString().padStart(3, '0'),
+                    itemSummary: cart.map(i => `${i.name} x ${i.qty}`).join(', '),
+                    total: totalAmount
+                };
+            
+                // --- ส่วนสำคัญ: ส่งข้อมูลไปที่ Google Sheets ---
+                try {
+                    const btn = document.querySelector('.btn-booking'); // หรือ ID ปุ่มของคุณ
+                    if(btn) btn.disabled = true;
+            
+                    // เรียกฟังก์ชันส่งข้อมูล (ที่เราสร้างไว้ก่อนหน้านี้)
+                    await sendToQueue(orderData); 
+                    
+                    // ล้างตะกร้าและสลับหน้าจอตามปกติ
+                    cart = [];
+                    orderNumber++;
+                    renderPOS();
+                    switchView('queue'); // สลับไปหน้าคิวเพื่อดูสถานะ (แดง)
+                    
+                } catch (error) {
+                    console.error("Booking Error:", error);
+                    alert("ไม่สามารถลงคิวได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+                } finally {
+                    if(btn) btn.disabled = false;
+                }
+            }
                     /// ฟังก์ชันส่งคิวไปเซิร์ฟเวอร์
             async function sendToQueue(order) {
                 const params = new URLSearchParams();
-                params.append('action', 'addQueue');
+                params.append('action', 'addQueue'); // ต้องตรงกับใน pizza.gs
                 params.append('time', order.time);
                 params.append('orderNo', order.orderNo);
                 params.append('itemSummary', order.itemSummary);
                 params.append('total', order.total);
-                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
-                syncQueues(); // โหลดคิวใหม่ทันที
+            
+                // ยิงข้อมูลไปที่ Server
+                return fetch(SCRIPT_URL, { 
+                    method: 'POST', 
+                    body: params, 
+                    mode: 'no-cors' // สำคัญมากสำหรับ Google Apps Script
+                });
             }
             
             // ฟังก์ชันดึงข้อมูลคิวมาแสดง
@@ -523,6 +561,7 @@
     </script>
 </body>
 </html>
+
 
 
 
