@@ -352,29 +352,12 @@
                 const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
                 const data = await res.json();
                 
-                list.innerHTML = data.reverse().map(h => {
-                    let displayDate = "";
-                    try {
-                        // ข้อมูลตัวอย่าง: "19/2/2026, 16:01:18"
-                        // เราจะเอาเฉพาะ วัน/เดือน/ปี และ เวลา (ชั่วโมง:นาที)
-                        if (h.time && typeof h.time === 'string') {
-                            const parts = h.time.split(':'); // แยกด้วยเครื่องหมาย :
-                            // ตัดเอาตั้งแต่ตัวแรก จนถึงก่อนวินาที (นาทีที่ 2 ของการ split)
-                            // ผลลัพธ์ที่ได้จะเป็น "19/2/2026, 16:01"
-                            displayDate = h.time.substring(0, h.time.lastIndexOf(':')); 
-                        } else {
-                            displayDate = h.time;
-                        }
-                    } catch (err) {
-                        displayDate = h.time;
-                    }
-        
-                    return `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                            <div>
-                                <p class="text-[11px] font-bold text-slate-500 mb-1">${displayDate}</p>
-                                <p class="text-sm font-bold text-slate-700">${h.items}</p>
-                            </div>
+                list.innerHTML = data.reverse().map(h => `
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+        <div>
+            <p class="text-[11px] font-bold text-slate-500 mb-1">${h.time}</p>
+            <p class="text-sm font-bold text-slate-700">${h.items}</p>
+        </div>
                             <div class="text-right">
                                 <p class="font-black text-emerald-600">฿${h.total}</p>
                                 <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
@@ -390,6 +373,7 @@
     </script>
 </body>
 </html>
+
 
 
 
