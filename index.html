@@ -110,7 +110,7 @@
 
     <script>
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzGtBV86KSdyF1Hqe3ApK_mGcToYuiYomWilLol6mWOyLgceeH6E9uXHohLQgFJClykXA/exec'; 
-
+        
         let cart = [];
         let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
         
@@ -149,6 +149,42 @@
             `).join('');
         }
 
+        function addToQueue() {
+                if (cart.length === 0) return alert('กรุณาเลือกสินค้าก่อนครับ');
+            
+                const method = document.querySelector('input[name="pay_method"]:checked').value;
+                
+                // สร้างข้อมูลคิวใหม่
+                const newOrder = {
+                    uid: 'Q-' + Date.now(), // สร้าง ID ไม่ให้ซ้ำกัน
+                    time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+                    items: [...cart],
+                    summary: cart.map(i => `${i.name} x${i.qty}`).join(', '),
+                    total: total,
+                    method: method
+                };
+            
+                // 1. เพิ่มเข้าตัวแปร queue
+                queue.push(newOrder);
+            
+                // 2. บันทึกลงเครื่อง (LocalStorage)
+                saveQueue();
+            
+                // 3. ล้างตะกร้าสินค้า
+                cart = [];
+                renderCart();
+            
+                // 4. แจ้งเตือนและย้ายไปหน้าคิว
+                alert('จองคิวสำเร็จ!');
+                switchView('queue'); 
+            }
+            
+            // ฟังก์ชันสำหรับบันทึกและวาดหน้าจอใหม่
+            function saveQueue() {
+                localStorage.setItem('amamee_local_queue', JSON.stringify(queue));
+                renderQueue(); // วาดรายการในหน้าคิวใหม่
+            }
+        
         function add(id) {
             const p = menu.find(x => x.id === id);
             const item = cart.find(x => x.id === id);
@@ -214,25 +250,35 @@
                 const list = document.getElementById('queue-list');
                 const badge = document.getElementById('badge-queue');
                 
-                // อัปเดตตัวเลขแจ้งเตือนบนเมนูคิว
-                badge.innerText = queue.length;
-                badge.classList.toggle('hidden', queue.length === 0);
-                document.getElementById('queue-count-text').innerText = `${queue.length} คิวค้างอยู่`;
+                // อัปเดตตัวเลขแจ้งเตือนบนไอคอนเมนูคิว
+                if (badge) {
+                    badge.innerText = queue.length;
+                    badge.style.display = queue.length > 0 ? 'block' : 'none';
+                }
             
                 // วาดรายการคิว
-                list.innerHTML = queue.map(o => `
-                    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
-                        <div class="flex-1">
-                            <p class="text-[10px] font-black text-slate-300 uppercase mb-1">${o.time} • ${o.method}</p>
-                            <p class="font-bold text-slate-800 leading-tight">${o.summary}</p>
+                if (list) {
+                    list.innerHTML = queue.map(o => `
+                        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center mb-3">
+                            <div class="flex-1">
+                                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">
+                                    ID: ${o.uid} | <i class="far fa-clock"></i> ${o.time}
+                                </p>
+                                <p class="font-bold text-slate-800">${o.summary}</p>
+                                <span class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-500">${o.method}</span>
+                            </div>
+                            <div class="flex flex-col items-end gap-2 ml-4">
+                                <p class="font-black text-xl text-slate-900">฿${o.total}</p>
+                                <button onclick='openPay(${JSON.stringify(o)})' 
+                                        class="bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-orange-200">
+                                    PAY
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex flex-col items-end gap-2 ml-4">
-                            <p class="font-black text-xl italic text-slate-900">฿${o.total}</p>
-                            <button onclick='openPay(${JSON.stringify(o)})' class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-black uppercase">Pay</button>
-                        </div>
-                    </div>
-                `).join('') || '<div class="text-center py-20 text-slate-300 italic">ไม่มีคิวค้างอยู่ในระบบ</div>';
+                    `).join('') || '<div class="text-center py-20 text-slate-300 italic">ไม่มีคิวค้างอยู่ในระบบ</div>';
+                }
             }
+        
         function deleteFromQueue(uid) {
             if(confirm('ต้องการยกเลิกคิวนี้ใช่หรือไม่?')) {
                 queue = queue.filter(q => q.uid !== uid);
@@ -267,53 +313,53 @@
         }
 
         async function processPayment() {
-    const btn = document.getElementById('btn-final');
-    
-    // 1. ป้องกันการกดซ้ำ
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
-
-    // 2. เตรียมข้อมูลส่งไป Google Sheets
-    const params = new URLSearchParams({
-        action: 'saveSale',
-        time: currentOrder.time,
-        items: currentOrder.summary,
-        total: currentOrder.total,
-        method: currentOrder.method
-    });
-
-    try {
-        // 3. ส่งข้อมูลไปที่ Google Apps Script
-        // ใช้โหมด 'no-cors' เพื่อให้ส่งผ่านได้ทุุกอุปกรณ์
-        await fetch(`${WEB_APP_URL}?${params.toString()}`, {
-            method: 'GET',
-            mode: 'no-cors'
-        });
-
-        // --- จุดสำคัญ: จัดการข้อมูลในเครื่องหลังส่งเสร็จ ---
+            const btn = document.getElementById('btn-final');
+            
+            // 1. ป้องกันการกดซ้ำ
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
         
-        // 4. ลบรายการที่จ่ายเงินแล้วออกจาก Queue ในเครื่อง
-        queue = queue.filter(q => q.uid !== currentOrder.uid);
+            // 2. เตรียมข้อมูลส่งไป Google Sheets
+            const params = new URLSearchParams({
+                action: 'saveSale',
+                time: currentOrder.time,
+                items: currentOrder.summary,
+                total: currentOrder.total,
+                method: currentOrder.method
+            });
         
-        // 5. บันทึกลง LocalStorage เพื่ออัปเดตหน้าคิวให้หายไปจริงๆ
-        saveQueue(); 
-
-        // 6. ปิดหน้าต่างการชำระเงิน
-        closePayment();
+            try {
+                // 3. ส่งข้อมูลไปที่ Google Apps Script
+                // ใช้โหมด 'no-cors' เพื่อให้ส่งผ่านได้ทุุกอุปกรณ์
+                await fetch(`${WEB_APP_URL}?${params.toString()}`, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
         
-        // 7. แจ้งเตือนผู้ใช้
-        alert('บันทึกการขายสำเร็จ! ข้อมูลถูกส่งไปที่ระบบประวัติแล้ว');
-
-        // 8. ย้ายหน้าไปที่ประวัติการขาย (ซึ่งจะดึงข้อมูลใหม่จาก Google Sheets)
-        switchView('history');
-
-    } catch (e) {
-        console.error("Error:", e);
-        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
-        btn.disabled = false;
-        btn.innerText = 'ยืนยันการขาย';
-    }
-}
+                // --- จุดสำคัญ: จัดการข้อมูลในเครื่องหลังส่งเสร็จ ---
+                
+                // 4. ลบรายการที่จ่ายเงินแล้วออกจาก Queue ในเครื่อง
+                queue = queue.filter(q => q.uid !== currentOrder.uid);
+                
+                // 5. บันทึกลง LocalStorage เพื่ออัปเดตหน้าคิวให้หายไปจริงๆ
+                saveQueue(); 
+        
+                // 6. ปิดหน้าต่างการชำระเงิน
+                closePayment();
+                
+                // 7. แจ้งเตือนผู้ใช้
+                alert('บันทึกการขายสำเร็จ! ข้อมูลถูกส่งไปที่ระบบประวัติแล้ว');
+        
+                // 8. ย้ายหน้าไปที่ประวัติการขาย (ซึ่งจะดึงข้อมูลใหม่จาก Google Sheets)
+                switchView('history');
+        
+            } catch (e) {
+                console.error("Error:", e);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                btn.disabled = false;
+                btn.innerText = 'ยืนยันการขาย';
+            }
+        }
         async function syncHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
@@ -342,4 +388,5 @@
     </script>
 </body>
 </html>
+
 
