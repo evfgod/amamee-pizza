@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AMAMEE PIZZA POS</title>
+    <meta name="apple-mobile-web-app-title" content="Amamee PIZZA POS">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5973/5973307.png">
+    <link rel="apple-touch-startup-image" href="https://cdn-icons-png.flaticon.com/512/5973/5973307.png">
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,7 +27,9 @@
             <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
             <h1 class="text-xl font-black italic uppercase">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
-        <div id="connection-status" class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30 font-bold uppercase">Online</div>
+        <button onclick="resetAllQueues()" class="text-[10px] bg-white/10 hover:bg-red-600 px-3 py-1 rounded-lg transition-colors font-bold uppercase border border-white/20">
+            <i class="fas fa-redo-alt mr-1"></i> Reset Q1
+        </button>
     </header>
 
     <main class="flex-1 overflow-y-auto pb-32">
@@ -64,7 +71,7 @@
     <div id="cart-preview" onclick="toggleCart()" class="fixed bottom-24 left-4 right-4 bg-red-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-2xl z-40 hidden active:scale-95 transition-all">
         <div class="flex items-center gap-3">
             <span id="cart-count" class="bg-white text-red-600 px-2 rounded-lg font-black text-sm">0</span>
-            <span class="font-bold">รายการในตะกร้า</span>
+            <span class="font-bold">รายการ</span>
         </div>
         <span id="cart-total" class="text-xl font-black italic">฿0</span>
     </div>
@@ -78,7 +85,7 @@
             <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
             <div class="p-8 bg-slate-50 border-t space-y-4">
                 <div class="flex justify-between items-end">
-                    <span class="text-slate-400 font-bold uppercase text-xs">ยอดรวมทั้งสิ้น</span>
+                    <span class="text-slate-400 font-bold uppercase text-xs">ยอดรวม</span>
                     <span id="modal-total" class="text-4xl font-black text-red-600">฿0</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -97,23 +104,21 @@
             </div>
             <div id="cash-box" class="space-y-4">
                 <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-3xl font-black text-center py-4 border-2 border-slate-100 rounded-2xl focus:border-red-500 outline-none">
-                <div class="flex justify-between items-center p-4 bg-emerald-50 rounded-xl text-emerald-700">
-                    <span class="font-bold text-xs uppercase">เงินทอน</span>
+                <div id="change-display" class="flex justify-between items-center p-4 rounded-xl transition-colors bg-slate-50 text-slate-400">
+                    <span id="change-label" class="font-bold text-xs uppercase">เงินทอน</span>
                     <span id="change-text" class="text-2xl font-black">฿0</span>
                 </div>
             </div>
-            <button id="btn-final" onclick="processPayment()" class="w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg transition-all">ยืนยันและปิดคิว</button>
+            <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl shadow-lg transition-all" disabled>ยืนยันและปิดคิว</button>
             <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
         </div>
     </div>
 
     <script>
-        // ใส่ URL จาก Google Apps Script
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzVdl66hwlq3p2uULSzt3ie6cFJ5XXXddFcGqmPNAF2wDisjIJjB32-Hn44vfYeEPClEQ/exec'; 
 
         let cart = [];
         let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
-        // ตัวนับลำดับคิวต่อวัน
         let queueCounter = parseInt(localStorage.getItem('amamee_q_counter')) || 1;
         
         const menu = [
@@ -189,18 +194,17 @@
 
         function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-        // ฟังก์ชันสั่งอาหาร (จองคิว)
         function pushToQueue(method) {
             const order = {
                 uid: Date.now(),
-                q_no: queueCounter, // เลขลำดับคิว
+                q_no: queueCounter,
                 time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
                 summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
                 total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
                 method: method
             };
             queue.push(order);
-            queueCounter++; // เพิ่มเลขคิวถัดไป
+            queueCounter++;
             localStorage.setItem('amamee_q_counter', queueCounter);
             saveQueue();
             cart = [];
@@ -219,7 +223,7 @@
             const badge = document.getElementById('badge-queue');
             badge.innerText = queue.length;
             badge.classList.toggle('hidden', queue.length === 0);
-            document.getElementById('queue-count-text').innerText = `${queue.length} รายการค้าง`;
+            document.getElementById('queue-count-text').innerText = `${queue.length} รายการ`;
 
             list.innerHTML = queue.map(o => `
                 <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden">
@@ -248,7 +252,17 @@
             }
         }
 
-        // --- ระบบชำระเงิน ---
+        // ฟังก์ชันรีเซ็ตเลขคิวใหม่
+        function resetAllQueues() {
+            if(confirm('ต้องการรีเซ็ตตัวนับคิวใหม่เป็น 1 และล้างคิวที่ค้างอยู่ทั้งหมดใช่หรือไม่?')) {
+                queue = [];
+                queueCounter = 1;
+                localStorage.setItem('amamee_q_counter', 1);
+                saveQueue();
+                alert('รีเซ็ตระบบคิวใหม่แล้ว');
+            }
+        }
+
         let currentOrder = null;
         function openPay(order) {
             currentOrder = order;
@@ -263,15 +277,42 @@
 
         function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
 
+        // แก้ไขฟังก์ชันคำนวณเงินทอน / ยอดค้าง
         function doChange() {
             const received = parseFloat(document.getElementById('cash-in').value) || 0;
             const diff = received - currentOrder.total;
-            document.getElementById('change-text').innerText = `฿${Math.max(0, diff)}`;
+            
+            const display = document.getElementById('change-display');
+            const label = document.getElementById('change-label');
+            const text = document.getElementById('change-text');
             const btn = document.getElementById('btn-final');
-            if(currentOrder.method !== 'CASH' || received >= currentOrder.total) {
-                btn.disabled = false; btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+
+            if (currentOrder.method === 'CASH') {
+                if (received === 0) {
+                    display.className = "flex justify-between items-center p-4 rounded-xl bg-slate-50 text-slate-400";
+                    label.innerText = "เงินทอน";
+                    text.innerText = "฿0";
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+                } else if (diff < 0) {
+                    // เงินยังไม่ครบ
+                    display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
+                    label.innerText = "ยังขาดอีก";
+                    text.innerText = `฿${Math.abs(diff)}`;
+                    btn.disabled = true;
+                    btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+                } else {
+                    // เงินครบหรือเกิน
+                    display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
+                    label.innerText = "เงินทอน";
+                    text.innerText = `฿${diff}`;
+                    btn.disabled = false;
+                    btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+                }
             } else {
-                btn.disabled = true; btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+                // กรณีโอนเงิน
+                btn.disabled = false;
+                btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
             }
         }
 
@@ -289,21 +330,18 @@
             });
 
             try {
-                // ส่งข้อมูลไป Google Sheets ผ่าน doGet (mode no-cors)
                 await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                
-                // ชำระเงินสำเร็จ -> ลบออกจาก Queue -> ไปโผล่ History
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
                 saveQueue();
                 closePayment();
-                alert('ปิดคิวสำเร็จ!');
+                // เอา Alert ออกตามคำขอ
                 switchView('history');
             } catch (e) {
-                alert('การเชื่อมต่อขัดข้อง แต่บันทึกสำเร็จในเครื่องแล้ว');
-                // ลบคิวออกแม้จะต่อเน็ตไม่ได้ เพื่อให้ใช้งาน POS ต่อได้
+                // แม้เน็ตจะหลุด ก็ลบคิวในเครื่องทิ้งเพื่อให้ทำงานต่อได้
                 queue = queue.filter(q => q.uid !== currentOrder.uid);
                 saveQueue();
                 closePayment();
+                switchView('history');
             }
         }
 
