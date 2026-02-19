@@ -342,59 +342,76 @@
             }
         }
 
-        async function syncHistoryData() {
-    const list = document.getElementById('history-list');
-    try {
-        // เติม ?action=getHistory และเลี่ยง Cache
-        const response = await fetch(`${SCRIPT_URL}?action=getHistory&_=${Date.now()}`);
+            async function syncHistoryData() {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+            
+                // แสดงสถานะการโหลดในหน้า History
+                list.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-slate-400">
+                        <i class="fas fa-sync-alt loading-spinner text-3xl mb-3"></i>
+                        <p class="text-xs font-bold animate-pulse">กำลังดึงข้อมูลล่าสุด...</p>
+                    </div>`;
+            
+                try {
+                    // เติม _=${Date.now()} เพื่อป้องกัน Cache (ทำให้เห็นข้อมูลใหม่ทันที)
+                    const response = await fetch(`${SCRIPT_URL}?action=getHistory&_=${Date.now()}`);
+                    
+                    if (!response.ok) throw new Error('Fetch failed');
+                    
+                    const data = await response.json();
+                    renderHistoryUI(data); // นำข้อมูลไปวาดบนหน้าจอ
+                    
+                } catch (error) {
+                    console.error("History Error:", error);
+                    list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่</p>`;
+                }
+            }
+
+        async function confirmPayment() {
+            if (!activePaymentOrder) return;
+            const btn = document.getElementById('btn-confirm-pay');
+            
+            // แสดงสถานะกำลังทำงาน
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner loading-spinner mr-2"></i> กำลังบันทึก...';
         
-        // ตรวจสอบว่า Response โอเคไหม
-        if (!response.ok) throw new Error('Network response was not ok');
+            const params = new URLSearchParams();
+            params.append('time', activePaymentOrder.time);
+            params.append('orderNo', activePaymentOrder.orderNo);
+            params.append('itemSummary', activePaymentOrder.itemSummary);
+            params.append('total', activePaymentOrder.total);
+            params.append('method', activePaymentOrder.method);
         
-        const data = await response.json();
-        renderHistoryUI(data);
-    } catch (error) {
-        console.error("History Error:", error);
-        // ถ้าดึงไม่ได้ ให้ลองตรวจสอบ URL อีกครั้ง
-        list.innerHTML = `<p class="text-center py-20 text-slate-300 italic">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</p>`;
-    }
-}
-
-// ฟังก์ชันบันทึกการชำระเงิน
-async function confirmPayment() {
-    if (!activePaymentOrder) return;
-    const btn = document.getElementById('btn-confirm-pay');
-    btn.disabled = true;
-    btn.innerText = "กำลังบันทึก...";
-
-    const params = new URLSearchParams();
-    params.append('time', activePaymentOrder.time);
-    params.append('orderNo', activePaymentOrder.orderNo);
-    params.append('itemSummary', activePaymentOrder.itemSummary);
-    params.append('total', activePaymentOrder.total);
-    params.append('method', activePaymentOrder.method);
-
-    try {
-        // ส่งแบบ POST
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: params,
-            mode: 'no-cors' // ใช้ no-cors เพื่อให้บันทึกได้แม้จะติด CORS header
-        });
-
-        // เนื่องด้วยโหมด no-cors เราจะไม่อ่านค่าตอบกลับ แต่ให้ถือว่าสำเร็จถ้าไม่มี Error
-        localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
-        saveData();
-        closePaymentModal();
-        switchView('history');
-        alert("บันทึกสำเร็จ!");
-    } catch (e) {
-        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-        btn.disabled = false;
-        btn.innerText = "ชำระเงินและบันทึก";
-    }
-}
-
+            try {
+                // ส่งข้อมูลไปบันทึก
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: params,
+                    mode: 'no-cors' // ข้ามปัญหา CORS สำหรับการส่งข้อมูล
+                });
+        
+                // --- ส่วนที่แก้ไข ---
+                // 1. ลบคิวในเครื่อง
+                localQueue = localQueue.filter(q => q.id !== activePaymentOrder.id);
+                saveData();
+                
+                // 2. ปิด Modal ชำระเงิน
+                closePaymentModal();
+                
+                // 3. สลับไปหน้าประวัติ (History)
+                switchView('history');
+                
+                // 4. บังคับให้โหลดข้อมูลใหม่จาก Server ทันที (ไม่ต้อง Alert)
+                syncHistoryData(); 
+        
+            } catch (e) {
+                console.error("Error saving data:", e);
+                // กรณีผิดพลาดจริงๆ ค่อยแจ้งเตือน
+                btn.disabled = false;
+                btn.innerText = "ลองใหม่อีกครั้ง";
+            }
+        }
         function renderHistoryUI(data) {
                 const list = document.getElementById('history-list');
                 if (!list) return;
@@ -430,6 +447,7 @@ async function confirmPayment() {
     </script>
 </body>
 </html>
+
 
 
 
