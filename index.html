@@ -115,7 +115,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyIas7LGAqTaXfG7IiULmav4n_c14GvkmCe5qKKJp5ZgCYcPgeVl-g6CLLQUSYQsvy3KA/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbykIIMzJAESeExFbJ4R-5J3QSpbVUVpQvLGsuEJMKUtM61HxrYohAT-OVYkv0rusw-pJA/exec";
         
         const MENU = [
             { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -182,13 +182,16 @@
                 </div>
             `).join('');
         }
-
-        function addToCart(id) {
-            const item = MENU.find(x => x.id === id);
-            const exists = cart.find(i => i.id === id);
-            if (exists) exists.qty++; else cart.push({ ...item, qty: 1 });
-            saveData();
-            updateCartUI();
+        
+        // ตัวอย่างฟังก์ชันเพิ่มเมนูลงตะกร้า (อยู่เฉพาะในเครื่อง)
+        function addToCart(product) {
+            const existing = cart.find(item => item.name === product.name);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+            renderPOS(); // วาดหน้าจอ POS ใหม่เพื่อโชว์รายการในตะกร้า
         }
 
         function changeQty(id, d) {
@@ -257,35 +260,36 @@
 
         // ฟังก์ชันนี้เรียกใช้งานเมื่อกดปุ่ม "จองคิว" ในหน้าจอ POS
             async function handleBooking() {
-                if (cart.length === 0) return;
+                if (cart.length === 0) return alert("กรุณาเลือกเมนูก่อนลงคิว");
             
                 const orderData = {
-                    id: Date.now(), // สร้าง ID แบบไม่ซ้ำ
+                    id: Date.now().toString(), // ใช้ timestamp เป็น ID เพื่อใช้อ้างอิงตอนยกเลิก
                     time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
                     orderNo: orderNumber.toString().padStart(3, '0'),
                     itemSummary: cart.map(i => `${i.name} x ${i.qty}`).join(', '),
                     total: totalAmount
                 };
             
-                // --- ส่วนสำคัญ: ส่งข้อมูลไปที่ Google Sheets ---
                 try {
-                    const btn = document.querySelector('.btn-booking'); // หรือ ID ปุ่มของคุณ
-                    if(btn) btn.disabled = true;
+                    // ส่งข้อมูลไปบันทึกที่ Google Sheets (สถานะเริ่มต้นคือ 'แดง')
+                    const params = new URLSearchParams();
+                    params.append('action', 'addQueue');
+                    params.append('id', orderData.id);
+                    params.append('time', orderData.time);
+                    params.append('orderNo', orderData.orderNo);
+                    params.append('itemSummary', orderData.itemSummary);
+                    params.append('total', orderData.total);
             
-                    // เรียกฟังก์ชันส่งข้อมูล (ที่เราสร้างไว้ก่อนหน้านี้)
-                    await sendToQueue(orderData); 
-                    
-                    // ล้างตะกร้าและสลับหน้าจอตามปกติ
+                    await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+            
+                    // ล้างตะกร้าหลังจากบันทึกสำเร็จ
                     cart = [];
                     orderNumber++;
                     renderPOS();
-                    switchView('queue'); // สลับไปหน้าคิวเพื่อดูสถานะ (แดง)
-                    
-                } catch (error) {
-                    console.error("Booking Error:", error);
-                    alert("ไม่สามารถลงคิวได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
-                } finally {
-                    if(btn) btn.disabled = false;
+                    switchView('queue'); // สลับไปหน้าคิว
+                    syncQueues(); // โหลดข้อมูลคิวล่าสุดจาก Server
+                } catch (e) {
+                    alert("เกิดข้อผิดพลาดในการลงคิว");
                 }
             }
                     /// ฟังก์ชันส่งคิวไปเซิร์ฟเวอร์
@@ -328,7 +332,7 @@
                     `;
                 }).join('');
             }
-            
+
             // อัปเดตสถานะคิว
             async function updateStatus(id, newStatus) {
                 const params = new URLSearchParams();
@@ -341,33 +345,71 @@
             
             // ให้ระบบ Sync คิวทุก 10 วินาทีอัตโนมัติ (ทุกเครื่องจะเห็นเหมือนกัน)
             setInterval(syncQueues, 10000);
-    function renderQueueUI(queues) {
-            const queueList = document.getElementById('queue-list');
-            queueList.innerHTML = queues.map(q => {
-                // กำหนดสีตามสถานะ
-                let statusColor = "";
-                if (q.status === "แดง") statusColor = "bg-red-500";
-                if (q.status === "เหลือง") statusColor = "bg-yellow-500";
-                if (q.status === "เขียว") statusColor = "bg-green-500";
+    // ฟังก์ชันสำหรับกดปุ่มยกเลิกจากหน้าจอ
+            async function cancelBooking(id) {
+                if (!confirm("ยืนยันการยกเลิกคิวนี้?")) return;
+            
+                const params = new URLSearchParams();
+                params.append('action', 'cancelQueue');
+                params.append('id', id);
+            
+                await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+                syncQueues(); // อัปเดตหน้าจอทันที
+            }
+
+            // ฟังก์ชันเมื่อกดปุ่ม "ลงคิว"
+                async function submitBooking() {
+                    if (cart.length === 0) return alert("ยังไม่ได้เลือกเมนู!");
+                
+                    const orderId = "ID-" + Date.now(); // สร้าง ID เฉพาะของคิวนี้
+                    const params = new URLSearchParams();
+                    params.append('action', 'addQueue');
+                    params.append('id', orderId);
+                    params.append('time', new Date().toLocaleTimeString());
+                    params.append('orderNo', currentOrderNumber);
+                    params.append('itemSummary', cart.map(i => `${i.name}x${i.qty}`).join(', '));
+                    params.append('total', totalAmount);
+                
+                    try {
+                        await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+                        cart = []; // ล้างตะกร้าในเครื่องหลังจากบันทึกแล้ว
+                        alert("ลงคิวสำเร็จ!");
+                        renderPOS();
+                        syncQueues(); // โหลดหน้าคิวใหม่ทันที
+                    } catch (e) {
+                        alert("บันทึกไม่สำเร็จ กรุณาลองใหม่");
+                    }
+                }
+                
+                // ฟังก์ชันยกเลิกคิว
+                async function cancelOrder(orderId) {
+                    if (!confirm("ต้องการยกเลิกคิวนี้ใช่หรือไม่?")) return;
+                
+                    const params = new URLSearchParams();
+                    params.append('action', 'cancelQueue');
+                    params.append('id', orderId);
+                
+                    await fetch(SCRIPT_URL, { method: 'POST', body: params, mode: 'no-cors' });
+                    syncQueues(); // โหลดหน้าคิวใหม่
+                }
         
-                return `
-                    <div class="p-4 mb-2 border rounded shadow-sm flex justify-between items-center">
+            // ปรับปรุงส่วนแสดงผลคิว (ให้มีปุ่มยกเลิก)
+            function renderQueueUI(data) {
+                const list = document.getElementById('queue-list');
+                list.innerHTML = data.map(q => `
+                    <div class="p-4 mb-2 bg-white rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between">
                         <div>
-                            <span class="font-bold text-lg">${q.orderNo}</span>
-                            <p class="text-sm text-gray-500">${q.itemSummary}</p>
+                            <p class="font-bold">#${q.orderNo}</p>
+                            <p class="text-xs text-gray-500">${q.itemSummary}</p>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <select onchange="updateQueueStatus('${q.id}', this.value)" class="${statusColor} text-white px-2 py-1 rounded cursor-pointer">
-                                <option value="แดง" ${q.status === 'แดง' ? 'selected' : ''}>ยังไม่ทำ (แดง)</option>
-                                <option value="เหลือง" ${q.status === 'เหลือง' ? 'selected' : ''}>กำลังทำ (เหลือง)</option>
-                                <option value="เขียว" ${q.status === 'เขียว' ? 'selected' : ''}>เสร็จแล้ว (เขียว)</option>
-                            </select>
+                        <div class="flex gap-2">
+                            <button onclick="cancelBooking('${q.id}')" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-lg text-xs">ยกเลิก</button>
+                            <select onchange="updateStatus('${q.id}', this.value)" ...> </select>
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
-        
+                `).join('');
+            }
+
         // --- ปรับปรุงฟังก์ชันแสดงคิวให้แม่นยำขึ้น ---
         function renderLocalQueue() {
             // ดึงข้อมูลล่าสุดจาก localStorage ก่อนเผื่อมีการอัปเดต
@@ -561,6 +603,7 @@
     </script>
 </body>
 </html>
+
 
 
 
