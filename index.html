@@ -353,30 +353,28 @@
                 const data = await res.json();
                 
                 list.innerHTML = data.reverse().map(h => {
-                    // --- เริ่มต้นการแปลงรูปแบบวันที่และเวลา ---
-                    let displayTime = "";
+                    // --- ดึงเฉพาะวันที่ และจัด Format ใหม่ ---
+                    let displayDate = "";
                     try {
-                        // แยกวันที่และเวลาออกจากค่าที่ได้จาก Google Sheets (เช่น "19/2/2026, 14:24:35")
-                        // ใช้การสร้าง Date Object เพื่อความแม่นยำ
-                        const dateObj = new Date(h.time.replace(',', '')); 
+                        // แยกวันที่ (เช่น "19/2/2026") ออกจากเครื่องหมาย /
+                        const parts = h.time.split(',')[0].split('/'); 
+                        const d = parts[0];
+                        const m = parts[1];
+                        const y = parseInt(parts[2]) + 543; // แปลง ค.ศ. เป็น พ.ศ.
                         
-                        const d = dateObj.getDate();
-                        const m = dateObj.getMonth() + 1;
-                        const y = dateObj.getFullYear() + 543; // แปลง ค.ศ. เป็น พ.ศ.
-                        const hh = String(dateObj.getHours()).padStart(2, '0');
-                        const mm = String(dateObj.getMinutes()).padStart(2, '0');
-                        
-                        displayTime = `${d}/${m}/${y} เวลา ${hh}:${mm} น.`;
+                        // ดึงเวลามาเฉพาะ ชั่วโมง:นาที (ตัดวินาทีทิ้ง)
+                        const timePart = h.time.split(', ')[1] || "";
+                        const hm = timePart.split(':').slice(0, 2).join(':');
+        
+                        displayDate = `${d}/${m}/${y} เวลา ${hm} น.`;
                     } catch (err) {
-                        // หากแปลงไม่ได้ ให้โชว์ค่าเดิมจากระบบ
-                        displayTime = h.time;
+                        displayDate = h.time; // กันพลาดให้โชว์ค่าเดิม
                     }
-                    // ---------------------------------------
         
                     return `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center">
                             <div>
-                                <p class="text-[10px] font-bold text-slate-400 mb-1">${displayTime}</p>
+                                <p class="text-[10px] font-bold text-slate-400">${displayDate}</p>
                                 <p class="text-sm font-bold text-slate-700">${h.items}</p>
                             </div>
                             <div class="text-right">
@@ -394,6 +392,7 @@
     </script>
 </body>
 </html>
+
 
 
 
