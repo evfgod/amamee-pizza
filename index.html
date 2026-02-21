@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx5AtGlqU6OVROYIRojcQVdisIjitM_fNFG4-iz_rBHBNOU6j61YwNNekB7JHMGxJQExw/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxWsy89N7oWseHdlLVzAr2c2CthiUKLwJl3_QXyAlBPHqUKTQjzDE9slZd3sOtG8WEpww/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -383,47 +383,59 @@
         }
     }
 
-    async function syncHistory() {
-    const list = document.getElementById('history-list');
-    if (!list) return;
-    list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch animate-spin text-slate-300 text-3xl"></i></div>';
-    
-    try {
-        const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
-        const data = await res.json();
-        
-        if (!data || data.length === 0) {
-            list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีประวัติการชำระเงิน</div>';
-            return;
-        }
-
-        // แสดงรายการล่าสุดไว้บนสุด
-        list.innerHTML = data.reverse().map(h => `
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                <div class="flex-1">
-                    <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                    <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
-                    <div class="flex items-center gap-2">
-                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                         <p class="text-[9px] text-emerald-500 font-black uppercase">${h.status}</p>
-                    </div>
-                </div>
-                <div class="text-right ml-4">
-                    <p class="font-black text-red-600 text-lg">฿${h.total}</p>
-                    <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
-                </div>
-            </div>
-        `).join('');
-    } catch (e) {
-        console.error("History Error:", e);
-        list.innerHTML = '<div class="text-center py-10 text-red-300">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>';
-    }
-}
+       async function syncHistory() {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+                
+                list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch animate-spin text-slate-300 text-3xl"></i></div>';
+                
+                try {
+                    const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
+                    const data = await res.json();
+                    
+                    if (!data || data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold">ยังไม่มีประวัติการขาย</div>';
+                        return;
+                    }
+            
+                    // แสดงรายการล่าสุดไว้บนสุด
+                    list.innerHTML = data.reverse().map(h => {
+                        // ป้องกันกรณีค่าเป็น undefined
+                        const date = h.date || "-";
+                        const time = h.time || "-";
+                        const items = h.items || "ไม่มีรายการ";
+                        const total = h.total || 0;
+                        const method = h.method || "เงินสด";
+                        const status = h.status || "เสร็จสิ้น";
+            
+                        return `
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                                <div class="flex-1">
+                                    <p class="text-[10px] font-bold text-slate-400">${date} | ${time}</p>
+                                    <p class="text-sm font-bold text-slate-700 my-1">${items}</p>
+                                    <div class="flex items-center gap-2">
+                                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                         <p class="text-[9px] text-emerald-500 font-black uppercase">${status}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right ml-4">
+                                    <p class="font-black text-red-600 text-lg">฿${total}</p>
+                                    <p class="text-[9px] font-black text-slate-300 uppercase">${method}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } catch (e) {
+                    console.error("History Error:", e);
+                    list.innerHTML = '<div class="text-center py-10 text-red-300">โหลดข้อมูลไม่สำเร็จ กรุณาเช็ค URL หรือสิทธิ์การเข้าถึง</div>';
+                }
+            }
 
     window.onload = () => { initMenu(); renderQueue(); };
 </script>
 </body>
 </html>
+
 
 
 
