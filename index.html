@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzJtj6hKQk8IL7HfAwxHXx_EENwDaXNgfvLWAQGcPMVBxtYq4zQ3j0MmlbT3s4SR1Y6lg/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz4zAQ625ZpleSH1LFH4Q_d_ayivHul9BDFJHSumWU5EGVmdLDnC0HQUolVXFYO4lmHOQ/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -376,25 +376,46 @@
 
     async function syncHistory() {
         const list = document.getElementById('history-list');
+        if (!list) return;
         list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
+        
         try {
             const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
             const data = await res.json();
-            list.innerHTML = data.reverse().map(h => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                        <p class="text-sm font-bold text-slate-700">${h.items}</p>
-                        <p class="text-[9px] text-emerald-500 font-bold uppercase">${h.status}</p>
+            
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p class="text-center py-10 text-slate-300">ยังไม่มีประวัติการขาย</p>';
+                return;
+            }
+
+            // data.reverse() เพื่อเอาอันล่าสุดขึ้นก่อน
+            list.innerHTML = data.reverse().map(h => {
+                // ตรวจสอบว่า h เป็น object ที่มีค่า หรือเป็น array
+                // ปรับการดึงค่าให้ยืดหยุ่น ถ้าดึงผ่านชื่อ key ไม่ได้ ให้ดึงผ่านลำดับ (Index)
+                const d = h.date || h[0] || ""; // คอลัมน์ A
+                const t = h.time || h[1] || ""; // คอลัมน์ B
+                const item = h.items || h[2] || "ไม่มีรายการ"; // คอลัมน์ C
+                const total = h.total || h[3] || 0; // คอลัมน์ D
+                const method = h.method || h[4] || "เงินสด"; // คอลัมน์ E
+                const status = h.status || h[5] || "ดำเนินการเสร็จสิ้น"; // คอลัมน์ F
+
+                return `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-bold text-slate-400">${d} | ${t}</p>
+                            <p class="text-sm font-bold text-slate-700 my-1">${item}</p>
+                            <p class="text-[9px] text-emerald-500 font-black uppercase tracking-wider">${status}</p>
+                        </div>
+                        <div class="text-right ml-4">
+                            <p class="font-black text-red-600 text-lg">฿${total}</p>
+                            <p class="text-[9px] font-black text-slate-300 uppercase">${method}</p>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-black text-red-600">฿${h.total}</p>
-                        <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } catch (e) {
-            list.innerHTML = '<p class="text-center py-10 text-slate-300">โหลดไม่สำเร็จ</p>';
+            console.error("Sync Error:", e);
+            list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถเชื่อมต่อข้อมูลได้</p>';
         }
     }
 
@@ -402,6 +423,7 @@
 </script>
 </body>
 </html>
+
 
 
 
