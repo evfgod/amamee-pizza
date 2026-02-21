@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz4zAQ625ZpleSH1LFH4Q_d_ayivHul9BDFJHSumWU5EGVmdLDnC0HQUolVXFYO4lmHOQ/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx5AtGlqU6OVROYIRojcQVdisIjitM_fNFG4-iz_rBHBNOU6j61YwNNekB7JHMGxJQExw/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -206,30 +206,39 @@
 
     function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-    function pushToQueue() {
-        if (cart.length === 0) return;
-        const now = new Date();
-        const order = {
-            uid: Date.now(),
-            q_no: queueCounter,
-            // Format วันที่/เวลา เป็นปีไทย
-            date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
-            time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
-            summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
-            total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-            status: 'รอดำเนินการ',
-            method: ''
-        };
-        queue.push(order);
-        queueCounter++;
-        localStorage.setItem('amamee_q_counter', queueCounter);
-        saveQueue();
-        cart = [];
-        updateUI();
-        toggleCart();
-        switchView('queue');
-    }
+    async function pushToQueue() {
+    if (cart.length === 0) return;
+    const now = new Date();
+    const order = {
+        uid: Date.now(),
+        q_no: queueCounter,
+        date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
+        time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit', second:'2-digit'}), // เพิ่มวินาทีเพื่อให้ Time เป็น Unique Key
+        summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
+        total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
+        status: 'รอดำเนินการ',
+        method: 'รอกดจ่ายเงิน'
+    };
 
+    // ส่งข้อมูลไปบันทึกที่ Google Sheets ทันที (เพื่อให้หน้าจอ Display เห็นคิว)
+    const params = new URLSearchParams({
+        action: 'saveQueue',
+        date: order.date,
+        time: order.time,
+        items: `(คิว ${order.q_no}) ${order.summary}`,
+        total: order.total
+    });
+    fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+
+    queue.push(order);
+    queueCounter++;
+    localStorage.setItem('amamee_q_counter', queueCounter);
+    saveQueue();
+    cart = [];
+    updateUI();
+    toggleCart();
+    switchView('queue');
+}
     function saveQueue() {
         localStorage.setItem('amamee_local_queue', JSON.stringify(queue));
         renderQueue();
@@ -375,54 +384,47 @@
     }
 
     async function syncHistory() {
-        const list = document.getElementById('history-list');
-        if (!list) return;
-        list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
+    const list = document.getElementById('history-list');
+    if (!list) return;
+    list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch animate-spin text-slate-300 text-3xl"></i></div>';
+    
+    try {
+        const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
+        const data = await res.json();
         
-        try {
-            const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
-            const data = await res.json();
-            
-            if (!data || data.length === 0) {
-                list.innerHTML = '<p class="text-center py-10 text-slate-300">ยังไม่มีประวัติการขาย</p>';
-                return;
-            }
-
-            // data.reverse() เพื่อเอาอันล่าสุดขึ้นก่อน
-            list.innerHTML = data.reverse().map(h => {
-                // ตรวจสอบว่า h เป็น object ที่มีค่า หรือเป็น array
-                // ปรับการดึงค่าให้ยืดหยุ่น ถ้าดึงผ่านชื่อ key ไม่ได้ ให้ดึงผ่านลำดับ (Index)
-                const d = h.date || h[0] || ""; // คอลัมน์ A
-                const t = h.time || h[1] || ""; // คอลัมน์ B
-                const item = h.items || h[2] || "ไม่มีรายการ"; // คอลัมน์ C
-                const total = h.total || h[3] || 0; // คอลัมน์ D
-                const method = h.method || h[4] || "เงินสด"; // คอลัมน์ E
-                const status = h.status || h[5] || "ดำเนินการเสร็จสิ้น"; // คอลัมน์ F
-
-                return `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                        <div class="flex-1">
-                            <p class="text-[10px] font-bold text-slate-400">${d} | ${t}</p>
-                            <p class="text-sm font-bold text-slate-700 my-1">${item}</p>
-                            <p class="text-[9px] text-emerald-500 font-black uppercase tracking-wider">${status}</p>
-                        </div>
-                        <div class="text-right ml-4">
-                            <p class="font-black text-red-600 text-lg">฿${total}</p>
-                            <p class="text-[9px] font-black text-slate-300 uppercase">${method}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            console.error("Sync Error:", e);
-            list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถเชื่อมต่อข้อมูลได้</p>';
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีประวัติการชำระเงิน</div>';
+            return;
         }
+
+        // แสดงรายการล่าสุดไว้บนสุด
+        list.innerHTML = data.reverse().map(h => `
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                <div class="flex-1">
+                    <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
+                    <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
+                    <div class="flex items-center gap-2">
+                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                         <p class="text-[9px] text-emerald-500 font-black uppercase">${h.status}</p>
+                    </div>
+                </div>
+                <div class="text-right ml-4">
+                    <p class="font-black text-red-600 text-lg">฿${h.total}</p>
+                    <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error("History Error:", e);
+        list.innerHTML = '<div class="text-center py-10 text-red-300">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>';
     }
+}
 
     window.onload = () => { initMenu(); renderQueue(); };
 </script>
 </body>
 </html>
+
 
 
 
