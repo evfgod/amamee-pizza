@@ -128,272 +128,281 @@
 </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSqqDsn0ZdnrNk2MznakTElpQwiy1Bm-4znFoR2pbK9SNICXC-tyIfpZz9OqQbWRQd0A/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzJtj6hKQk8IL7HfAwxHXx_EENwDaXNgfvLWAQGcPMVBxtYq4zQ3j0MmlbT3s4SR1Y6lg/exec'; 
 
-        let cart = [];
-        let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
-        let queueCounter = parseInt(localStorage.getItem('amamee_q_counter')) || 1;
-        
-        const menu = [
-            { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
-            { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
-            { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
-            { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
-            { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
-            { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
-            { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
-            { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
-            { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
-            { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
-            { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '🧀' }
-        ];
+    let cart = [];
+    let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
+    let queueCounter = parseInt(localStorage.getItem('amamee_q_counter')) || 1;
+    
+    const menu = [
+        { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
+        { id: 'H02', name: 'แฮมชีส', price: 59, icon: '🍖' },
+        { id: 'H03', name: 'แฮมปูอัดชีส', price: 59, icon: '🦀' },
+        { id: 'H04', name: 'ไก่กรอบชีส', price: 59, icon: '🍗' },
+        { id: 'H05', name: 'ข้าวโพดอบชีส', price: 59, icon: '🌽' },
+        { id: 'H06', name: 'ฮอตดอกชีส', price: 59, icon: '🌭' },
+        { id: 'H07', name: 'ชีสเลิฟเวอร์', price: 69, icon: '🧀' },
+        { id: 'H08', name: 'ซีฟู้ด', price: 69, icon: '🍤' },
+        { id: 'H09', name: 'ผักโขมชีส', price: 69, icon: '🌿' },
+        { id: 'H10', name: 'หน้ารวม', price: 79, icon: '🍕' },
+        { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '🧀' }
+    ];
 
-        function switchView(id) {
-            ['pos', 'queue', 'history'].forEach(v => {
-                document.getElementById('view-'+v).classList.add('hidden');
-                document.getElementById('btn-'+v).classList.remove('active-tab');
-            });
-            document.getElementById('view-'+id).classList.remove('hidden');
-            document.getElementById('btn-'+id).classList.add('active-tab');
-            if(id === 'queue') renderQueue();
-            if(id === 'history') syncHistory();
-        }
+    function switchView(id) {
+        ['pos', 'queue', 'history'].forEach(v => {
+            document.getElementById('view-'+v).classList.add('hidden');
+            document.getElementById('btn-'+v).classList.remove('active-tab');
+        });
+        document.getElementById('view-'+id).classList.remove('hidden');
+        document.getElementById('btn-'+id).classList.add('active-tab');
+        if(id === 'queue') renderQueue();
+        if(id === 'history') syncHistory();
+    }
 
-        function initMenu() {
-            document.getElementById('menu-grid').innerHTML = menu.map(p => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 text-center active:scale-95 transition-all" onclick="add('${p.id}')">
-                    <div class="text-4xl mb-2">${p.icon}</div>
-                    <div class="font-extrabold text-sm text-slate-700">${p.name}</div>
-                    <div class="text-red-500 font-black">฿${p.price}</div>
+    function initMenu() {
+        document.getElementById('menu-grid').innerHTML = menu.map(p => `
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 text-center active:scale-95 transition-all" onclick="add('${p.id}')">
+                <div class="text-4xl mb-2">${p.icon}</div>
+                <div class="font-extrabold text-sm text-slate-700">${p.name}</div>
+                <div class="text-red-500 font-black">฿${p.price}</div>
+            </div>
+        `).join('');
+    }
+
+    function add(id) {
+        const p = menu.find(x => x.id === id);
+        const item = cart.find(x => x.id === id);
+        if(item) item.qty++; else cart.push({...p, qty: 1});
+        updateUI();
+    }
+
+    function updateUI() {
+        const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        const count = cart.reduce((s, i) => s + i.qty, 0);
+        document.getElementById('cart-preview').classList.toggle('hidden', cart.length === 0);
+        document.getElementById('cart-count').innerText = count;
+        document.getElementById('cart-total').innerText = `฿${total}`;
+        document.getElementById('modal-total').innerText = `฿${total}`;
+        document.getElementById('cart-items').innerHTML = cart.map(i => `
+            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                <div><p class="font-bold">${i.name}</p><p class="text-xs text-slate-400">฿${i.price}</p></div>
+                <div class="flex items-center gap-4">
+                    <button onclick="changeQty('${i.id}', -1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-red-500">-</button>
+                    <span class="font-black text-lg">${i.qty}</span>
+                    <button onclick="changeQty('${i.id}', 1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-blue-500">+</button>
                 </div>
-            `).join('');
-        }
+            </div>
+        `).join('');
+    }
 
-        function add(id) {
-            const p = menu.find(x => x.id === id);
-            const item = cart.find(x => x.id === id);
-            if(item) item.qty++; else cart.push({...p, qty: 1});
+    function changeQty(id, d) {
+        const item = cart.find(x => x.id === id);
+        if(item) {
+            item.qty += d;
+            if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
             updateUI();
         }
+    }
 
-        function updateUI() {
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            const count = cart.reduce((s, i) => s + i.qty, 0);
-            document.getElementById('cart-preview').classList.toggle('hidden', cart.length === 0);
-            document.getElementById('cart-count').innerText = count;
-            document.getElementById('cart-total').innerText = `฿${total}`;
-            document.getElementById('modal-total').innerText = `฿${total}`;
+    function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
-            document.getElementById('cart-items').innerHTML = cart.map(i => `
-                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
-                    <div><p class="font-bold">${i.name}</p><p class="text-xs text-slate-400">฿${i.price}</p></div>
-                    <div class="flex items-center gap-4">
-                        <button onclick="changeQty('${i.id}', -1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-red-500">-</button>
-                        <span class="font-black text-lg">${i.qty}</span>
-                        <button onclick="changeQty('${i.id}', 1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-blue-500">+</button>
+    function pushToQueue() {
+        if (cart.length === 0) return;
+        const now = new Date();
+        const order = {
+            uid: Date.now(),
+            q_no: queueCounter,
+            // Format วันที่/เวลา เป็นปีไทย
+            date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
+            time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
+            summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
+            total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
+            status: 'รอดำเนินการ',
+            method: ''
+        };
+        queue.push(order);
+        queueCounter++;
+        localStorage.setItem('amamee_q_counter', queueCounter);
+        saveQueue();
+        cart = [];
+        updateUI();
+        toggleCart();
+        switchView('queue');
+    }
+
+    function saveQueue() {
+        localStorage.setItem('amamee_local_queue', JSON.stringify(queue));
+        renderQueue();
+    }
+
+    function renderQueue() {
+        const list = document.getElementById('queue-list');
+        const badge = document.getElementById('badge-queue');
+        badge.innerText = queue.length;
+        badge.classList.toggle('hidden', queue.length === 0);
+        document.getElementById('queue-count-text').innerText = `${queue.length} รายการ`;
+
+        list.innerHTML = queue.map(o => {
+            const isReady = o.status === 'ดำเนินการเสร็จสิ้น';
+            return `
+            <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative mb-3">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="bg-red-600 text-white px-3 py-1 rounded-lg font-black text-lg">คิวที่ ${o.q_no}</div>
+                    <button onclick="cancelQueue(${o.uid})" class="text-slate-300 p-2 hover:text-red-500 transition-colors">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <p class="font-bold text-slate-800 leading-tight">${o.summary}</p>
+                    <p class="text-[10px] font-black uppercase text-slate-400">สถานะ: ${o.status}</p>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="changeStatus('${o.uid}', 'กำลังดำเนินการ')" class="bg-orange-100 text-orange-600 py-2 rounded-xl text-[10px] font-black">เริ่มทำ</button>
+                        <button onclick="changeStatus('${o.uid}', 'ดำเนินการเสร็จสิ้น')" class="bg-emerald-100 text-emerald-600 py-2 rounded-xl text-[10px] font-black">เสร็จแล้ว</button>
+                    </div>
+                    <div class="flex justify-between items-center pt-3 border-t">
+                        <p class="font-black text-xl text-slate-900">฿${o.total}</p>
+                        <button onclick='openPay(${JSON.stringify(o)})' 
+                            class="px-8 py-2 rounded-xl text-xs font-black transition-all ${isReady ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}"
+                            ${isReady ? '' : 'disabled'}>PAY</button>
                     </div>
                 </div>
-            `).join('');
-        }
+            </div>
+        `}).join('');
+    }
 
-        function changeQty(id, d) {
-            const item = cart.find(x => x.id === id);
-            if(item) {
-                item.qty += d;
-                if(item.qty <= 0) cart = cart.filter(x => x.id !== id);
-                updateUI();
-            }
-        }
-
-        function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
-
-        // แก้ไข: จองคิวทันทีโดยยังไม่ต้องระบุประเภทการจ่ายเงิน
-        function pushToQueue() {
-            if (cart.length === 0) return;
-            const order = {
-                uid: Date.now(),
-                q_no: queueCounter,
-                time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
-                summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
-                total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-                status: 'Wait', // เริ่มต้นที่สถานะรอ
-                method: '' // ยังไม่มีวิธีจ่ายเงิน
-            };
-            queue.push(order);
-            queueCounter++;
-            localStorage.setItem('amamee_q_counter', queueCounter);
+    function cancelQueue(uid) {
+        if(confirm('ยกเลิกคิวนี้ใช่หรือไม่?')) {
+            queue = queue.filter(q => q.uid !== uid);
             saveQueue();
-            cart = [];
-            updateUI();
-            toggleCart();
-            switchView('queue');
         }
+    }
 
-        function saveQueue() {
-            localStorage.setItem('amamee_local_queue', JSON.stringify(queue));
-            renderQueue();
+    function resetAllQueues() {
+        if(confirm('ต้องการเริ่มนับ Q1 ใหม่และล้างข้อมูลทั้งหมดใช่หรือไม่?')) {
+            queue = [];
+            queueCounter = 1;
+            localStorage.setItem('amamee_q_counter', 1);
+            saveQueue();
+            alert('รีเซ็ตสำเร็จ');
         }
+    }
 
-        function renderQueue() {
-            const list = document.getElementById('queue-list');
-            const badge = document.getElementById('badge-queue');
-            badge.innerText = queue.length;
-            badge.classList.toggle('hidden', queue.length === 0);
-            document.getElementById('queue-count-text').innerText = `${queue.length} รายการ`;
-
-            list.innerHTML = queue.map(o => {
-                const isReady = o.status === 'Ready';
-                const statusColor = o.status === 'Cooking' ? 'text-orange-500' : (o.status === 'Ready' ? 'text-emerald-500' : 'text-slate-400');
-                
-                return `
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative mb-3">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="bg-red-600 text-white px-3 py-1 rounded-lg font-black text-lg">คิวที่ ${o.q_no}</div>
-                        <span class="text-[10px] font-bold uppercase ${statusColor}">${o.status}</span>
-                    </div>
-                    <div class="space-y-3">
-                        <p class="font-bold text-slate-800 leading-tight">${o.summary}</p>
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="changeStatus('${o.uid}', 'Cooking')" class="bg-orange-100 text-orange-600 py-2 rounded-xl text-[10px] font-black uppercase">เริ่มทำ</button>
-                            <button onclick="changeStatus('${o.uid}', 'Ready')" class="bg-emerald-100 text-emerald-600 py-2 rounded-xl text-[10px] font-black uppercase">เสร็จแล้ว</button>
-                        </div>
-                        <div class="flex justify-between items-center pt-3 border-t">
-                            <p class="font-black text-xl text-slate-900">฿${o.total}</p>
-                            <button onclick='openPay(${JSON.stringify(o)})' 
-                                class="px-8 py-2 rounded-xl text-xs font-black transition-all ${isReady ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-300 cursor-not-allowed'}"
-                                ${isReady ? '' : 'disabled'}>
-                                PAY
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        async function changeStatus(uid, status) {
-            const order = queue.find(q => q.uid == uid);
-            if(!order) return;
+    async function changeStatus(uid, status) {
+        const order = queue.find(q => q.uid == uid);
+        if(order) {
             order.status = status;
             saveQueue();
-            
-            // ส่งอัปเดตไปจอเสริม (Optional)
-            try {
-                const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
-                fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-            } catch(e) {}
+            // แจ้งเตือนสถานะไปจอเสริม
+            const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
+            fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
         }
+    }
 
-        let currentOrder = null;
-        function openPay(order) {
-            currentOrder = order;
-            document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
-            document.getElementById('pay-amount').innerText = `฿${order.total}`;
-            document.getElementById('payment-modal').classList.remove('hidden');
-            document.getElementById('cash-in').value = '';
-            document.getElementById('cash-box').classList.add('hidden'); // ซ่อนช่องใส่เงินไว้ก่อนจนกว่าจะเลือก CASH
-            
-            // ปรับปุ่มกดยืนยันให้เทาก่อนเลือกวิธีจ่าย
+    let currentOrder = null;
+    function openPay(order) {
+        currentOrder = order;
+        document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
+        document.getElementById('pay-amount').innerText = `฿${order.total}`;
+        document.getElementById('payment-modal').classList.remove('hidden');
+        document.getElementById('cash-in').value = '';
+        document.getElementById('cash-box').classList.add('hidden');
+        const btn = document.getElementById('btn-final');
+        btn.disabled = true;
+        btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+    }
+
+    function selectMethod(method) {
+        currentOrder.method = method === 'CASH' ? 'เงินสด' : 'เงินโอน';
+        const isCash = method === 'CASH';
+        document.getElementById('cash-box').classList.toggle('hidden', !isCash);
+        if (!isCash) {
             const btn = document.getElementById('btn-final');
+            btn.disabled = false;
+            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+        } else {
+            doChange();
+        }
+    }
+
+    function doChange() {
+        const received = parseFloat(document.getElementById('cash-in').value) || 0;
+        const diff = received - currentOrder.total;
+        const display = document.getElementById('change-display');
+        const label = document.getElementById('change-label');
+        const text = document.getElementById('change-text');
+        const btn = document.getElementById('btn-final');
+
+        if (received >= currentOrder.total) {
+            display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
+            label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; 
+            btn.disabled = false;
+            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+        } else {
+            display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
+            label.innerText = "รอรับเงิน"; text.innerText = `฿${Math.abs(diff)}`;
             btn.disabled = true;
             btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
         }
+    }
 
-        // ฟังก์ชันเลือกวิธีจ่ายเงิน
-        function selectMethod(method) {
-            currentOrder.method = method;
-            const isCash = method === 'CASH';
-            document.getElementById('cash-box').classList.toggle('hidden', !isCash);
-            
-            if (!isCash) {
-                const btn = document.getElementById('btn-final');
-                btn.disabled = false;
-                btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
-            } else {
-                doChange();
-            }
+    async function processPayment() {
+        const btn = document.getElementById('btn-final');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> บันทึก...';
+        
+        const params = new URLSearchParams({
+            action: 'saveSale',
+            date: currentOrder.date,
+            time: currentOrder.time,
+            items: `(คิว ${currentOrder.q_no}) ${currentOrder.summary}`,
+            total: currentOrder.total,
+            method: currentOrder.method,
+            status: currentOrder.status
+        });
+
+        try {
+            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            queue = queue.filter(q => q.uid !== currentOrder.uid);
+            saveQueue();
+            document.getElementById('payment-modal').classList.add('hidden');
+            switchView('history');
+        } catch (e) {
+            queue = queue.filter(q => q.uid !== currentOrder.uid);
+            saveQueue();
+            document.getElementById('payment-modal').classList.add('hidden');
+            switchView('history');
         }
+    }
 
-        function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
-
-        function doChange() {
-            const received = parseFloat(document.getElementById('cash-in').value) || 0;
-            const diff = received - currentOrder.total;
-            const display = document.getElementById('change-display');
-            const label = document.getElementById('change-label');
-            const text = document.getElementById('change-text');
-            const btn = document.getElementById('btn-final');
-
-            if (currentOrder.method === 'CASH') {
-                if (received === 0 || diff < 0) {
-                    display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
-                    label.innerText = diff < 0 ? "ยังขาดอีก" : "รอรับเงิน";
-                    text.innerText = `฿${Math.abs(diff)}`; 
-                    btn.disabled = true;
-                    btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
-                } else {
-                    display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
-                    label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; 
-                    btn.disabled = false;
-                    btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
-                }
-            }
-        }
-
-        async function processPayment() {
-            const btn = document.getElementById('btn-final');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> กำลังบันทึก...';
-            
-            const params = new URLSearchParams({
-                action: 'saveSale',
-                time: currentOrder.time,
-                items: `(คิว ${currentOrder.q_no}) ${currentOrder.summary}`,
-                total: currentOrder.total,
-                method: currentOrder.method
-            });
-
-            try {
-                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                queue = queue.filter(q => q.uid !== currentOrder.uid);
-                saveQueue();
-                closePayment();
-                switchView('history');
-            } catch (e) {
-                queue = queue.filter(q => q.uid !== currentOrder.uid);
-                saveQueue();
-                closePayment();
-                switchView('history');
-            }
-        }
-
-        async function syncHistory() {
-            const list = document.getElementById('history-list');
-            if (!list) return;
-            list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
-            try {
-                const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
-                const data = await res.json();
-                list.innerHTML = data.reverse().map(h => `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                        <div>
-                            <p class="text-[11px] font-bold text-slate-500 mb-1">${h.time}</p>
-                            <p class="text-sm font-bold text-slate-700">${h.items}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-emerald-600">฿${h.total}</p>
-                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
-                        </div>
+    async function syncHistory() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch loading-spinner text-slate-300 text-3xl"></i></div>';
+        try {
+            const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
+            const data = await res.json();
+            list.innerHTML = data.reverse().map(h => `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
+                        <p class="text-sm font-bold text-slate-700">${h.items}</p>
+                        <p class="text-[9px] text-emerald-500 font-bold uppercase">${h.status}</p>
                     </div>
-                `).join('');
-            } catch (e) {
-                list.innerHTML = '<p class="text-center py-10 text-slate-300">ไม่สามารถโหลดข้อมูลได้</p>';
-            }
+                    <div class="text-right">
+                        <p class="font-black text-red-600">฿${h.total}</p>
+                        <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            list.innerHTML = '<p class="text-center py-10 text-slate-300">โหลดไม่สำเร็จ</p>';
         }
+    }
 
-        window.onload = () => { initMenu(); renderQueue(); };
-    </script>
+    window.onload = () => { initMenu(); renderQueue(); };
+</script>
 </body>
 </html>
+
 
 
 
