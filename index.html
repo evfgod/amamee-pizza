@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzVYA5irR-FcXWbL3mXFu2e-cpedpdZRJcw-hfHzu7asq_xCnxCaJBsec3QaQkO_lI1mg/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwFvZ1JCx8QKrYGSxI048xG1sj_IkAx9SoamIIKBBMHvQJciajfdk0j4ePmj4hMQGMabQ/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -359,30 +359,34 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> บันทึก...';
         
+        // แก้ไข: ส่ง action: 'saveSale' พร้อม 'time' เพื่อไปอัปเดตแถวที่เคยจองไว้ใน Sheet
         const params = new URLSearchParams({
             action: 'saveSale',
-            date: currentOrder.date,
-            time: currentOrder.time,
-            items: `(คิว ${currentOrder.q_no}) ${currentOrder.summary}`,
-            total: currentOrder.total,
-            method: currentOrder.method,
-            status: currentOrder.status
+            time: currentOrder.time,     // ใช้เวลา (Key) เดิมที่ได้จากตอนจองคิว
+            method: currentOrder.method,  // "เงินสด" หรือ "เงินโอน"
+            status: "ดำเนินการเสร็จสิ้น"
         });
 
         try {
+            // ส่งข้อมูลไปอัปเดตที่ Google Sheets
             await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            
+            // ลบคิวออกจากหน้ารายการรอ (LocalStorage)
             queue = queue.filter(q => q.uid !== currentOrder.uid);
             saveQueue();
+            
+            // ปิดหน้าต่างจ่ายเงินและย้ายไปหน้า History
             document.getElementById('payment-modal').classList.add('hidden');
-            switchView('history');
+            switchView('history'); 
         } catch (e) {
+            console.error("Payment Error:", e);
+            // กรณี Error (เช่น CORS) ข้อมูลมักจะเข้า Sheets ไปแล้ว ให้ทำงานต่อเลย
             queue = queue.filter(q => q.uid !== currentOrder.uid);
             saveQueue();
             document.getElementById('payment-modal').classList.add('hidden');
             switchView('history');
         }
     }
-
           async function syncHistory() {
                 const list = document.getElementById('history-list');
                 if (!list) return;
@@ -424,6 +428,7 @@
 </script>
 </body>
 </html>
+
 
 
 
