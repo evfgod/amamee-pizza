@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คิวรอรับสินค้า - AMAMEE PIZZA</title>
+    <title>คิวรอรับสินค้า - AMAMEE PIZZA
+    <div class="bg-red-600 text-white p-6 text-center shadow-lg relative">
+    <h1 class="text-5xl font-black italic">AMAMEE PIZZA</h1>
+    <p class="text-xl font-bold mt-2">กรุณารอเรียกหมายเลขคิว</p>
+    
+    <button onclick="toggleFullScreen()" class="absolute top-6 right-6 bg-white/20 hover:bg-white/40 p-3 rounded-2xl transition-all">
+        <i id="fs-icon" class="fas fa-expand text-2xl"></i>
+    </button>
+</div>
+    </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;800&display=swap" rel="stylesheet">
     <style>
@@ -108,6 +117,28 @@
                 `;
             }).join('');
         }
+        function toggleFullScreen() {
+            const icon = document.getElementById('fs-icon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                icon.classList.replace('fa-expand', 'fa-compress');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    icon.classList.replace('fa-compress', 'fa-expand');
+                }
+            }
+        }
+        
+        // อัปเดตไอคอนหากกด F11 บนคีย์บอร์ด
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fs-icon');
+            if (!document.fullscreenElement) {
+                icon.classList.replace('fa-compress', 'fa-expand');
+            } else {
+                icon.classList.replace('fa-expand', 'fa-compress');
+            }
+        });
 
         // อัปเดตข้อมูลอัตโนมัติทุก 10 วินาที
         setInterval(fetchQueue, 10000);
