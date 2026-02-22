@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyM7m_ivLnSpf3Dl7xmFbflmEwrDcwxiuR0yyZdOOlmI8hqGwE6Anc_1pzz5t4jevpC/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzqVvpKWsM6WZvFKxN5lsHXcxg5ki4imp8c0fWt8si10Vysd51NR-iTBCG5qRUH_nFYRg/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -360,27 +360,39 @@
         }
     }
 
-    async function processPayment() {
-        const btn = document.getElementById('btn-final');
-        btn.disabled = true;
-        btn.innerHTML = 'กำลังบันทึก...';
+        async function processPayment() {
+            const btn = document.getElementById('btn-final');
+            btn.disabled = true;
+            btn.innerHTML = 'กำลังบันทึก...';
+            
+            // สร้าง URL สำหรับส่งข้อมูล
+            const params = new URLSearchParams({
+                action: 'saveSale',
+                time: currentOrder.time, 
+                method: currentOrder.method
+            });
         
-        const params = new URLSearchParams({
-            action: 'saveSale',
-            time: currentOrder.time, 
-            method: currentOrder.method
-        });
-    
-        try {
-            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-            queue = queue.filter(q => q.uid !== currentOrder.uid);
-            saveQueue();
-            document.getElementById('payment-modal').classList.add('hidden');
-            switchView('history'); 
-        } catch (e) {
-            console.error(e);
+            try {
+                // *** สำคัญ: ต้องใช้โหมด 'no-cors' แต่ต้องลบคิวออกทันทีหลังส่ง ***
+                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+                
+                // 1. ลบคิวออกจากตัวแปร queue ในเครื่อง
+                queue = queue.filter(q => q.uid !== currentOrder.uid);
+                
+                // 2. บันทึกลง LocalStorage ของเครื่อง
+                saveQueue(); 
+                
+                // 3. ปิดหน้าต่างจ่ายเงินและเปลี่ยนหน้า
+                document.getElementById('payment-modal').classList.add('hidden');
+                switchView('history'); 
+                
+            } catch (e) {
+                console.error("บันทึกล้มเหลว:", e);
+                alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+                btn.disabled = false;
+                btn.innerHTML = 'ยืนยันบันทึกประวัติ';
+            }
         }
-    }
 
     // --- ส่วนดึงข้อมูล History (JSONP) ---
     function syncHistory() {
@@ -422,6 +434,7 @@
 </script>
 </body>
 </html>
+
 
 
 
