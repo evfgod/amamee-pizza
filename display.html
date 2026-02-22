@@ -14,7 +14,7 @@
 </head>
 <body class="flex bg-slate-900 h-screen">
 
-    <div class="w-[40%] bg-black">
+    <div class="w-[30%] bg-black">
         <iframe class="w-full h-full" 
     src="https://www.youtube.com/embed/jU1R4GXhNGU?autoplay=1&mute=1&loop=1&playlist=jU1R4GXhNGU" 
     title="Amamee Pizza Video" 
@@ -25,7 +25,7 @@
 </iframe>
     </div>
 
-    <div class="w-[60%] bg-white flex flex-col">
+    <div class="w-[70%] bg-white flex flex-col">
         <div class="bg-red-600 text-white p-6 text-center shadow-lg">
             <h1 class="text-5xl font-black italic">AMAMEE PIZZA</h1>
             <p class="text-xl font-bold mt-2">กรุณารอเรียกหมายเลขคิว</p>
@@ -44,7 +44,6 @@
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxIWbaUgC_Zb3edUewfRkH_mLCgBBZ_3YB9SlvBK2Bl5-pTvvOOSxLQyCzT0g3CoqYJ5g/exec'; 
 
         function fetchQueue() {
-            // สร้าง Callback รับข้อมูล (JSONP) เพื่อเลี่ยง CORS
             window.callback = function(data) {
                 renderDisplay(data);
                 const oldScript = document.getElementById('jsonp-script');
@@ -65,7 +64,7 @@
                 return;
             }
 
-                // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ' เท่านั้น
+            // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ'
             const activeQueues = data.filter(item => 
                 item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
             );
@@ -77,21 +76,32 @@
 
             container.innerHTML = activeQueues.map(q => {
                 const isWorking = q.status === 'กำลังดำเนินการ';
+                
+                // 1. ดึงเลขคิว
+                const qNumberMatch = q.items.match(/\(คิว (\d+)\)/);
+                const qNumber = qNumberMatch ? qNumberMatch[1] : '?';
+
+                // 2. จัดการรายการอาหาร (แยกบรรทัด และเติมคำว่า "ถาด")
+                const itemsList = q.items
+                    .replace(/\(คิว \d+\) /g, '') // ลบ (คิว X) ออก
+                    .split(',')                   // แยกกรณีสั่งหลายอย่าง
+                    .map(item => item.trim().replace('x', ' ') + ' ถาด')
+                    .join('<br>');                // ขึ้นบรรทัดใหม่
+
                 return `
-                <div class="border-[6px] ${isWorking ? 'border-orange-500 shadow-orange-200 blink' : 'border-slate-100'} rounded-[3rem] p-10 text-center shadow-2xl transition-all">
-                    <p class="${isWorking ? 'text-orange-500' : 'text-slate-400'} font-black text-xl uppercase mb-2">
-                        ${isWorking ? '● กำลังปรุงอาหาร' : 'รอคิว'}
+                <div class="bg-white border-[6px] ${isWorking ? 'border-orange-500 shadow-orange-200 blink' : 'border-slate-100'} rounded-[3rem] p-10 text-center shadow-2xl transition-all mb-6">
+                    <p class="${isWorking ? 'text-orange-500' : 'text-slate-400'} font-black text-2xl uppercase mb-2">
+                        ${isWorking ? '● กำลังดำเนินการ' : 'รอดำเนินการ'}
                     </p>
-                    <h2 class="text-8xl font-black text-slate-800">${extractQ(q.items)}</h2>
+                    
+                    <h2 class="text-7xl font-black text-slate-800 mb-4 italic">คิวที่ ${qNumber}</h2>
+                    
+                    <div class="text-4xl font-bold text-slate-600 leading-tight">
+                        ${itemsList}
+                    </div>
                 </div>
                 `;
             }).join('');
-        }
-
-        function extractQ(text) {
-            // ดึงเลขคิวจากข้อความ "(คิว 1) ฮาวายเอี้ยน..."
-            const match = text.match(/คิว (\d+)/);
-            return match ? `คิวที่ ${match[1]}` : 'คิวใหม่';
         }
 
         // อัปเดตข้อมูลอัตโนมัติทุก 10 วินาที
