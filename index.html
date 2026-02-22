@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzPZaoDfGeEm_qVrX_J0JDy92hDDX86KcX4mrzySYd0yIvsVCQo1mi6rNaexXyS7VnOsA/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyboW78oQNCDj80VQxMYVzPwO5X-X5rqLGxnakcXOOKpVP3usAxNSyigIV8_T1NBgy_VQ/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -377,52 +377,51 @@
                     console.error(e);
                 }
             }
-          async function syncHistory() {
+          function syncHistory() {
                 const list = document.getElementById('history-list');
-                if (!list) return;
-                
-                list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch animate-spin text-slate-300 text-3xl"></i></div>';
-                
-                // ตัวอย่างในฟังก์ชันดึงข้อมูล
-                try {
-                    const res = await fetch(`${WEB_APP_URL}?action=getHistory&t=${Date.now()}`); 
-                    // สังเกตว่าเราไม่ใส่ { mode: 'no-cors' } ตรงนี้
-                    const data = await res.json();
-                    // นำ data ไปโชว์...
-                } catch (e) {
-                    console.error("CORS บล็อกการเข้าถึงข้อมูล:", e);
-                };
-                    
+                list.innerHTML = '<div class="text-center py-10">กำลังโหลด...</div>';
+            
+                // 1. สร้างฟังก์ชันรอรับข้อมูล
+                window.callback = function(data) {
                     if (!data || data.length === 0) {
-                        list.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold">ยังไม่มีข้อมูลในระบบ</div>';
+                        list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีข้อมูล</div>';
                         return;
                     }
-            
+                    
                     list.innerHTML = data.reverse().map(h => `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3 scale-in">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
                             <div class="flex-1">
-                                <p class="text-[10px] font-bold text-slate-400">${h.date || ''} | ${h.time || ''}</p>
-                                <p class="text-sm font-bold text-slate-700 my-1">${h.items || 'ไม่มีชื่อรายการ'}</p>
+                                <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
+                                <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
                                 <div class="flex items-center gap-2">
                                      <span class="w-2 h-2 rounded-full ${h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : 'bg-orange-400'}"></span>
-                                     <p class="text-[9px] font-black uppercase" style="color: ${h.status === 'ดำเนินการเสร็จสิ้น' ? '#10b981' : '#fb923c'}">${h.status || 'รอดำเนินการ'}</p>
+                                     <p class="text-[9px] font-black uppercase text-slate-500">${h.status}</p>
                                 </div>
                             </div>
                             <div class="text-right ml-4">
-                                <p class="font-black text-red-600 text-lg">฿${h.total || 0}</p>
-                                <p class="text-[9px] font-black text-slate-300 uppercase">${h.method || 'ยังไม่ระบุ'}</p>
+                                <p class="font-black text-red-600 text-lg">฿${h.total}</p>
+                                <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
                             </div>
                         </div>
                     `).join('');
-                } catch (e) {
-                    list.innerHTML = '<div class="text-center py-10 text-red-300 font-bold">เชื่อมต่อข้อมูลไม่ได้<br><span class="text-[10px] font-normal">กรุณาเช็คการ Deploy และ URL</span></div>';
-                }
+                    
+                    // ลบแท็กสคริปต์ทิ้งหลังจากโหลดเสร็จ
+                    const oldScript = document.getElementById('jsonp-script');
+                    if (oldScript) oldScript.remove();
+                };
+            
+                // 2. เรียกข้อมูลผ่าน Tag Script (วิธีนี้ไม่ติด CORS)
+                const script = document.createElement('script');
+                script.id = 'jsonp-script';
+                script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
+                document.body.appendChild(script);
             }
 
     window.onload = () => { initMenu(); renderQueue(); };
 </script>
 </body>
 </html>
+
 
 
 
