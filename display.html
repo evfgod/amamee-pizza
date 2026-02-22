@@ -41,7 +41,7 @@
 
     <script>
         // *** ใช้ URL เดียวกับหน้า POS ***
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyM7m_ivLnSpf3Dl7xmFbflmEwrDcwxiuR0yyZdOOlmI8hqGwE6Anc_1pzz5t4jevpC/exec'; 
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzqVvpKWsM6WZvFKxN5lsHXcxg5ki4imp8c0fWt8si10Vysd51NR-iTBCG5qRUH_nFYRg/exec'; 
 
         function fetchQueue() {
             // สร้าง Callback รับข้อมูล (JSONP) เพื่อเลี่ยง CORS
@@ -65,7 +65,7 @@
                 return;
             }
 
-            // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ'
+                // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ' เท่านั้น
             const activeQueues = data.filter(item => 
                 item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
             );
