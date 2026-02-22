@@ -8,12 +8,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --brand-red: #E11D48; }
-        body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; }
-        .active-tab { color: var(--brand-red) !important; border-top: 2px solid var(--brand-red); }
-        .blink { animation: blinker 1.5s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
-    </style>
+    :root { --brand-red: #E11D48; }
+    body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; }
+    .active-tab { color: var(--brand-red) !important; border-top: 2px solid var(--brand-red); }
+    .blink { animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0; } }
+
+    /* เพิ่มส่วนนี้เข้าไปครับ */
+    @media print {
+        body * { visibility: hidden; }
+        #receipt-print, #receipt-print * { visibility: visible; }
+        #receipt-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            display: block !important;
+        }
+        @page { margin: 0; }
+    }
+</style>
 </head>
 <body class="h-screen flex flex-col">
 
@@ -122,8 +136,22 @@
             <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
         </div>
     </div>
+    <div id="receipt-print" class="hidden" style="width: 58mm; padding: 5px; font-family: 'Sarabun', sans-serif;">
+    <div style="text-align: center;">
+        <h2 style="font-size: 20px; font-weight: bold; margin: 0;">AMAMEE PIZZA</h2>
+        <p style="font-size: 12px; margin: 5px 0;">*** ใบเสร็จรับเงิน ***</p>
+    </div>
+    <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
+    <div id="receipt-details" style="font-size: 13px;">
+        </div>
+    <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
+    <div style="text-align: center; font-size: 12px; margin-top: 10px;">
+        ขอบคุณที่อุดหนุนครับ/ค่ะ<br>
+        LINEMAN Order
+    </div>
+</div>
 
-    <script>
+<script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxIWbaUgC_Zb3edUewfRkH_mLCgBBZ_3YB9SlvBK2Bl5-pTvvOOSxLQyCzT0g3CoqYJ5g/exec'; 
 
     let cart = [];
@@ -145,6 +173,7 @@
         { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '🧀' }
     ];
 
+    // --- ระบบนำทางและการแสดงผล ---
     function switchView(id) {
         ['pos', 'queue', 'history'].forEach(v => {
             document.getElementById('view-'+v).classList.add('hidden');
@@ -166,6 +195,7 @@
         `).join('');
     }
 
+    // --- ระบบตระกร้าสินค้า ---
     function add(id) {
         const p = menu.find(x => x.id === id);
         const item = cart.find(x => x.id === id);
@@ -203,6 +233,7 @@
 
     function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
+    // --- ระบบคิว ---
     async function pushToQueue() {
         if (cart.length === 0) return;
         const now = new Date();
@@ -252,93 +283,36 @@
             <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50 space-y-4">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${q.time}</p>
+                        <p class="text-[10px] font-bold text-slate-400">${q.time}</p>
                         <h3 class="text-2xl font-black text-slate-800 italic">คิวที่ ${q.q_no}</h3>
                     </div>
-                    <div class="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase">
-                        ${q.status}
-                    </div>
+                    <div class="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase">${q.status}</div>
                 </div>
                 <p class="text-slate-600 font-bold text-sm">${q.summary}</p>
                 <div class="flex gap-2 pt-2">
                     <button onclick="cancelOrder(${q.uid})" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">ยกเลิก</button>
                     <button onclick="changeStatus(${q.uid}, 'กำลังดำเนินการ')" class="flex-1 bg-orange-100 text-orange-600 py-3 rounded-xl font-bold">เริ่มทำ</button>
-                    <button onclick="openPay(${q.uid})" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">เสร็จแล้ว</button>
+                    <button onclick="openPay(${q.uid})" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">จ่ายเงิน</button>
                 </div>
             </div>
         `).join('');
     }
 
-    async function cancelOrder(uid) {
-        if (!confirm('ยืนยันการยกเลิกคิวนี้?')) return;
-        const order = queue.find(q => q.uid === uid);
-        if (!order) return;
-        const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: 'ยกเลิก' });
-        fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-        queue = queue.filter(q => q.uid !== uid);
-        saveQueue();
-    }
-
-    async function changeStatus(uid, status) {
-        const order = queue.find(q => q.uid == uid);
-        if(order) {
-            order.status = status;
-            saveQueue();
-            const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
-            fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-        }
-    }
-    function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                alert(`Error: ${err.message}`);
-            });
-            document.getElementById('fs-btn').innerHTML = '<i class="fas fa-compress mr-1"></i> Exit Full';
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-                document.getElementById('fs-btn').innerHTML = '<i class="fas fa-expand mr-1"></i> Full Screen';
-            }
-        }
-    }
-    
-    // ตรวจสอบการเปลี่ยนสถานะด้วยคีย์บอร์ด (เช่น กด F11) เพื่อเปลี่ยนไอคอนปุ่มให้ตรงกัน
-    document.addEventListener('fullscreenchange', () => {
-        const btn = document.getElementById('fs-btn');
-        if (!document.fullscreenElement) {
-            btn.innerHTML = '<i class="fas fa-expand mr-1"></i> Full Screen';
-        } else {
-            btn.innerHTML = '<i class="fas fa-compress mr-1"></i> Exit Full';
-        }
-    });
-
-    function resetAllQueues() {
-        if(confirm('รีเซ็ต Q1?')) {
-            queue = []; queueCounter = 1;
-            localStorage.setItem('amamee_q_counter', 1);
-            saveQueue();
-        }
-    }
-        
-
+    // --- ระบบชำระเงินและพิมพ์ใบเสร็จ ---
     function openPay(uid) {
-        const order = queue.find(q => q.uid === uid);
-        if(!order) return;
-        currentOrder = order;
-        document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
-        document.getElementById('pay-amount').innerText = `฿${order.total}`;
+        currentOrder = queue.find(q => q.uid === uid);
+        if(!currentOrder) return;
+        document.getElementById('pay-label').innerText = `คิวที่ ${currentOrder.q_no} ยอดชำระ`;
+        document.getElementById('pay-amount').innerText = `฿${currentOrder.total}`;
         document.getElementById('payment-modal').classList.remove('hidden');
         document.getElementById('cash-box').classList.add('hidden');
     }
 
-    function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
-
     function selectMethod(method) {
         currentOrder.method = method === 'CASH' ? 'เงินสด' : 'เงินโอน';
-        const isCash = method === 'CASH';
-        document.getElementById('cash-box').classList.toggle('hidden', !isCash);
+        document.getElementById('cash-box').classList.toggle('hidden', method !== 'CASH');
         const btn = document.getElementById('btn-final');
-        if (!isCash) {
+        if (method !== 'CASH') {
             btn.disabled = false;
             btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
         } else { doChange(); }
@@ -348,61 +322,105 @@
         const received = parseFloat(document.getElementById('cash-in').value) || 0;
         const diff = received - currentOrder.total;
         const btn = document.getElementById('btn-final');
-        if (received >= currentOrder.total) {
-            document.getElementById('change-text').innerText = `฿${diff}`;
-            btn.disabled = false;
-            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
+        document.getElementById('change-text').innerText = `฿${diff >= 0 ? diff : 0}`;
+        btn.disabled = received < currentOrder.total;
+        btn.className = btn.disabled ? "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl" : "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
+    }
+
+        async function processPayment() {
+            const btn = document.getElementById('btn-final');
+            btn.disabled = true; 
+            btn.innerHTML = 'กำลังบันทึกและพิมพ์...';
+            
+            const params = new URLSearchParams({ action: 'saveSale', time: currentOrder.time, method: currentOrder.method });
+            
+            try {
+                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+                
+                // --- ส่วนการเตรียมใบเสร็จ ---
+                const details = document.getElementById('receipt-details');
+                
+                // แยกรายการอาหารให้สวยงาม
+                const itemsHtml = currentOrder.summary.split(',').map(i => {
+                    const part = i.trim().split('x');
+                    return `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>${part[0]}</span>
+                            <span>x${part[1] || '1'}</span>
+                        </div>`;
+                }).join('');
+                
+                details.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                        <span>คิวที่: ${currentOrder.q_no}</span>
+                        <span>${currentOrder.time}</span>
+                    </div>
+                    <div style="margin: 10px 0; border-top: 0.5px solid #eee; padding-top: 5px;">
+                        ${itemsHtml}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 5px; border-top: 1px solid black; padding-top: 5px;">
+                        <span>ยอดรวมทั้งสิ้น:</span>
+                        <span>฿${currentOrder.total}</span>
+                    </div>
+                    <div style="font-size: 11px; margin-top: 5px; color: #666;">ชำระโดย: ${currentOrder.method}</div>
+                `;
+        
+                // สั่งปริ้น
+                setTimeout(() => {
+                    window.print(); 
+                    // จัดการหน้าจอหลังปริ้นเสร็จ
+                    queue = queue.filter(q => q.uid !== currentOrder.uid);
+                    saveQueue();
+                    closePayment();
+                    switchView('history');
+                }, 500); // หน่วงเวลานิดนึงเพื่อให้ HTML เรนเดอร์เสร็จก่อนปริ้น
+                
+            } catch (e) { 
+                alert("เกิดข้อผิดพลาดในการบันทึก"); 
+                btn.disabled = false; 
+                btn.innerHTML = 'ยืนยันบันทึกประวัติ';
+            }
+        }
+    function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
+
+    // --- ระบบเสริม (Fullscreen / History / Reset) ---
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            document.getElementById('fs-btn').innerHTML = '<i class="fas fa-compress mr-1"></i> Exit Full';
         } else {
-            btn.disabled = true;
-            btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl";
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                document.getElementById('fs-btn').innerHTML = '<i class="fas fa-expand mr-1"></i> Full Screen';
+            }
         }
     }
 
-    async function processPayment() {
-        const btn = document.getElementById('btn-final');
-        btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
-        const params = new URLSearchParams({ action: 'saveSale', time: currentOrder.time, method: currentOrder.method });
-        try {
-            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-            queue = queue.filter(q => q.uid !== currentOrder.uid);
+    function resetAllQueues() {
+        if(confirm('รีเซ็ตคิวเป็น Q1 หรือไม่? ข้อมูลปัจจุบันจะหายไป')) {
+            queue = []; queueCounter = 1;
+            localStorage.setItem('amamee_q_counter', 1);
             saveQueue();
-            closePayment();
-            switchView('history');
-        } catch (e) { alert("Error"); btn.disabled = false; }
+        }
     }
 
     function syncHistory() {
         const list = document.getElementById('history-list');
         list.innerHTML = '<div class="text-center py-10">กำลังโหลด...</div>';
         window.callback = function(data) {
-            if (!data || data.length === 0) {
-                list.innerHTML = '<div class="text-center py-10">ไม่มีข้อมูล</div>';
-            } else {
-                list.innerHTML = data.reverse().map(h => {
-                    const isCancelled = h.status === 'ยกเลิก';
-                    const statusColor = h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : (isCancelled ? 'bg-slate-400' : 'bg-orange-400');
-                    return `
-                    <div class="${isCancelled ? 'bg-slate-50 opacity-70' : 'bg-white'} p-4 rounded-2xl shadow-sm border mb-3 flex justify-between items-center">
-                        <div class="flex-1">
-                            <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                            <p class="text-sm font-bold ${isCancelled ? 'text-slate-400' : 'text-slate-700'}">${h.items}</p>
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${statusColor}"></span>
-                                <p class="text-[9px] font-black uppercase text-slate-500">${h.status}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black ${isCancelled ? 'text-slate-400' : 'text-red-600'}">฿${h.total}</p>
-                            <p class="text-[9px] text-slate-300">${h.method}</p>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-            const old = document.getElementById('jsonp-script');
-            if(old) old.remove();
+            list.innerHTML = data.reverse().map(h => `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border mb-3 flex justify-between items-center ${h.status === 'ยกเลิก' ? 'opacity-50' : ''}">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400">${h.time}</p>
+                        <p class="text-sm font-bold text-slate-700">${h.items}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-black text-red-600">฿${h.total}</p>
+                        <p class="text-[9px] text-slate-300">${h.method}</p>
+                    </div>
+                </div>`).join('');
         };
         const script = document.createElement('script');
-        script.id = 'jsonp-script';
         script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
         document.body.appendChild(script);
     }
@@ -411,6 +429,7 @@
 </script>
 </body>
 </html>
+
 
 
 
