@@ -14,69 +14,81 @@
 </head>
 <body class="flex bg-slate-900 h-screen">
 
-    <div class="w-[30%] bg-black">
-        <iframe class="w-full h-full" 
-    src="https://www.youtube.com/embed/vYMUeEBHwzS?autoplay=1&mute=1&loop=1&playlist=vYMUeEBHwzS" 
-    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
-</iframe>
+    <div class="w-[40%] bg-black">
+        <iframe width="364" height="646" src="https://www.youtube.com/embed/jU1R4GXhNGU" title="Xxxtra well done♨️ #pizza #food #asmr #mukbang" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     </div>
 
-    <div class="w-[70%] bg-white flex flex-col">
-        <div class="bg-red-600 text-white p-6 text-center">
-            <h1 class="text-4xl font-black italic">AMAMEE PIZZA</h1>
-            <p class="text-lg font-bold">กรุณารอเรียกหมายเลขคิว</p>
+    <div class="w-[60%] bg-white flex flex-col">
+        <div class="bg-red-600 text-white p-6 text-center shadow-lg">
+            <h1 class="text-5xl font-black italic">AMAMEE PIZZA</h1>
+            <p class="text-xl font-bold mt-2">กรุณารอเรียกหมายเลขคิว</p>
         </div>
         
-        <div class="flex-1 overflow-y-auto p-4 space-y-4" id="queue-display">
-            <div class="text-center py-10 text-slate-300">กำลังโหลดข้อมูลคิว...</div>
+        <div class="flex-1 overflow-y-auto p-6 space-y-6" id="queue-display">
+            <div class="text-center py-20">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mb-4"></div>
+                <p class="text-slate-400 text-xl font-bold">กำลังโหลดข้อมูลคิว...</p>
+            </div>
         </div>
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyboW78oQNCDj80VQxMYVzPwO5X-X5rqLGxnakcXOOKpVP3usAxNSyigIV8_T1NBgy_VQ/exec'; // ใส่ URL ของ Google Apps Script อันเดียวกับหน้า POS
+        // *** ใช้ URL เดียวกับหน้า POS ***
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyboW78oQNCDj80VQxMYVzPwO5X-X5rqLGxnakcXOOKpVP3usAxNSyigIV8_T1NBgy_VQ/exec'; 
 
-        async function fetchQueue() {
-            try {
-                // ดึงข้อมูลประวัติล่าสุดเพื่อดูสถานะปัจจุบัน
-                const res = await fetch(`${WEB_APP_URL}?action=getHistory`);
-                const data = await res.json();
-                
-                // กรองเฉพาะรายการที่ยังทำไม่เสร็จ หรือ เพิ่งเสร็จแต่ยังไม่ได้จ่ายเงิน
-                // ในกรณีนี้ ถ้าใช้ LocalStorage ร่วมด้วยจะแม่นยำกว่า แต่ถ้าจะดึงจากคลาวด์อย่างเดียว:
+        function fetchQueue() {
+            // สร้าง Callback รับข้อมูล (JSONP) เพื่อเลี่ยง CORS
+            window.callback = function(data) {
                 renderDisplay(data);
-            } catch (e) {
-                console.log("Error fetching queue");
-            }
+                const oldScript = document.getElementById('jsonp-script');
+                if (oldScript) oldScript.remove();
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-script';
+            script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
+            document.body.appendChild(script);
         }
 
         function renderDisplay(data) {
             const container = document.getElementById('queue-display');
-            // กรองเอาเฉพาะคิวที่ยังทำไม่เสร็จ (สถานะ รอดำเนินการ หรือ กำลังดำเนินการ)
-            const activeQueues = data.filter(item => 
-                item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
-            );
-        }
-
-            if (activeQueues.length === 0) {
-                container.innerHTML = '<div class="text-center py-10 text-slate-300 text-xl font-bold">ไม่มีคิวในขณะนี้</div>';
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 text-slate-300 text-2xl font-bold">ไม่มีคิวในขณะนี้</div>';
                 return;
             }
 
-            container.innerHTML = activeQueues.map(q => `
-                <div class="border-4 ${q.status === 'กำลังดำเนินการ' ? 'border-orange-500 blink' : 'border-slate-100'} rounded-3xl p-6 text-center shadow-xl">
-                    <p class="text-slate-400 font-bold text-sm uppercase">${q.status}</p>
-                    <h2 class="text-6xl font-black text-slate-800">คิวที่ ${extractQ(q.items)}</h2>
+            // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ'
+            const activeQueues = data.filter(item => 
+                item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
+            );
+
+            if (activeQueues.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 text-slate-300 text-2xl font-bold">ไม่มีคิวในขณะนี้</div>';
+                return;
+            }
+
+            container.innerHTML = activeQueues.map(q => {
+                const isWorking = q.status === 'กำลังดำเนินการ';
+                return `
+                <div class="border-[6px] ${isWorking ? 'border-orange-500 shadow-orange-200 blink' : 'border-slate-100'} rounded-[3rem] p-10 text-center shadow-2xl transition-all">
+                    <p class="${isWorking ? 'text-orange-500' : 'text-slate-400'} font-black text-xl uppercase mb-2">
+                        ${isWorking ? '● กำลังปรุงอาหาร' : 'รอคิว'}
+                    </p>
+                    <h2 class="text-8xl font-black text-slate-800">${extractQ(q.items)}</h2>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function extractQ(text) {
+            // ดึงเลขคิวจากข้อความ "(คิว 1) ฮาวายเอี้ยน..."
             const match = text.match(/คิว (\d+)/);
-            return match ? match[1] : '-';
+            return match ? `คิวที่ ${match[1]}` : 'คิวใหม่';
         }
 
-        // อัปเดตข้อมูลทุกๆ 5 วินาที
-        setInterval(fetchQueue, 5000);
+        // อัปเดตข้อมูลอัตโนมัติทุก 10 วินาที
+        setInterval(fetchQueue, 10000);
         window.onload = fetchQueue;
     </script>
 </body>
