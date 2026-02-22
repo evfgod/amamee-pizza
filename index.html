@@ -109,43 +109,48 @@
     </div>
 
         <div id="payment-modal" class="fixed inset-0 bg-slate-900/95 z-[70] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div class="text-center">
-                <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
-                <h2 id="pay-amount" class="text-4xl font-black italic text-red-600">฿0</h2>
-            </div>
-    
-            <div class="space-y-2">
-                <p class="text-[10px] font-bold text-slate-400 uppercase">ช่องทางสั่งซื้อ</p>
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="selectChannel('หน้าร้าน')" class="channel-btn border-2 border-slate-100 p-2 rounded-xl text-[10px] font-bold" id="chan-store">WALK-IN</button>
-                    <button onclick="selectChannel('LINEMAN')" class="channel-btn border-2 border-slate-100 p-2 rounded-xl text-[10px] font-bold text-green-600" id="chan-lineman">LINEMAN</button>
-                    <button onclick="selectChannel('Grab')" class="channel-btn border-2 border-slate-100 p-2 rounded-xl text-[10px] font-bold text-green-700" id="chan-grab">GRAB</button>
+            <div class="bg-white w-full max-w-md rounded-[2.5rem] p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div class="text-center">
+                    <p id="pay-label" class="text-slate-400 font-bold text-[10px] uppercase mb-1"></p>
+                    <h2 id="pay-amount" class="text-4xl font-black italic text-red-600">฿0</h2>
                 </div>
+        
+                <div class="space-y-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">ช่องทางสั่งซื้อ</p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="selectChannel('หน้าร้าน')" class="channel-btn border-2 border-red-500 p-2 rounded-xl text-[10px] font-bold" id="chan-store">WALK-IN</button>
+                        <button onclick="selectChannel('LINEMAN')" class="channel-btn border-2 border-slate-100 p-2 rounded-xl text-[10px] font-bold text-green-600" id="chan-lineman">LINEMAN</button>
+                        <button onclick="selectChannel('Grab')" class="channel-btn border-2 border-slate-100 p-2 rounded-xl text-[10px] font-bold text-green-700" id="chan-grab">GRAB</button>
+                    </div>
+                </div>
+        
+                <div id="customer-info-box" class="space-y-2 hidden">
+                    <input type="text" id="cust-name" placeholder="ชื่อลูกค้า / เลข Order" class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:border-red-500">
+                    <input type="tel" id="cust-phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:border-red-500">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectMethod('CASH')" class="method-btn border-2 border-slate-100 p-3 rounded-2xl flex flex-col items-center" id="meth-cash">
+                        <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
+                        <span class="text-[10px] font-bold">เงินสด</span>
+                    </button>
+                    <button onclick="selectMethod('TRANSFER')" class="method-btn border-2 border-slate-100 p-3 rounded-2xl flex flex-col items-center" id="meth-transfer">
+                        <i class="fas fa-mobile-alt text-blue-500 mb-1"></i>
+                        <span class="text-[10px] font-bold">เงินโอน</span>
+                    </button>
+                </div>
+        
+                <div id="cash-box" class="hidden space-y-2">
+                    <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-2xl font-black text-center py-3 border-2 border-slate-100 rounded-2xl outline-none">
+                    <div class="flex justify-between px-4 text-sm font-bold">
+                        <span class="text-slate-400">เงินทอน:</span>
+                        <span id="change-text" class="text-emerald-500">฿0</span>
+                    </div>
+                </div>
+        
+                <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-4 rounded-2xl font-black text-xl shadow-lg" disabled>พิมพ์ใบเสร็จ</button>
+                <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-xs uppercase">ย้อนกลับ</button>
             </div>
-    
-            <div class="space-y-2">
-                <input type="text" id="cust-name" placeholder="ชื่อลูกค้า / เลข Order" class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:border-red-500">
-                <input type="tel" id="cust-phone" placeholder="เบอร์โทรติดต่อ" class="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:border-red-500">
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="selectMethod('CASH')" class="method-btn border-2 border-slate-100 p-3 rounded-2xl flex flex-col items-center" id="meth-cash">
-                    <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
-                    <span class="text-[10px] font-bold">เงินสด</span>
-                </button>
-                <button onclick="selectMethod('TRANSFER')" class="method-btn border-2 border-slate-100 p-3 rounded-2xl flex flex-col items-center" id="meth-transfer">
-                    <i class="fas fa-mobile-alt text-blue-500 mb-1"></i>
-                    <span class="text-[10px] font-bold">เงินโอน</span>
-                </button>
-            </div>
-    
-            <div id="cash-box" class="hidden">
-                <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-2xl font-black text-center py-3 border-2 border-slate-100 rounded-2xl outline-none">
-            </div>
-    
-            <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-4 rounded-2xl font-black text-xl" disabled>พิมพ์ใบเสร็จ</button>
-            <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-xs uppercase">ยกเลิก</button>
         </div>
     </div>
     <div id="receipt-print" class="hidden" style="width: 58mm; padding: 5px; font-family: 'Sarabun', sans-serif;">
@@ -158,8 +163,8 @@
         </div>
     <div style="border-top: 1px dashed black; margin: 10px 0;"></div>
     <div style="text-align: center; font-size: 12px; margin-top: 10px;">
-        ขอบคุณที่อุดหนุนครับ/ค่ะ<br>
-        LINEMAN Order
+        ขอบคุณที่อุดหนุนค่ะ<br>
+        เบอร์โทรร้าน 092-803-6695
     </div>
 </div>
 
@@ -368,102 +373,116 @@
         document.getElementById('cash-box').classList.add('hidden');
     }
 
+    let selectedChannel = 'หน้าร้าน';
+
     function selectChannel(chan) {
         selectedChannel = chan;
-        // เปลี่ยนสีปุ่มที่เลือก
+        // จัดการสีปุ่ม Channel
         document.querySelectorAll('.channel-btn').forEach(b => b.classList.replace('border-red-500', 'border-slate-100'));
         if(chan === 'หน้าร้าน') document.getElementById('chan-store').classList.replace('border-slate-100', 'border-red-500');
         if(chan === 'LINEMAN') document.getElementById('chan-lineman').classList.replace('border-slate-100', 'border-red-500');
         if(chan === 'Grab') document.getElementById('chan-grab').classList.replace('border-slate-100', 'border-red-500');
+    
+        // ซ่อน/แสดง ข้อมูลลูกค้า
+        const infoBox = document.getElementById('customer-info-box');
+        if(chan === 'หน้าร้าน') {
+            infoBox.classList.add('hidden');
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+        } else {
+            infoBox.classList.remove('hidden');
+        }
     }
     
     function selectMethod(method) {
         currentOrder.method = method === 'CASH' ? 'เงินสด' : 'เงินโอน';
+        // จัดการสีปุ่ม Method
         document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('border-red-500'));
         if(method === 'CASH') document.getElementById('meth-cash').classList.add('border-red-500');
         else document.getElementById('meth-transfer').classList.add('border-red-500');
         
         document.getElementById('cash-box').classList.toggle('hidden', method !== 'CASH');
-        validatePayment();
+        doChange(); // ตรวจสอบเงื่อนไขปุ่มทันที
     }
     
-    function validatePayment() {
-        const btn = document.getElementById('btn-final');
+    function doChange() {
         const isCash = currentOrder.method === 'เงินสด';
         const cashIn = parseFloat(document.getElementById('cash-in').value) || 0;
-        
-        if (currentOrder.method && (!isCash || cashIn >= currentOrder.total)) {
+        const changeText = document.getElementById('change-text');
+        const btn = document.getElementById('btn-final');
+    
+        if (isCash) {
+            const diff = cashIn - currentOrder.total;
+            changeText.innerText = `฿${diff >= 0 ? diff : 0}`;
+            // ปลดล็อคถ้าเงินสดพอ
+            if (cashIn >= currentOrder.total) {
+                btn.disabled = false;
+                btn.classList.replace('bg-slate-300', 'bg-red-600');
+            } else {
+                btn.disabled = true;
+                btn.classList.replace('bg-red-600', 'bg-slate-300');
+            }
+        } else if (currentOrder.method === 'เงินโอน') {
+            // ถ้าเป็นเงินโอน ปลดล็อคได้เลย
             btn.disabled = false;
             btn.classList.replace('bg-slate-300', 'bg-red-600');
-        } else {
-            btn.disabled = true;
-            btn.classList.replace('bg-red-600', 'bg-slate-300');
         }
     }
-
-    function doChange() {
-        const received = parseFloat(document.getElementById('cash-in').value) || 0;
-        const diff = received - currentOrder.total;
-        const btn = document.getElementById('btn-final');
-        if (received >= currentOrder.total) {
-            document.getElementById('change-text').innerText = `฿${diff}`;
-            btn.disabled = false;
-            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
-        } else {
-            btn.disabled = true;
-            btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl";
-        }
-    }
-
+    
     async function processPayment() {
         const btn = document.getElementById('btn-final');
-        const custName = document.getElementById('cust-name').value || '-';
+        const custName = document.getElementById('cust-name').value || 'ลูกค้าทั่วไป';
         const custPhone = document.getElementById('cust-phone').value || '-';
         
         btn.disabled = true;
-        btn.innerHTML = 'กำลังพิมพ์...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังพิมพ์...';
     
-        // เตรียมข้อมูลใบเสร็จ
+        // เตรียมใบเสร็จ
         const itemsHtml = currentOrder.summary.split(',').map(i => {
             const p = i.trim().split('x');
-            return `<div style="display:flex; justify-content:space-between;"><span>${p[0]}</span><span>x${p[1]||'1'}</span></div>`;
+            return `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>${p[0]}</span><span>x${p[1]||'1'}</span></div>`;
         }).join('');
     
         document.getElementById('receipt-details').innerHTML = `
-            <div style="text-align:center; font-weight:bold; border-bottom:1px solid black; margin-bottom:5px; padding-bottom:5px;">
+            <div style="text-align:center; font-weight:bold; border-bottom:1px solid black; margin-bottom:8px; padding-bottom:5px; font-size:16px;">
                 คิวที่: ${currentOrder.q_no} [${selectedChannel}]
             </div>
-            <div style="font-size:11px; margin-bottom:5px;">
-                วันที่: ${currentOrder.date} ${currentOrder.time}<br>
-                ลูกค้า: ${custName}<br>
-                โทร: ${custPhone}
+            <div style="font-size:12px; margin-bottom:8px; line-height:1.4;">
+                เวลา: ${currentOrder.date} ${currentOrder.time}<br>
+                ${selectedChannel !== 'หน้าร้าน' ? `ลูกค้า: ${custName}<br>โทร: ${custPhone}` : 'บริการที่หน้าร้าน'}
             </div>
-            <div style="border-top:1px dashed #ccc; padding:5px 0;">${itemsHtml}</div>
-            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; border-top:1px solid black; margin-top:5px; padding-top:5px;">
-                <span>รวมทั้งสิ้น:</span>
+            <div style="border-top:1px dashed #000; padding:8px 0;">${itemsHtml}</div>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:18px; border-top:1px solid black; margin-top:5px; padding-top:5px;">
+                <span>ยอดสุทธิ:</span>
                 <span>฿${currentOrder.total}</span>
             </div>
-            <div style="font-size:10px; margin-top:5px; text-align:center;">ชำระโดย: ${currentOrder.method}</div>
+            <div style="font-size:11px; margin-top:8px; text-align:center; border-top:1px dashed #ccc; padding-top:5px;">
+                ช่องทางชำระ: ${currentOrder.method}<br>
+                *** ขอบคุณที่อุดหนุนครับ ***
+            </div>
         `;
     
-        // ส่งข้อมูลไป Google Sheets (เพิ่มข้อมูลชื่อ/เบอร์/ช่องทาง)
         const params = new URLSearchParams({ 
             action: 'saveSale', 
             time: currentOrder.time, 
             method: `${selectedChannel} (${currentOrder.method})`,
-            note: `ลูกค้า: ${custName} โทร: ${custPhone}`
+            note: `ชื่อ: ${custName} โทร: ${custPhone}`
         });
     
         try {
             await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
             window.print();
+            
+            // ลบคิวและรีเซ็ตหน้าจอ
             queue = queue.filter(q => q.uid !== currentOrder.uid);
             saveQueue();
             closePayment();
             switchView('history');
         } catch (e) {
-            alert("บันทึกไม่สำเร็จ แต่สามารถพิมพ์ใบเสร็จได้");
-            window.print();
+            window.print(); // แม้เน็ตจะหลุดแต่ก็ให้ปริ้นใบเสร็จได้
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'พิมพ์ใบเสร็จ';
         }
     }
 
@@ -506,6 +525,7 @@
 </script>
 </body>
 </html>
+
 
 
 
