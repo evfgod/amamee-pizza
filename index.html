@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwFvZ1JCx8QKrYGSxI048xG1sj_IkAx9SoamIIKBBMHvQJciajfdk0j4ePmj4hMQGMabQ/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxWQc6iFur2MLNOqOQt5LAmMGEKaxh_Z6M1UGtVDjGqQz-Sj4MXWXW7Ays0Njy4U20xSg/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -354,39 +354,29 @@
         }
     }
 
-    async function processPayment() {
-        const btn = document.getElementById('btn-final');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner loading-spinner"></i> บันทึก...';
-        
-        // แก้ไข: ส่ง action: 'saveSale' พร้อม 'time' เพื่อไปอัปเดตแถวที่เคยจองไว้ใน Sheet
-        const params = new URLSearchParams({
-            action: 'saveSale',
-            time: currentOrder.time,     // ใช้เวลา (Key) เดิมที่ได้จากตอนจองคิว
-            method: currentOrder.method,  // "เงินสด" หรือ "เงินโอน"
-            status: "ดำเนินการเสร็จสิ้น"
-        });
-
-        try {
-            // ส่งข้อมูลไปอัปเดตที่ Google Sheets
-            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            async function processPayment() {
+                const btn = document.getElementById('btn-final');
+                btn.disabled = true;
+                btn.innerHTML = 'กำลังบันทึก...';
+                
+                // ส่ง action: 'saveSale' เพื่อไปเติมข้อมูลในแถวเดิม
+                const params = new URLSearchParams({
+                    action: 'saveSale',
+                    time: currentOrder.time, 
+                    method: currentOrder.method
+                });
             
-            // ลบคิวออกจากหน้ารายการรอ (LocalStorage)
-            queue = queue.filter(q => q.uid !== currentOrder.uid);
-            saveQueue();
-            
-            // ปิดหน้าต่างจ่ายเงินและย้ายไปหน้า History
-            document.getElementById('payment-modal').classList.add('hidden');
-            switchView('history'); 
-        } catch (e) {
-            console.error("Payment Error:", e);
-            // กรณี Error (เช่น CORS) ข้อมูลมักจะเข้า Sheets ไปแล้ว ให้ทำงานต่อเลย
-            queue = queue.filter(q => q.uid !== currentOrder.uid);
-            saveQueue();
-            document.getElementById('payment-modal').classList.add('hidden');
-            switchView('history');
-        }
-    }
+                try {
+                    await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+                    // หลังบันทึกสำเร็จ ลบจากหน้าคิวเครื่อง POS แล้วไปหน้าประวัติ
+                    queue = queue.filter(q => q.uid !== currentOrder.uid);
+                    saveQueue();
+                    document.getElementById('payment-modal').classList.add('hidden');
+                    switchView('history'); 
+                } catch (e) {
+                    console.error(e);
+                }
+            }
           async function syncHistory() {
                 const list = document.getElementById('history-list');
                 if (!list) return;
@@ -428,6 +418,7 @@
 </script>
 </body>
 </html>
+
 
 
 
