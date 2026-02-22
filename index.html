@@ -250,7 +250,7 @@
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${q.time}</p>
                         <h3 class="text-2xl font-black text-slate-800 italic">คิวที่ ${q.q_no}</h3>
                     </div>
-                    <div class="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase ${q.status === 'กำลังดำเนินการ' ? 'blink' : ''}">
+                    <div class="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase">
                         ${q.status}
                     </div>
                 </div>
@@ -258,7 +258,7 @@
                 <div class="flex gap-2 pt-2">
                     <button onclick="cancelOrder(${q.uid})" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">ยกเลิก</button>
                     <button onclick="changeStatus(${q.uid}, 'กำลังดำเนินการ')" class="flex-1 bg-orange-100 text-orange-600 py-3 rounded-xl font-bold">เริ่มทำ</button>
-                    <button onclick="openPay(${JSON.stringify(q).replace(/"/g, '&quot;')})" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold shadow-md shadow-red-100">เสร็จแล้ว</button>
+                    <button onclick="openPay(${q.uid})" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold">เสร็จแล้ว</button>
                 </div>
             </div>
         `).join('');
@@ -292,7 +292,9 @@
         }
     }
 
-    function openPay(order) {
+    function openPay(uid) {
+        const order = queue.find(q => q.uid === uid);
+        if(!order) return;
         currentOrder = order;
         document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
         document.getElementById('pay-amount').innerText = `฿${order.total}`;
@@ -367,8 +369,11 @@
                     </div>`;
                 }).join('');
             }
+            const old = document.getElementById('jsonp-script');
+            if(old) old.remove();
         };
         const script = document.createElement('script');
+        script.id = 'jsonp-script';
         script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
         document.body.appendChild(script);
     }
@@ -377,3 +382,4 @@
 </script>
 </body>
 </html>
+
