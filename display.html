@@ -64,7 +64,6 @@
                 return;
             }
 
-            // กรองเอาเฉพาะคิวที่สถานะเป็น 'รอดำเนินการ' หรือ 'กำลังดำเนินการ'
             const activeQueues = data.filter(item => 
                 item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
             );
@@ -83,22 +82,28 @@
 
                 // 2. จัดการรายการอาหาร (แยกบรรทัด และเติมคำว่า "ถาด")
                 const itemsList = q.items
-                    .replace(/\(คิว \d+\) /g, '') // ลบ (คิว X) ออก
-                    .split(',')                   // แยกกรณีสั่งหลายอย่าง
+                    .replace(/\(คิว \d+\) /g, '') 
+                    .split(',')
                     .map(item => item.trim().replace('x', ' ') + ' ถาด')
-                    .join('<br>');                // ขึ้นบรรทัดใหม่
+                    .join('<br>');
 
                 return `
-                <div class="bg-white border-[6px] ${isWorking ? 'border-orange-500 shadow-orange-200 blink' : 'border-slate-100'} rounded-[3rem] p-10 text-center shadow-2xl transition-all mb-6">
-                    <p class="${isWorking ? 'text-orange-500' : 'text-slate-400'} font-black text-2xl uppercase mb-2">
-                        ${isWorking ? '● กำลังดำเนินการ' : 'รอดำเนินการ'}
-                    </p>
+                <div class="bg-white border-l-[20px] ${isWorking ? 'border-orange-500 shadow-orange-100 blink' : 'border-slate-300'} rounded-[2rem] p-8 shadow-2xl mb-8 flex items-start justify-between min-h-[250px]">
                     
-                    <h2 class="text-7xl font-black text-slate-800 mb-4 italic">คิวที่ ${qNumber}</h2>
-                    
-                    <div class="text-4xl font-bold text-slate-600 leading-tight">
-                        ${itemsList}
+                    <div class="flex flex-col justify-center h-full min-w-[300px]">
+                        <h2 class="text-[120px] font-black text-slate-800 leading-none">คิวที่ ${qNumber}</h2>
                     </div>
+
+                    <div class="flex-1 flex flex-col items-end">
+                        <div class="${isWorking ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} px-8 py-2 rounded-full text-3xl font-black uppercase mb-6">
+                            ${isWorking ? 'กำลังดำเนินการ' : 'รอดำเนินการ'}
+                        </div>
+                        
+                        <div class="text-4xl font-bold text-slate-600 text-right leading-relaxed">
+                            ${itemsList}
+                        </div>
+                    </div>
+
                 </div>
                 `;
             }).join('');
