@@ -4,20 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AMAMEE PIZZA POS</title>
-    <meta name="apple-mobile-web-app-title" content="Amamee PIZZA POS">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2497/2497913.png">
-    <link rel="apple-touch-startup-image" href="https://cdn-icons-png.flaticon.com/512/2497/2497913.png">
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --brand-red: #E11D48; }
         body { font-family: 'Sarabun', sans-serif; background-color: #F8FAFC; -webkit-tap-highlight-color: transparent; }
         .active-tab { color: var(--brand-red) !important; border-top: 2px solid var(--brand-red); }
-        .loading-spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -68,7 +63,7 @@
         </button>
     </nav>
 
-    <div id="cart-preview" onclick="toggleCart()" class="fixed bottom-24 left-4 right-4 bg-red-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-2xl z-40 hidden active:scale-95 transition-all">
+    <div id="cart-preview" onclick="toggleCart()" class="fixed bottom-24 left-4 right-4 bg-red-600 text-white p-4 rounded-2xl flex justify-between items-center shadow-2xl z-40 hidden transition-all">
         <div class="flex items-center gap-3">
             <span id="cart-count" class="bg-white text-red-600 px-2 rounded-lg font-black text-sm">0</span>
             <span class="font-bold">รายการ</span>
@@ -88,44 +83,40 @@
                     <span class="text-slate-400 font-bold uppercase text-xs">ยอดรวม</span>
                     <span id="modal-total" class="text-4xl font-black text-red-600">฿0</span>
                 </div>
-                <div class="w-full">
-    <button onclick="pushToQueue()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
-        <i class="fas fa-paper-plane mr-2"></i>จองคิวและเริ่มทำ
-    </button>
-</div>
+                <button onclick="pushToQueue()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg active:scale-95 transition-all">
+                    <i class="fas fa-paper-plane mr-2"></i>จองคิวและเริ่มทำ
+                </button>
             </div>
         </div>
     </div>
 
     <div id="payment-modal" class="fixed inset-0 bg-slate-900/95 z-[70] hidden flex items-center justify-center p-6">
-    <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
-        <div class="text-center">
-            <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
-            <h2 id="pay-amount" class="text-5xl font-black italic">฿0</h2>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-            <button onclick="selectMethod('CASH')" class="border-2 border-slate-100 focus:border-red-500 p-4 rounded-2xl flex flex-col items-center">
-                <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
-                <span class="text-[10px] font-bold">เงินสด</span>
-            </button>
-            <button onclick="selectMethod('TRANSFER')" class="border-2 border-slate-100 focus:border-blue-500 p-4 rounded-2xl flex flex-col items-center">
-                <i class="fas fa-mobile-alt text-blue-500 mb-1"></i>
-                <span class="text-[10px] font-bold">เงินโอน</span>
-            </button>
-        </div>
-
-        <div id="cash-box" class="space-y-4 hidden">
-            <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-3xl font-black text-center py-4 border-2 border-slate-100 rounded-2xl focus:border-red-500 outline-none">
-            <div id="change-display" class="flex justify-between items-center p-4 rounded-xl transition-colors bg-slate-50 text-slate-400">
-                <span id="change-label" class="font-bold text-xs uppercase">เงินทอน</span>
-                <span id="change-text" class="text-2xl font-black">฿0</span>
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
+            <div class="text-center">
+                <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
+                <h2 id="pay-amount" class="text-5xl font-black italic">฿0</h2>
             </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="selectMethod('CASH')" class="border-2 border-slate-100 focus:border-red-500 p-4 rounded-2xl flex flex-col items-center">
+                    <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
+                    <span class="text-[10px] font-bold">เงินสด</span>
+                </button>
+                <button onclick="selectMethod('TRANSFER')" class="border-2 border-slate-100 focus:border-blue-500 p-4 rounded-2xl flex flex-col items-center">
+                    <i class="fas fa-mobile-alt text-blue-500 mb-1"></i>
+                    <span class="text-[10px] font-bold">เงินโอน</span>
+                </button>
+            </div>
+            <div id="cash-box" class="space-y-4 hidden">
+                <input type="number" id="cash-in" oninput="doChange()" inputmode="decimal" placeholder="รับเงินมา..." class="w-full text-3xl font-black text-center py-4 border-2 border-slate-100 rounded-2xl outline-none">
+                <div id="change-display" class="flex justify-between items-center p-4 rounded-xl bg-slate-50 text-slate-400">
+                    <span id="change-label" class="font-bold text-xs uppercase">เงินทอน</span>
+                    <span id="change-text" class="text-2xl font-black">฿0</span>
+                </div>
+            </div>
+            <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl" disabled>ยืนยันบันทึกประวัติ</button>
+            <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
         </div>
-        <button id="btn-final" onclick="processPayment()" class="w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl shadow-lg transition-all" disabled>ยืนยันบันทึกประวัติ</button>
-        <button onclick="closePayment()" class="w-full text-slate-400 font-bold text-sm">ย้อนกลับ</button>
     </div>
-</div>
 
     <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxIWbaUgC_Zb3edUewfRkH_mLCgBBZ_3YB9SlvBK2Bl5-pTvvOOSxLQyCzT0g3CoqYJ5g/exec'; 
@@ -149,7 +140,6 @@
         { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '🧀' }
     ];
 
-    // ฟังก์ชันเปลี่ยนหน้าจอ
     function switchView(id) {
         ['pos', 'queue', 'history'].forEach(v => {
             document.getElementById('view-'+v).classList.add('hidden');
@@ -214,7 +204,7 @@
         const order = {
             uid: Date.now(),
             q_no: queueCounter,
-            date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
+            date: now.toLocaleDateString('th-TH'),
             time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
             summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
             total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
@@ -230,9 +220,7 @@
             total: order.total
         });
         
-        // ส่งข้อมูลแบบ no-cors (Fire and forget)
         fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-
         queue.push(order);
         queueCounter++;
         localStorage.setItem('amamee_q_counter', queueCounter);
@@ -255,66 +243,35 @@
         badge.classList.toggle('hidden', queue.length === 0);
         document.getElementById('queue-count-text').innerText = `${queue.length} รายการ`;
 
-        // แก้ไขในฟังก์ชัน syncHistory ตรงส่วนที่สร้าง HTML
-        list.innerHTML = data.reverse().map(h => {
-            // เช็คสถานะเพื่อกำหนดสี
-            const isCancelled = h.status === 'ยกเลิก';
-            const statusColor = h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : (isCancelled ? 'bg-slate-400' : 'bg-orange-400');
-            const textColor = isCancelled ? 'text-slate-400' : 'text-slate-700';
-            const cardBg = isCancelled ? 'bg-slate-50 opacity-75' : 'bg-white'; // ถ้าส่งเป็นสีเทาอ่อนและจางลง
-        
-            return `
-                <div class="${cardBg} p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                    <div class="flex-1">
-                        <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                        <p class="text-sm font-bold ${textColor} my-1">${h.items}</p>
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full ${statusColor}"></span>
-                            <p class="text-[9px] font-black uppercase ${isCancelled ? 'text-slate-400' : 'text-slate-500'}">${h.status}</p>
-                        </div>
+        list.innerHTML = queue.map(q => `
+            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-50 space-y-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${q.time}</p>
+                        <h3 class="text-2xl font-black text-slate-800 italic">คิวที่ ${q.q_no}</h3>
                     </div>
-                    <div class="text-right ml-4">
-                        <p class="font-black ${isCancelled ? 'text-slate-400' : 'text-red-600'} text-lg">฿${h.total}</p>
-                        <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+                    <div class="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase ${q.status === 'กำลังดำเนินการ' ? 'blink' : ''}">
+                        ${q.status}
                     </div>
-                </div>`;
-        }).join('');
+                </div>
+                <p class="text-slate-600 font-bold text-sm">${q.summary}</p>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="cancelOrder(${q.uid})" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-xl font-bold">ยกเลิก</button>
+                    <button onclick="changeStatus(${q.uid}, 'กำลังดำเนินการ')" class="flex-1 bg-orange-100 text-orange-600 py-3 rounded-xl font-bold">เริ่มทำ</button>
+                    <button onclick="openPay(${JSON.stringify(q).replace(/"/g, '&quot;')})" class="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold shadow-md shadow-red-100">เสร็จแล้ว</button>
+                </div>
+            </div>
+        `).join('');
+    }
 
-        async function cancelOrder(uid) {
-            if (!confirm('ยืนยันการยกเลิกคิวนี้?')) return;
-        
-            const order = queue.find(q => q.uid === uid);
-            if (!order) return;
-        
-            // 1. ส่งคำสั่งไป Google Sheets
-            const params = new URLSearchParams({
-                action: 'updateStatus',
-                time: order.time,
-                status: 'ยกเลิก'
-            });
-        
-            try {
-                // ส่งแบบ no-cors
-                fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-        
-                // 2. ลบคิวออกจากหน้าจอ POS
-                queue = queue.filter(q => q.uid !== uid);
-                saveQueue();
-                renderQueue();
-                alert('ยกเลิกคิวเรียบร้อยแล้ว');
-            } catch (e) {
-                console.error("Cancel Error:", e);
-            }
-        }
-
-    function resetAllQueues() {
-        if(confirm('ต้องการเริ่มนับ Q1 ใหม่และล้างข้อมูลทั้งหมดใช่หรือไม่?')) {
-            queue = [];
-            queueCounter = 1;
-            localStorage.setItem('amamee_q_counter', 1);
-            saveQueue();
-            alert('รีเซ็ตสำเร็จ');
-        }
+    async function cancelOrder(uid) {
+        if (!confirm('ยืนยันการยกเลิกคิวนี้?')) return;
+        const order = queue.find(q => q.uid === uid);
+        if (!order) return;
+        const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: 'ยกเลิก' });
+        fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+        queue = queue.filter(q => q.uid !== uid);
+        saveQueue();
     }
 
     async function changeStatus(uid, status) {
@@ -327,122 +284,91 @@
         }
     }
 
+    function resetAllQueues() {
+        if(confirm('รีเซ็ต Q1?')) {
+            queue = []; queueCounter = 1;
+            localStorage.setItem('amamee_q_counter', 1);
+            saveQueue();
+        }
+    }
+
     function openPay(order) {
         currentOrder = order;
         document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
         document.getElementById('pay-amount').innerText = `฿${order.total}`;
         document.getElementById('payment-modal').classList.remove('hidden');
-        document.getElementById('cash-in').value = '';
         document.getElementById('cash-box').classList.add('hidden');
-        const btn = document.getElementById('btn-final');
-        btn.disabled = true;
-        btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
     }
 
-    function closePayment() {
-        document.getElementById('payment-modal').classList.add('hidden');
-    }
+    function closePayment() { document.getElementById('payment-modal').classList.add('hidden'); }
 
     function selectMethod(method) {
         currentOrder.method = method === 'CASH' ? 'เงินสด' : 'เงินโอน';
         const isCash = method === 'CASH';
         document.getElementById('cash-box').classList.toggle('hidden', !isCash);
+        const btn = document.getElementById('btn-final');
         if (!isCash) {
-            const btn = document.getElementById('btn-final');
             btn.disabled = false;
-            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
-        } else {
-            doChange();
-        }
+            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
+        } else { doChange(); }
     }
 
     function doChange() {
         const received = parseFloat(document.getElementById('cash-in').value) || 0;
         const diff = received - currentOrder.total;
-        const display = document.getElementById('change-display');
-        const label = document.getElementById('change-label');
-        const text = document.getElementById('change-text');
         const btn = document.getElementById('btn-final');
-
         if (received >= currentOrder.total) {
-            display.className = "flex justify-between items-center p-4 rounded-xl bg-emerald-50 text-emerald-600";
-            label.innerText = "เงินทอน"; text.innerText = `฿${diff}`; 
+            document.getElementById('change-text').innerText = `฿${diff}`;
             btn.disabled = false;
-            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg";
+            btn.className = "w-full bg-red-600 text-white py-5 rounded-2xl font-black text-xl";
         } else {
-            display.className = "flex justify-between items-center p-4 rounded-xl bg-red-50 text-red-600";
-            label.innerText = "รอรับเงิน"; text.innerText = `฿${Math.abs(diff)}`;
             btn.disabled = true;
-            btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+            btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl";
         }
     }
 
-        async function processPayment() {
-            const btn = document.getElementById('btn-final');
-            btn.disabled = true;
-            btn.innerHTML = 'กำลังบันทึก...';
-            
-            // สร้าง URL สำหรับส่งข้อมูล
-            const params = new URLSearchParams({
-                action: 'saveSale',
-                time: currentOrder.time, 
-                method: currentOrder.method
-            });
-        
-            try {
-                // *** สำคัญ: ต้องใช้โหมด 'no-cors' แต่ต้องลบคิวออกทันทีหลังส่ง ***
-                await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                
-                // 1. ลบคิวออกจากตัวแปร queue ในเครื่อง
-                queue = queue.filter(q => q.uid !== currentOrder.uid);
-                
-                // 2. บันทึกลง LocalStorage ของเครื่อง
-                saveQueue(); 
-                
-                // 3. ปิดหน้าต่างจ่ายเงินและเปลี่ยนหน้า
-                document.getElementById('payment-modal').classList.add('hidden');
-                switchView('history'); 
-                
-            } catch (e) {
-                console.error("บันทึกล้มเหลว:", e);
-                alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
-                btn.disabled = false;
-                btn.innerHTML = 'ยืนยันบันทึกประวัติ';
-            }
-        }
+    async function processPayment() {
+        const btn = document.getElementById('btn-final');
+        btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
+        const params = new URLSearchParams({ action: 'saveSale', time: currentOrder.time, method: currentOrder.method });
+        try {
+            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            queue = queue.filter(q => q.uid !== currentOrder.uid);
+            saveQueue();
+            closePayment();
+            switchView('history');
+        } catch (e) { alert("Error"); btn.disabled = false; }
+    }
 
-    // --- ส่วนดึงข้อมูล History (JSONP) ---
     function syncHistory() {
         const list = document.getElementById('history-list');
         list.innerHTML = '<div class="text-center py-10">กำลังโหลด...</div>';
-
-        // สร้าง Callback รอรับข้อมูล
         window.callback = function(data) {
             if (!data || data.length === 0) {
-                list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีข้อมูล</div>';
+                list.innerHTML = '<div class="text-center py-10">ไม่มีข้อมูล</div>';
             } else {
-                list.innerHTML = data.reverse().map(h => `
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                list.innerHTML = data.reverse().map(h => {
+                    const isCancelled = h.status === 'ยกเลิก';
+                    const statusColor = h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : (isCancelled ? 'bg-slate-400' : 'bg-orange-400');
+                    return `
+                    <div class="${isCancelled ? 'bg-slate-50 opacity-70' : 'bg-white'} p-4 rounded-2xl shadow-sm border mb-3 flex justify-between items-center">
                         <div class="flex-1">
                             <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                            <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
+                            <p class="text-sm font-bold ${isCancelled ? 'text-slate-400' : 'text-slate-700'}">${h.items}</p>
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : 'bg-orange-400'}"></span>
+                                <span class="w-2 h-2 rounded-full ${statusColor}"></span>
                                 <p class="text-[9px] font-black uppercase text-slate-500">${h.status}</p>
                             </div>
                         </div>
-                        <div class="text-right ml-4">
-                            <p class="font-black text-red-600 text-lg">฿${h.total}</p>
-                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+                        <div class="text-right">
+                            <p class="font-black ${isCancelled ? 'text-slate-400' : 'text-red-600'}">฿${h.total}</p>
+                            <p class="text-[9px] text-slate-300">${h.method}</p>
                         </div>
-                    </div>`).join('');
+                    </div>`;
+                }).join('');
             }
-            const oldScript = document.getElementById('jsonp-script');
-            if (oldScript) oldScript.remove();
         };
-
         const script = document.createElement('script');
-        script.id = 'jsonp-script';
         script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
         document.body.appendChild(script);
     }
@@ -451,22 +377,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
