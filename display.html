@@ -33,7 +33,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwFvZ1JCx8QKrYGSxI048xG1sj_IkAx9SoamIIKBBMHvQJciajfdk0j4ePmj4hMQGMabQ/exec'; // ใส่ URL ของ Google Apps Script อันเดียวกับหน้า POS
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxWQc6iFur2MLNOqOQt5LAmMGEKaxh_Z6M1UGtVDjGqQz-Sj4MXWXW7Ays0Njy4U20xSg/exec'; // ใส่ URL ของ Google Apps Script อันเดียวกับหน้า POS
 
         async function fetchQueue() {
             try {
@@ -51,10 +51,11 @@
 
         function renderDisplay(data) {
             const container = document.getElementById('queue-display');
-            // กรองเอาเฉพาะข้อมูลที่มีสถานะ 'กำลังดำเนินการ' หรือ 'รอดำเนินการ'
+            // กรองเอาเฉพาะคิวที่ยังทำไม่เสร็จ (สถานะ รอดำเนินการ หรือ กำลังดำเนินการ)
             const activeQueues = data.filter(item => 
-                item.status === 'กำลังดำเนินการ' || item.status === 'รอดำเนินการ'
-            ).reverse();
+                item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
+            );
+        }
 
             if (activeQueues.length === 0) {
                 container.innerHTML = '<div class="text-center py-10 text-slate-300 text-xl font-bold">ไม่มีคิวในขณะนี้</div>';
