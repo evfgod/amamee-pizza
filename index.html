@@ -128,7 +128,7 @@
 </div>
 
     <script>
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxWQc6iFur2MLNOqOQt5LAmMGEKaxh_Z6M1UGtVDjGqQz-Sj4MXWXW7Ays0Njy4U20xSg/exec'; 
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzPZaoDfGeEm_qVrX_J0JDy92hDDX86KcX4mrzySYd0yIvsVCQo1mi6rNaexXyS7VnOsA/exec'; 
 
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -383,10 +383,15 @@
                 
                 list.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch animate-spin text-slate-300 text-3xl"></i></div>';
                 
+                // ตัวอย่างในฟังก์ชันดึงข้อมูล
                 try {
-                    // เพิ่มเวลาต่อท้าย URL (Timestamp) เพื่อป้องกัน Browser จำค่าเก่า (Cache)
-                    const res = await fetch(`${WEB_APP_URL}?action=getHistory&t=${Date.now()}`);
+                    const res = await fetch(`${WEB_APP_URL}?action=getHistory&t=${Date.now()}`); 
+                    // สังเกตว่าเราไม่ใส่ { mode: 'no-cors' } ตรงนี้
                     const data = await res.json();
+                    // นำ data ไปโชว์...
+                } catch (e) {
+                    console.error("CORS บล็อกการเข้าถึงข้อมูล:", e);
+                };
                     
                     if (!data || data.length === 0) {
                         list.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold">ยังไม่มีข้อมูลในระบบ</div>';
@@ -418,6 +423,7 @@
 </script>
 </body>
 </html>
+
 
 
 
