@@ -133,6 +133,7 @@
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
     let queueCounter = parseInt(localStorage.getItem('amamee_q_counter')) || 1;
+    let currentOrder = null;
     
     const menu = [
         { id: 'H01', name: 'ฮาวายเอี้ยน', price: 59, icon: '🍍' },
@@ -148,6 +149,7 @@
         { id: 'S01', name: 'เพิ่มชีส', price: 20, icon: '🧀' }
     ];
 
+    // ฟังก์ชันเปลี่ยนหน้าจอ
     function switchView(id) {
         ['pos', 'queue', 'history'].forEach(v => {
             document.getElementById('view-'+v).classList.add('hidden');
@@ -207,38 +209,40 @@
     function toggleCart() { document.getElementById('cart-modal').classList.toggle('hidden'); }
 
     async function pushToQueue() {
-    if (cart.length === 0) return;
-    const now = new Date();
-    const order = {
-        uid: Date.now(),
-        q_no: queueCounter,
-        date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
-        time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit', second:'2-digit'}), // เพิ่มวินาทีเพื่อให้ Time เป็น Unique Key
-        summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
-        total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
-        status: 'รอดำเนินการ',
-        method: 'รอกดจ่ายเงิน'
-    };
+        if (cart.length === 0) return;
+        const now = new Date();
+        const order = {
+            uid: Date.now(),
+            q_no: queueCounter,
+            date: now.toLocaleDateString('th-TH', {day:'numeric', month:'numeric', year:'numeric'}),
+            time: now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+            summary: cart.map(i => `${i.name}x${i.qty}`).join(', '),
+            total: cart.reduce((s, i) => s + (i.price * i.qty), 0),
+            status: 'รอดำเนินการ',
+            method: 'รอกดจ่ายเงิน'
+        };
 
-    // ส่งข้อมูลไปบันทึกที่ Google Sheets ทันที (เพื่อให้หน้าจอ Display เห็นคิว)
-    const params = new URLSearchParams({
-        action: 'saveQueue',
-        date: order.date,
-        time: order.time,
-        items: `(คิว ${order.q_no}) ${order.summary}`,
-        total: order.total
-    });
-    fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+        const params = new URLSearchParams({
+            action: 'saveQueue',
+            date: order.date,
+            time: order.time,
+            items: `(คิว ${order.q_no}) ${order.summary}`,
+            total: order.total
+        });
+        
+        // ส่งข้อมูลแบบ no-cors (Fire and forget)
+        fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
 
-    queue.push(order);
-    queueCounter++;
-    localStorage.setItem('amamee_q_counter', queueCounter);
-    saveQueue();
-    cart = [];
-    updateUI();
-    toggleCart();
-    switchView('queue');
-}
+        queue.push(order);
+        queueCounter++;
+        localStorage.setItem('amamee_q_counter', queueCounter);
+        saveQueue();
+        cart = [];
+        updateUI();
+        toggleCart();
+        switchView('queue');
+    }
+
     function saveQueue() {
         localStorage.setItem('amamee_local_queue', JSON.stringify(queue));
         renderQueue();
@@ -257,7 +261,7 @@
             <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 relative mb-3">
                 <div class="flex justify-between items-start mb-2">
                     <div class="bg-red-600 text-white px-3 py-1 rounded-lg font-black text-lg">คิวที่ ${o.q_no}</div>
-                    <button onclick="cancelQueue(${o.uid})" class="text-slate-300 p-2 hover:text-red-500 transition-colors">
+                    <button onclick="cancelQueue(${o.uid})" class="text-slate-300 p-2 hover:text-red-500">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -275,8 +279,8 @@
                             ${isReady ? '' : 'disabled'}>PAY</button>
                     </div>
                 </div>
-            </div>
-        `}).join('');
+            </div>`;
+        }).join('');
     }
 
     function cancelQueue(uid) {
@@ -301,13 +305,11 @@
         if(order) {
             order.status = status;
             saveQueue();
-            // แจ้งเตือนสถานะไปจอเสริม
             const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
             fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
         }
     }
 
-    let currentOrder = null;
     function openPay(order) {
         currentOrder = order;
         document.getElementById('pay-label').innerText = `คิวที่ ${order.q_no} ยอดชำระ`;
@@ -318,6 +320,10 @@
         const btn = document.getElementById('btn-final');
         btn.disabled = true;
         btn.className = "w-full bg-slate-300 text-white py-5 rounded-2xl font-black text-xl opacity-50";
+    }
+
+    function closePayment() {
+        document.getElementById('payment-modal').classList.add('hidden');
     }
 
     function selectMethod(method) {
@@ -354,73 +360,69 @@
         }
     }
 
-            async function processPayment() {
-                const btn = document.getElementById('btn-final');
-                btn.disabled = true;
-                btn.innerHTML = 'กำลังบันทึก...';
-                
-                // ส่ง action: 'saveSale' เพื่อไปเติมข้อมูลในแถวเดิม
-                const params = new URLSearchParams({
-                    action: 'saveSale',
-                    time: currentOrder.time, 
-                    method: currentOrder.method
-                });
-            
-                try {
-                    await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
-                    // หลังบันทึกสำเร็จ ลบจากหน้าคิวเครื่อง POS แล้วไปหน้าประวัติ
-                    queue = queue.filter(q => q.uid !== currentOrder.uid);
-                    saveQueue();
-                    document.getElementById('payment-modal').classList.add('hidden');
-                    switchView('history'); 
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-          function syncHistory() {
-                const list = document.getElementById('history-list');
-                list.innerHTML = '<div class="text-center py-10">กำลังโหลด...</div>';
-            
-                // 1. สร้างฟังก์ชันรอรับข้อมูล
-                window.callback = function(data) {
-                    if (!data || data.length === 0) {
-                        list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีข้อมูล</div>';
-                        return;
-                    }
-                    
-                    list.innerHTML = data.reverse().map(h => `
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
-                            <div class="flex-1">
-                                <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
-                                <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
-                                <div class="flex items-center gap-2">
-                                     <span class="w-2 h-2 rounded-full ${h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : 'bg-orange-400'}"></span>
-                                     <p class="text-[9px] font-black uppercase text-slate-500">${h.status}</p>
-                                </div>
-                            </div>
-                            <div class="text-right ml-4">
-                                <p class="font-black text-red-600 text-lg">฿${h.total}</p>
-                                <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+    async function processPayment() {
+        const btn = document.getElementById('btn-final');
+        btn.disabled = true;
+        btn.innerHTML = 'กำลังบันทึก...';
+        
+        const params = new URLSearchParams({
+            action: 'saveSale',
+            time: currentOrder.time, 
+            method: currentOrder.method
+        });
+    
+        try {
+            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            queue = queue.filter(q => q.uid !== currentOrder.uid);
+            saveQueue();
+            document.getElementById('payment-modal').classList.add('hidden');
+            switchView('history'); 
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // --- ส่วนดึงข้อมูล History (JSONP) ---
+    function syncHistory() {
+        const list = document.getElementById('history-list');
+        list.innerHTML = '<div class="text-center py-10">กำลังโหลด...</div>';
+
+        // สร้าง Callback รอรับข้อมูล
+        window.callback = function(data) {
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div class="text-center py-10 text-slate-400">ยังไม่มีข้อมูล</div>';
+            } else {
+                list.innerHTML = data.reverse().map(h => `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center mb-3">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-bold text-slate-400">${h.date} | ${h.time}</p>
+                            <p class="text-sm font-bold text-slate-700 my-1">${h.items}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full ${h.status === 'ดำเนินการเสร็จสิ้น' ? 'bg-emerald-500' : 'bg-orange-400'}"></span>
+                                <p class="text-[9px] font-black uppercase text-slate-500">${h.status}</p>
                             </div>
                         </div>
-                    `).join('');
-                    
-                    // ลบแท็กสคริปต์ทิ้งหลังจากโหลดเสร็จ
-                    const oldScript = document.getElementById('jsonp-script');
-                    if (oldScript) oldScript.remove();
-                };
-            
-                // 2. เรียกข้อมูลผ่าน Tag Script (วิธีนี้ไม่ติด CORS)
-                const script = document.createElement('script');
-                script.id = 'jsonp-script';
-                script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
-                document.body.appendChild(script);
+                        <div class="text-right ml-4">
+                            <p class="font-black text-red-600 text-lg">฿${h.total}</p>
+                            <p class="text-[9px] font-black text-slate-300 uppercase">${h.method}</p>
+                        </div>
+                    </div>`).join('');
             }
+            const oldScript = document.getElementById('jsonp-script');
+            if (oldScript) oldScript.remove();
+        };
+
+        const script = document.createElement('script');
+        script.id = 'jsonp-script';
+        script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
 
     window.onload = () => { initMenu(); renderQueue(); };
 </script>
 </body>
 </html>
+
 
 
 
