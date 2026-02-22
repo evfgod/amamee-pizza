@@ -171,6 +171,7 @@
 <script>
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxIWbaUgC_Zb3edUewfRkH_mLCgBBZ_3YB9SlvBK2Bl5-pTvvOOSxLQyCzT0g3CoqYJ5g/exec'; 
 
+    // --- ประกาศตัวแปร (ย้ายมารวมกันที่เดียว) ---
     let selectedChannel = 'หน้าร้าน';
     let cart = [];
     let queue = JSON.parse(localStorage.getItem('amamee_local_queue')) || [];
@@ -194,9 +195,9 @@
         { id: 'R03', name: 'มะตะบะกล้อย', price: 30, icon: '🍌' },
         { id: 'R04', name: 'มะตะบะไก่', price: 30, icon: '🐔' },
         { id: 'R05', name: 'มะตะบะเนื้อ', price: 30, icon: '🥩' }
-        
     ];
 
+    // --- ฟังก์ชันหลัก ---
     function switchView(id) {
         ['pos', 'queue', 'history'].forEach(v => {
             document.getElementById('view-'+v).classList.add('hidden');
@@ -373,17 +374,13 @@
         document.getElementById('cash-box').classList.add('hidden');
     }
 
-    let selectedChannel = 'หน้าร้าน';
-
     function selectChannel(chan) {
         selectedChannel = chan;
-        // จัดการสีปุ่ม Channel
         document.querySelectorAll('.channel-btn').forEach(b => b.classList.replace('border-red-500', 'border-slate-100'));
         if(chan === 'หน้าร้าน') document.getElementById('chan-store').classList.replace('border-slate-100', 'border-red-500');
         if(chan === 'LINEMAN') document.getElementById('chan-lineman').classList.replace('border-slate-100', 'border-red-500');
         if(chan === 'Grab') document.getElementById('chan-grab').classList.replace('border-slate-100', 'border-red-500');
-    
-        // ซ่อน/แสดง ข้อมูลลูกค้า
+
         const infoBox = document.getElementById('customer-info-box');
         if(chan === 'หน้าร้าน') {
             infoBox.classList.add('hidden');
@@ -393,28 +390,26 @@
             infoBox.classList.remove('hidden');
         }
     }
-    
+
     function selectMethod(method) {
         currentOrder.method = method === 'CASH' ? 'เงินสด' : 'เงินโอน';
-        // จัดการสีปุ่ม Method
         document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('border-red-500'));
         if(method === 'CASH') document.getElementById('meth-cash').classList.add('border-red-500');
         else document.getElementById('meth-transfer').classList.add('border-red-500');
         
         document.getElementById('cash-box').classList.toggle('hidden', method !== 'CASH');
-        doChange(); // ตรวจสอบเงื่อนไขปุ่มทันที
+        doChange();
     }
-    
+
     function doChange() {
         const isCash = currentOrder.method === 'เงินสด';
         const cashIn = parseFloat(document.getElementById('cash-in').value) || 0;
         const changeText = document.getElementById('change-text');
         const btn = document.getElementById('btn-final');
-    
+
         if (isCash) {
             const diff = cashIn - currentOrder.total;
             changeText.innerText = `฿${diff >= 0 ? diff : 0}`;
-            // ปลดล็อคถ้าเงินสดพอ
             if (cashIn >= currentOrder.total) {
                 btn.disabled = false;
                 btn.classList.replace('bg-slate-300', 'bg-red-600');
@@ -423,12 +418,11 @@
                 btn.classList.replace('bg-red-600', 'bg-slate-300');
             }
         } else if (currentOrder.method === 'เงินโอน') {
-            // ถ้าเป็นเงินโอน ปลดล็อคได้เลย
             btn.disabled = false;
             btn.classList.replace('bg-slate-300', 'bg-red-600');
         }
     }
-    
+
     async function processPayment() {
         const btn = document.getElementById('btn-final');
         const custName = document.getElementById('cust-name').value || 'ลูกค้าทั่วไป';
@@ -436,13 +430,12 @@
         
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>กำลังพิมพ์...';
-    
-        // เตรียมใบเสร็จ
+
         const itemsHtml = currentOrder.summary.split(',').map(i => {
             const p = i.trim().split('x');
             return `<div style="display:flex; justify-content:space-between; margin-bottom:2px;"><span>${p[0]}</span><span>x${p[1]||'1'}</span></div>`;
         }).join('');
-    
+
         document.getElementById('receipt-details').innerHTML = `
             <div style="text-align:center; font-weight:bold; border-bottom:1px solid black; margin-bottom:8px; padding-bottom:5px; font-size:16px;">
                 คิวที่: ${currentOrder.q_no} [${selectedChannel}]
@@ -461,25 +454,23 @@
                 *** ขอบคุณที่อุดหนุนครับ ***
             </div>
         `;
-    
+
         const params = new URLSearchParams({ 
             action: 'saveSale', 
             time: currentOrder.time, 
             method: `${selectedChannel} (${currentOrder.method})`,
             note: `ชื่อ: ${custName} โทร: ${custPhone}`
         });
-    
+
         try {
             await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
             window.print();
-            
-            // ลบคิวและรีเซ็ตหน้าจอ
             queue = queue.filter(q => q.uid !== currentOrder.uid);
             saveQueue();
             closePayment();
             switchView('history');
         } catch (e) {
-            window.print(); // แม้เน็ตจะหลุดแต่ก็ให้ปริ้นใบเสร็จได้
+            window.print();
         } finally {
             btn.disabled = false;
             btn.innerText = 'พิมพ์ใบเสร็จ';
@@ -525,6 +516,7 @@
 </script>
 </body>
 </html>
+
 
 
 
