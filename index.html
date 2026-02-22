@@ -22,9 +22,13 @@
             <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
             <h1 class="text-xl font-black italic uppercase">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
+        <button onclick="toggleFullScreen()" class="fixed top-4 right-4 bg-black/50 text-white p-2 rounded-full z-[100]">
+    <i class="fas fa-expand"></i>
+</button>
         <button onclick="resetAllQueues()" class="text-[10px] bg-white/10 hover:bg-red-600 px-3 py-1 rounded-lg transition-colors font-bold uppercase border border-white/20">
             <i class="fas fa-redo-alt mr-1"></i> Reset Q1
         </button>
+        
     </header>
 
     <main class="flex-1 overflow-y-auto pb-32">
@@ -96,6 +100,7 @@
                 <p id="pay-label" class="text-slate-400 font-bold text-xs uppercase mb-1"></p>
                 <h2 id="pay-amount" class="text-5xl font-black italic">฿0</h2>
             </div>
+            
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="selectMethod('CASH')" class="border-2 border-slate-100 focus:border-red-500 p-4 rounded-2xl flex flex-col items-center">
                     <i class="fas fa-money-bill-wave text-emerald-500 mb-1"></i>
@@ -283,6 +288,15 @@
             fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
         }
     }
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
 
     function resetAllQueues() {
         if(confirm('รีเซ็ต Q1?')) {
@@ -291,6 +305,7 @@
             saveQueue();
         }
     }
+        
 
     function openPay(uid) {
         const order = queue.find(q => q.uid === uid);
@@ -382,4 +397,5 @@
 </script>
 </body>
 </html>
+
 
