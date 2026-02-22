@@ -22,9 +22,9 @@
             <div class="bg-red-600 p-2 rounded-xl"><i class="fas fa-pizza-slice"></i></div>
             <h1 class="text-xl font-black italic uppercase">AMAMEE <span class="text-red-500">PIZZA</span></h1>
         </div>
-        <button onclick="toggleFullScreen()" class="fixed top-4 right-4 bg-black/50 text-white p-2 rounded-full z-[100]">
-    <i class="fas fa-expand"></i>
-</button>
+            <button onclick="toggleFullScreen()" id="fs-btn" class="ml-2 text-[10px] bg-white/10 hover:bg-blue-600 px-3 py-1 rounded-lg transition-colors font-bold uppercase border border-white/20">
+        <i class="fas fa-expand mr-1"></i> Full Screen
+        </button>
         <button onclick="resetAllQueues()" class="text-[10px] bg-white/10 hover:bg-red-600 px-3 py-1 rounded-lg transition-colors font-bold uppercase border border-white/20">
             <i class="fas fa-redo-alt mr-1"></i> Reset Q1
         </button>
@@ -290,13 +290,27 @@
     }
     function toggleFullScreen() {
         if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`Error: ${err.message}`);
+            });
+            document.getElementById('fs-btn').innerHTML = '<i class="fas fa-compress mr-1"></i> Exit Full';
         } else {
             if (document.exitFullscreen) {
                 document.exitFullscreen();
+                document.getElementById('fs-btn').innerHTML = '<i class="fas fa-expand mr-1"></i> Full Screen';
             }
         }
     }
+    
+    // ตรวจสอบการเปลี่ยนสถานะด้วยคีย์บอร์ด (เช่น กด F11) เพื่อเปลี่ยนไอคอนปุ่มให้ตรงกัน
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fs-btn');
+        if (!document.fullscreenElement) {
+            btn.innerHTML = '<i class="fas fa-expand mr-1"></i> Full Screen';
+        } else {
+            btn.innerHTML = '<i class="fas fa-compress mr-1"></i> Exit Full';
+        }
+    });
 
     function resetAllQueues() {
         if(confirm('รีเซ็ต Q1?')) {
@@ -397,5 +411,6 @@
 </script>
 </body>
 </html>
+
 
 
