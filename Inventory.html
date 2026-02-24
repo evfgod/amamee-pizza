@@ -3,165 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMAMEE Dashboard & Finance</title>
+    <title>AMAMEE Manager Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f8fafc; }
-        .tab-active { color: #ef4444; border-bottom: 3px solid #ef4444; }
+        body { font-family: 'Sarabun', sans-serif; background: #F1F5F9; }
+        .tab-active { color: #EF4444; border-bottom: 3px solid #EF4444; }
     </style>
 </head>
-<body class="pb-24">
+<body class="pb-20">
 
-    <header class="bg-slate-900 text-white p-6 rounded-b-[2.5rem] shadow-lg">
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <h1 class="text-2xl font-black italic tracking-tighter">AMAMEE <span class="text-red-500">INSIGHT</span></h1>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Financial Dashboard</p>
-            </div>
-            <button onclick="refreshData()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
-                <i class="fas fa-sync-alt text-sm"></i>
-            </button>
+    <header class="bg-slate-900 text-white p-6 rounded-b-[2.5rem] shadow-xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black italic">AMAMEE <span class="text-red-500">INSIGHT</span></h1>
+            <button onclick="refreshData()" class="p-2 bg-white/10 rounded-full"><i class="fas fa-sync-alt"></i></button>
         </div>
         
-        <div class="grid grid-cols-2 gap-4 mt-6">
+        <div class="grid grid-cols-2 gap-4">
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p class="text-[10px] text-slate-400 font-bold">รายได้วันนี้</p>
-                <h2 id="today-total" class="text-xl font-black text-white">฿0</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">ยอดขายวันนี้</p>
+                <h2 id="today-income" class="text-xl font-black">฿0</h2>
             </div>
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p class="text-[10px] text-slate-400 font-bold">กำไรสุทธิ (30%)</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">กำไรวันนี้ (30%)</p>
                 <h2 id="today-profit" class="text-xl font-black text-green-400">฿0</h2>
             </div>
         </div>
     </header>
 
-    <nav class="flex justify-around bg-white border-b mb-4">
-        <button onclick="switchTab('dash')" id="tab-dash" class="tab-active py-4 px-6 font-bold text-sm">แดชบอร์ด</button>
-        <button onclick="switchTab('expense')" id="tab-expense" class="py-4 px-6 font-bold text-sm text-slate-400">รายจ่าย</button>
-        <button onclick="switchTab('stock')" id="tab-stock" class="py-4 px-6 font-bold text-sm text-slate-400">สต๊อก</button>
+    <nav class="flex justify-around bg-white border-b sticky top-0 z-10">
+        <button onclick="switchView('dash')" id="tab-dash" class="tab-active py-4 px-4 font-bold text-sm">Dashboard</button>
+        <button onclick="switchView('exp')" id="tab-exp" class="py-4 px-4 font-bold text-sm text-slate-400">รายจ่าย</button>
+        <button onclick="switchView('stock')" id="tab-stock" class="py-4 px-4 font-bold text-sm text-slate-400">สต๊อก</button>
     </nav>
 
-    <div id="view-dash" class="p-4 space-y-6">
+    <div id="view-dash" class="p-4 space-y-4">
         <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-            <h3 class="font-black text-slate-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-calendar-alt text-red-500"></i> สรุปรายเดือน (ปัจจุบัน)
-            </h3>
+            <h3 class="font-black text-slate-800 mb-4 tracking-tight">สรุปรายเดือนนี้</h3>
+            
             <div class="space-y-4">
-                <div class="flex justify-between items-end">
-                    <span class="text-sm font-bold text-slate-500">รายได้รวมทั้งหมด</span>
-                    <span id="month-income" class="text-2xl font-black text-slate-800">฿0</span>
+                <div class="flex justify-between">
+                    <span class="text-slate-500 font-bold text-sm">รายได้รวม</span>
+                    <span id="month-income" class="font-black text-xl text-slate-800">฿0</span>
                 </div>
-                <div class="h-px bg-slate-100"></div>
-                <div class="grid grid-cols-2 gap-4">
+                
+                <div class="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
                     <div>
-                        <p class="text-[10px] font-bold text-blue-500 uppercase">เงินทุน (70%)</p>
-                        <p id="month-capital" class="font-black text-slate-700">฿0</p>
+                        <p class="text-[10px] text-blue-500 font-bold">ทุนที่กันไว้ (70%)</p>
+                        <p id="month-cap" class="font-black text-slate-700">฿0</p>
                     </div>
                     <div>
-                        <p class="text-[10px] font-bold text-green-500 uppercase">กำไรสะสม (30%)</p>
-                        <p id="month-profit" class="font-black text-slate-700">฿0</p>
+                        <p class="text-[10px] text-green-500 font-bold">กำไรสะสม (30%)</p>
+                        <p id="month-prof" class="font-black text-slate-700">฿0</p>
                     </div>
                 </div>
+
                 <div class="bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-red-600 uppercase">รายจ่าย (หักจากทุน)</span>
-                        <span id="month-expense" class="font-black text-red-600">-฿0</span>
+                    <div class="flex justify-between items-center text-red-600">
+                        <span class="text-xs font-bold">รายจ่ายสะสม (หักจากทุน)</span>
+                        <span id="month-exp" class="font-black">-฿0</span>
                     </div>
-                    <div class="flex justify-between items-center mt-2 border-t border-red-200 pt-2">
-                        <span class="text-xs font-bold text-slate-600">เงินทุนคงเหลือ</span>
-                        <span id="month-remain-capital" class="font-black text-blue-700">฿0</span>
+                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-red-200">
+                        <span class="text-xs font-black text-slate-700 uppercase">เงินทุนคงเหลือจริง</span>
+                        <span id="remain-cap" class="text-lg font-black text-blue-700">฿0</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="view-expense" class="hidden p-4 space-y-4">
-        <div class="bg-slate-800 p-6 rounded-[2.5rem] shadow-xl text-white">
-            <h3 class="font-bold mb-4">เพิ่มรายการจ่ายวันนี้</h3>
+    <div id="view-exp" class="hidden p-4 space-y-4">
+        <div class="bg-slate-800 p-6 rounded-[2rem] text-white">
+            <h3 class="font-bold mb-4">บันทึกรายจ่าย (ดึงจากเงินทุน)</h3>
             <div class="space-y-3">
-                <input type="text" id="exp-desc" placeholder="ระบุรายการ (เช่น ซื้อชีส)" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white outline-none">
-                <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white outline-none">
-                <button onclick="saveExpense()" class="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-lg active:scale-95 shadow-lg">บันทึกรายจ่าย</button>
+                <input type="text" id="exp-desc" placeholder="เช่น ซื้อแป้งพิซซ่า" class="w-full p-4 bg-white/10 rounded-xl outline-none border-none text-white">
+                <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-white/10 rounded-xl outline-none border-none text-white">
+                <button onclick="saveExp()" id="btn-save" class="w-full bg-red-500 py-4 rounded-xl font-black text-lg active:scale-95 transition-all">บันทึก</button>
             </div>
         </div>
-        <div id="expense-history" class="space-y-2">
-            </div>
     </div>
 
-    <div id="view-stock" class="hidden p-4 space-y-3">
-        <h3 class="font-black text-slate-800">ของที่ต้องซื้อเพิ่ม</h3>
-        <div id="shopping-list" class="space-y-2"></div>
+    <div id="view-stock" class="hidden p-4 space-y-2">
+        <h3 class="font-black p-2">รายการที่ต้องซื้อเพิ่ม</h3>
+        <div id="stock-list" class="space-y-2"></div>
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby1xGsjL0Hv4X9vMgYnyTlCaO3oKO-A2GWr0x25y95a_4IjkzL02PavFty1J8rPKqCeog/exec';
+        const API = "https://script.google.com/macros/s/AKfycby1xGsjL0Hv4X9vMgYnyTlCaO3oKO-A2GWr0x25y95a_4IjkzL02PavFty1J8rPKqCeog/exec";
 
-        function switchTab(tab) {
-            ['dash', 'expense', 'stock'].forEach(t => {
-                document.getElementById('view-'+t).classList.add('hidden');
-                document.getElementById('tab-'+t).classList.remove('tab-active', 'text-slate-400');
+        function switchView(v) {
+            ['dash','exp','stock'].forEach(i => {
+                document.getElementById('view-'+i).classList.add('hidden');
+                document.getElementById('tab-'+i).classList.remove('tab-active','text-slate-400');
             });
-            document.getElementById('view-'+tab).classList.remove('hidden');
-            document.getElementById('tab-'+tab).classList.add('tab-active');
-            if(tab === 'dash') refreshData();
+            document.getElementById('view-'+v).classList.remove('hidden');
+            document.getElementById('tab-'+v).classList.add('tab-active');
         }
 
-        async function refreshData() {
-            // ดึงข้อมูลสรุปรายได้
-            const script = document.createElement('script');
-            script.src = `${WEB_APP_URL}?action=getFinanceSummary&callback=renderDashboard&t=${Date.now()}`;
-            document.body.appendChild(script);
+        function refreshData() {
+            const s = document.createElement('script');
+            s.src = `${API}?action=getFinanceSummary&callback=renderFinance&t=${Date.now()}`;
+            document.body.appendChild(s);
+
+            const s2 = document.createElement('script');
+            s2.src = `${API}?action=getInventoryReport&callback=renderStock&t=${Date.now()}`;
+            document.body.appendChild(s2);
+        }
+
+        window.renderFinance = function(d) {
+            document.getElementById('today-income').innerText = `฿${d.todayIncome.toLocaleString()}`;
+            document.getElementById('today-profit').innerText = `฿${(d.todayIncome * 0.3).toLocaleString()}`;
             
-            // ดึงข้อมูลสต๊อก
-            const stockScript = document.createElement('script');
-            stockScript.src = `${WEB_APP_URL}?action=getInventoryReport&callback=renderStock&t=${Date.now()}`;
-            document.body.appendChild(stockScript);
+            document.getElementById('month-income').innerText = `฿${d.monthIncome.toLocaleString()}`;
+            const cap = d.monthIncome * 0.7;
+            const prof = d.monthIncome * 0.3;
+            document.getElementById('month-cap').innerText = `฿${cap.toLocaleString()}`;
+            document.getElementById('month-prof').innerText = `฿${prof.toLocaleString()}`;
+            document.getElementById('month-exp').innerText = `-฿${d.monthExpense.toLocaleString()}`;
+            document.getElementById('remain-cap').innerText = `฿${(cap - d.monthExpense).toLocaleString()}`;
         }
 
-        window.renderDashboard = function(data) {
-            // วันนี้
-            document.getElementById('today-total').innerText = `฿${data.todayIncome.toLocaleString()}`;
-            document.getElementById('today-profit').innerText = `฿${(data.todayIncome * 0.3).toLocaleString()}`;
-
-            // รายเดือน
-            document.getElementById('month-income').innerText = `฿${data.monthIncome.toLocaleString()}`;
-            const capital = data.monthIncome * 0.7;
-            const profit = data.monthIncome * 0.3;
-            document.getElementById('month-capital').innerText = `฿${capital.toLocaleString()}`;
-            document.getElementById('month-profit').innerText = `฿${profit.toLocaleString()}`;
-            document.getElementById('month-expense').innerText = `-฿${data.monthExpense.toLocaleString()}`;
-            document.getElementById('month-remain-capital').innerText = `฿${(capital - data.monthExpense).toLocaleString()}`;
-        };
-
-        window.renderStock = function(data) {
-            const list = document.getElementById('shopping-list');
-            list.innerHTML = data.length ? data.map(i => `
-                <div class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                    <div><p class="font-black text-slate-800">${i.item}</p><p class="text-[10px] text-slate-400">เหลือ ${i.stock} ${i.unit}</p></div>
-                    <span class="text-red-500 font-bold text-xs italic">Low Stock!</span>
+        window.renderStock = function(d) {
+            const list = document.getElementById('stock-list');
+            list.innerHTML = d.length ? d.map(i => `
+                <div class="bg-white p-4 rounded-2xl flex justify-between shadow-sm">
+                    <div><p class="font-bold">${i.item}</p><p class="text-[10px] text-slate-400">คงเหลือ: ${i.stock} ${i.unit}</p></div>
+                    <span class="text-red-500 font-black text-xs">ต้องซื้อ!</span>
                 </div>
-            `).join('') : '<p class="text-center text-slate-400 py-10">สต๊อกปกติ</p>';
-        };
+            `).join('') : '<p class="text-center py-10 text-slate-400">สต๊อกปกติ</p>';
+        }
 
-        async function saveExpense() {
-            const desc = document.getElementById('exp-desc').value;
-            const amount = document.getElementById('exp-amount').value;
-            if(!desc || !amount) return alert('ใส่ข้อมูลไม่ครบครับ');
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.innerText = "กำลังบันทึก...";
-
-            await fetch(`${WEB_APP_URL}?action=saveExpense&desc=${desc}&amount=${amount}`, { mode: 'no-cors' });
+        async function saveExp() {
+            const d = document.getElementById('exp-desc').value;
+            const a = document.getElementById('exp-amount').value;
+            if(!d || !a) return alert('กรอกข้อมูลไม่ครบ');
             
-            alert('บันทึกรายจ่ายแล้ว! (หักจากงบทุนอัตโนมัติ)');
+            document.getElementById('btn-save').innerText = "กำลังบันทึก...";
+            await fetch(`${API}?action=saveExpense&desc=${d}&amount=${a}`, {mode:'no-cors'});
+            
+            alert('บันทึกเรียบร้อย');
             document.getElementById('exp-desc').value = '';
             document.getElementById('exp-amount').value = '';
-            btn.disabled = false;
-            btn.innerText = "บันทึกรายจ่าย";
+            document.getElementById('btn-save').innerText = "บันทึก";
             refreshData();
         }
 
