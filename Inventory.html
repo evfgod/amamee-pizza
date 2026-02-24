@@ -10,7 +10,7 @@
     <style>
         body { font-family: 'Sarabun', sans-serif; background: #F8FAFC; }
         .tab-active { color: #EF4444; border-bottom: 3px solid #EF4444; }
-        .detail-card { transition: all 0.3s ease; }
+        .list-text-xs { font-size: 0.65rem; line-height: 1rem; }
     </style>
 </head>
 <body class="pb-24">
@@ -25,38 +25,35 @@
                 <i class="fas fa-sync-alt text-sm"></i>
             </button>
         </div>
-        
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
                 <p class="text-[10px] text-slate-400 font-bold uppercase">วันนี้ (พ.ศ.)</p>
-                <h2 id="display-date" class="text-sm font-black text-white italic">กำลังโหลด...</h2>
+                <h2 id="display-date" class="text-sm font-black text-white italic italic italic italic italic italic">กำลังโหลด...</h2>
             </div>
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">กำไรเป้าหมาย (30%)</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">กำไรวันนี้ (30%)</p>
                 <h2 id="today-profit-top" class="text-xl font-black text-green-400">฿0</h2>
             </div>
         </div>
     </header>
 
     <nav class="flex justify-around bg-white border-b sticky top-0 z-40">
-        <button onclick="switchView('dash')" id="tab-dash" class="tab-active py-4 px-4 font-black text-xs uppercase">Dashboard</button>
-        <button onclick="switchView('details')" id="tab-details" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Transactions</button>
-        <button onclick="switchView('exp')" id="tab-exp" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Add Expense</button>
-        <button onclick="switchView('stock')" id="tab-stock" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Stock</button>
+        <button onclick="switchView('dash')" id="tab-dash" class="tab-active py-4 px-4 font-black text-[10px] uppercase">Dashboard</button>
+        <button onclick="switchView('details')" id="tab-details" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Transactions</button>
+        <button onclick="switchView('exp')" id="tab-exp" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Expense</button>
+        <button onclick="switchView('stock')" id="tab-stock" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Stock</button>
     </nav>
 
     <div id="view-dash" class="p-4 space-y-6">
         <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h3 class="font-black text-slate-800 mb-6 flex items-center gap-2">
+            <h3 class="font-black text-slate-800 mb-6 flex items-center gap-2 italic">
                 <i class="fas fa-chart-pie text-red-500"></i> สรุปรายเดือนนี้
             </h3>
-            
             <div class="space-y-5">
                 <div class="flex justify-between items-end">
                     <span class="text-slate-500 font-bold text-sm italic">ยอดขายรวม (Gross)</span>
                     <span id="month-income" class="font-black text-3xl text-slate-800 tracking-tighter">฿0</span>
                 </div>
-                
                 <div class="grid grid-cols-2 gap-4 py-4 border-y border-dashed border-slate-200">
                     <div class="bg-blue-50/50 p-3 rounded-2xl">
                         <p class="text-[10px] text-blue-600 font-black uppercase">ทุน (70%)</p>
@@ -67,10 +64,9 @@
                         <p id="month-prof" class="font-black text-slate-700">฿0</p>
                     </div>
                 </div>
-
                 <div class="bg-slate-900 p-5 rounded-3xl text-white space-y-3">
                     <div class="flex justify-between items-center text-red-400">
-                        <span class="text-xs font-bold uppercase">รายจ่ายจริงที่ใช้ไป</span>
+                        <span class="text-xs font-bold uppercase">รายจ่ายจริงที่หักไป</span>
                         <span id="month-exp" class="font-black">-฿0</span>
                     </div>
                     <div class="h-px bg-white/10 w-full"></div>
@@ -89,224 +85,196 @@
             <button onclick="setDetailMode('both')" id="btn-m-both" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase bg-white shadow-sm">Split View</button>
             <button onclick="setDetailMode('exp')" id="btn-m-exp" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Expense Only</button>
         </div>
-    
-        <div id="split-container" class="grid grid-cols-2 gap-3 transition-all">
+        <div id="split-container" class="grid grid-cols-2 gap-3">
             <div id="col-income" class="space-y-2">
-                <h4 class="text-[10px] font-black text-green-600 uppercase px-2">Income</h4>
-                <div id="income-list" class="space-y-2 text-[10px]"></div>
+                <h4 class="text-[10px] font-black text-green-600 uppercase px-2 italic">Income Today</h4>
+                <div id="income-list" class="space-y-2"></div>
             </div>
             <div id="col-expense" class="space-y-2 border-l pl-2 border-slate-200">
-                <h4 class="text-[10px] font-black text-red-600 uppercase px-2">Expense</h4>
-                <div id="expense-list" class="space-y-2 text-[10px]"></div>
+                <h4 class="text-[10px] font-black text-red-600 uppercase px-2 italic">Expense Month</h4>
+                <div id="expense-list" class="space-y-2"></div>
             </div>
         </div>
     </div>
 
-    <div id="view-exp" class="hidden p-4 space-y-4">
+    <div id="view-exp" class="hidden p-4">
         <div class="bg-white p-6 rounded-[2.5rem] shadow-xl">
-            <h3 class="font-black text-slate-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-plus-circle text-red-500"></i> บันทึกค่าใช้จ่ายใหม่
+            <h3 class="font-black text-slate-800 mb-4 flex items-center gap-2 italic">
+                <i class="fas fa-plus-circle text-red-500"></i> บันทึกค่าใช้จ่าย
             </h3>
             <div class="space-y-3">
-                <input type="text" id="exp-desc" placeholder="เช่น ซื้อถุง, ซื้อชีส" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-red-500 font-bold transition-all">
-                <input type="number" id="exp-amount" placeholder="0.00" class="w-full p-4 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-red-500 font-black text-2xl transition-all">
-                <button onclick="saveExp()" id="btn-save" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all">บันทึกข้อมูล</button>
+                <input type="text" id="exp-desc" placeholder="รายการจ่าย" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold">
+                <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl">
+                <button onclick="saveExp()" id="btn-save-exp" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black">บันทึก</button>
             </div>
         </div>
     </div>
 
     <div id="view-stock" class="hidden p-4 space-y-4">
-        <button onclick="openStockModal('', 0, 0, '')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm">
+        <button onclick="openStockModal('', 0, 0, '')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm shadow-lg">
             <i class="fas fa-plus mr-2"></i> เพิ่มสินค้าใหม่
         </button>
         <div id="full-stock-list" class="space-y-3"></div>
     </div>
-    
+
     <div id="stock-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
         <div class="bg-white w-full rounded-[2.5rem] p-6 space-y-3">
-            <h3 id="modal-title" class="font-black">จัดการสต๊อก</h3>
-            <input type="text" id="s-name" placeholder="ชื่อสินค้า" class="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold">
+            <h3 class="font-black italic uppercase text-slate-800">จัดการสต๊อก</h3>
+            <input type="text" id="s-name" placeholder="ชื่อสินค้า" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
             <div class="grid grid-cols-2 gap-2">
-                <input type="number" id="s-qty" placeholder="จำนวน" class="p-3 bg-slate-100 rounded-xl outline-none font-bold">
-                <input type="number" id="s-min" placeholder="ขั้นต่ำ" class="p-3 bg-slate-100 rounded-xl outline-none font-bold">
+                <input type="number" id="s-qty" placeholder="จำนวนคงเหลือ" class="p-3 bg-slate-100 rounded-xl font-bold">
+                <input type="number" id="s-min" placeholder="ขั้นต่ำแจ้งเตือน" class="p-3 bg-slate-100 rounded-xl font-bold">
             </div>
-            <input type="text" id="s-unit" placeholder="หน่วย (ก้อน/ถุง)" class="w-full p-3 bg-slate-100 rounded-xl outline-none font-bold">
+            <input type="text" id="s-unit" placeholder="หน่วย (ก้อน, กิโล, ถุง)" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
             <div class="flex gap-2 pt-2">
                 <button onclick="deleteStockItem()" id="btn-del-stock" class="hidden flex-1 py-3 text-red-500 font-bold">ลบ</button>
                 <button onclick="closeStockModal()" class="flex-1 py-3 font-bold text-slate-400">ปิด</button>
-                <button onclick="saveStock()" class="flex-[2] bg-slate-900 text-white py-3 rounded-xl font-black">บันทึก</button>
+                <button onclick="saveStock()" id="btn-save-stock" class="flex-[2] bg-slate-900 text-white py-3 rounded-xl font-black">บันทึก</button>
             </div>
         </div>
     </div>
 
     <script>
-        // *** ใส่ URL ของ Google Apps Script ตรงนี้ ***
         const API = "https://script.google.com/macros/s/AKfycbz1ZUjRiqKtuKOyWibj5UZLQ3JeHwkIDOm9z8XZFuthMeMHZqxYqMmFtP41xHC1tolT9g/exec";
 
-        let fullData = {};
-        let selectedItem = "";
-        
         function switchView(v) {
-            ['dash','details','exp'].forEach(i => {
+            ['dash','details','exp','stock'].forEach(i => {
                 document.getElementById('view-'+i).classList.add('hidden');
-                document.getElementById('tab-'+i).classList.remove('tab-active','text-slate-800');
+                document.getElementById('tab-'+i).classList.remove('tab-active');
                 document.getElementById('tab-'+i).classList.add('text-slate-400');
             });
             document.getElementById('view-'+v).classList.remove('hidden');
             document.getElementById('tab-'+v).classList.add('tab-active');
             document.getElementById('tab-'+v).classList.remove('text-slate-400');
+            if(v === 'stock') loadStock();
         }
-        function renderStock(items) {
-        const list = document.getElementById('full-stock-list');
-        list.innerHTML = items.map(i => {
-            const isLow = parseFloat(i.stock) <= parseFloat(i.min);
-            return `
-                <div class="bg-white p-5 rounded-[2rem] shadow-sm border-2 ${isLow ? 'border-red-200 bg-red-50/30' : 'border-transparent'} flex justify-between items-center">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <p class="font-black text-slate-800">${i.item}</p>
-                            ${isLow ? '<span class="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>' : ''}
-                        </div>
-                        <p class="text-[10px] font-bold ${isLow ? 'text-red-500' : 'text-slate-400'} uppercase">
-                            Min Limit: ${i.min} ${i.unit}
-                        </p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right">
-                            <p class="text-2xl font-black ${isLow ? 'text-red-600' : 'text-slate-800'}">${i.stock}</p>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase">${i.unit}</p>
-                        </div>
-                        <button onclick="openStockModal('${i.item}', ${i.stock})" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
-                            <i class="fas fa-edit text-xs"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
 
-// ฟังก์ชันเปิด Modal สต๊อก
-    function openStockModal(name, qty, min, unit) {
-        document.getElementById('s-name').value = name;
-        document.getElementById('s-qty').value = qty;
-        document.getElementById('s-min').value = min;
-        document.getElementById('s-unit').value = unit;
-        document.getElementById('btn-del-stock').classList.toggle('hidden', name === '');
-        document.getElementById('stock-modal').classList.remove('hidden');
-    }
+        function setDetailMode(mode) {
+            const container = document.getElementById('split-container');
+            const colInc = document.getElementById('col-income');
+            const colExp = document.getElementById('col-expense');
+            ['inc','both','exp'].forEach(m => document.getElementById('btn-m-'+m).classList.remove('bg-white','shadow-sm'));
+            document.getElementById('btn-m-'+mode).classList.add('bg-white','shadow-sm');
 
-    async function saveStock() {
-        const n = document.getElementById('s-name').value;
-        const q = document.getElementById('s-qty').value;
-        const m = document.getElementById('s-min').value;
-        const u = document.getElementById('s-unit').value;
-        await fetch(`${API}?action=saveStock&item=${n}&qty=${q}&min=${m}&unit=${u}`, {mode:'no-cors'});
-        closeStockModal();
-        refreshData();
-    }
+            if(mode === 'both') {
+                container.className = "grid grid-cols-2 gap-3";
+                colInc.classList.remove('hidden'); colExp.classList.remove('hidden');
+            } else if(mode === 'inc') {
+                container.className = "grid grid-cols-1";
+                colInc.classList.remove('hidden'); colExp.classList.add('hidden');
+            } else {
+                container.className = "grid grid-cols-1";
+                colInc.classList.add('hidden'); colExp.classList.remove('hidden');
+            }
+        }
 
-    async function deleteStockItem() {
-        if(!confirm('ยืนยันการลบ?')) return;
-        const n = document.getElementById('s-name').value;
-        await fetch(`${API}?action=deleteStock&item=${n}`, {mode:'no-cors'});
-        closeStockModal();
-        refreshData();
-    }
-
-    // เพิ่มฟังก์ชันจำลองข้อมูล (กดปุ่มนี้ในหน้า console หรือสร้างปุ่มชั่วคราวได้)
-    async function setupDemoData() {
-        await fetch(`${API}?action=setupDemo`, {mode:'no-cors'});
-        alert('สร้างข้อมูลตัวอย่างสต๊อกแล้ว');
-        refreshData();
-    }
-    function closeStockModal() {
-        document.getElementById('stock-modal').classList.add('hidden');
-    }
-
-    async function saveStockUpdate() {
-        const newQty = document.getElementById('modal-qty-input').value;
-        if(newQty === "") return;
-        
-        const btn = event.target;
-        btn.innerText = "กำลังบันทึก...";
-        btn.disabled = true;
-
-        await fetch(`${API}?action=updateStock&item=${encodeURIComponent(selectedItem)}&qty=${newQty}`, {mode:'no-cors'});
-        
-        closeStockModal();
-        btn.innerText = "อัปเดตข้อมูล";
-        btn.disabled = false;
-        refreshData(); // โหลดข้อมูลใหม่
-    }
         function refreshData() {
             const now = new Date();
-            const d = now.getDate();
-            const m = now.getMonth() + 1;
-            const y = now.getFullYear() + 543;
-            document.getElementById('display-date').innerText = `${d}/${m}/${y}`;
-
+            document.getElementById('display-date').innerText = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
             const s = document.createElement('script');
-            // ใช้ action ใหม่ที่ดึงทั้งสรุปและรายละเอียด
             s.src = `${API}?action=getFinanceDetail&callback=renderAll&t=${Date.now()}`;
             document.body.appendChild(s);
+            loadStock();
         }
 
         window.renderAll = function(d) {
-            fullData = d;
-            // 1. Render Dashboard
+            // Dashboard
             document.getElementById('today-profit-top').innerText = `฿${(d.summary.todayIncome * 0.3).toLocaleString()}`;
             document.getElementById('month-income').innerText = `฿${d.summary.monthIncome.toLocaleString()}`;
-            
             const cap = d.summary.monthIncome * 0.7;
-            const prof = d.summary.monthIncome * 0.3;
             document.getElementById('month-cap').innerText = `฿${cap.toLocaleString()}`;
-            document.getElementById('month-prof').innerText = `฿${prof.toLocaleString()}`;
+            document.getElementById('month-prof').innerText = `฿${(d.summary.monthIncome * 0.3).toLocaleString()}`;
             document.getElementById('month-exp').innerText = `-฿${d.summary.monthExpense.toLocaleString()}`;
             document.getElementById('remain-cap').innerText = `฿${(cap - d.summary.monthExpense).toLocaleString()}`;
 
-            // 2. Render รายรับวันนี้ (Details)
-            const incList = document.getElementById('income-list');
-            document.getElementById('income-count').innerText = d.details.incomes.length + " รายการ";
-            incList.innerHTML = d.details.incomes.map(i => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-500 flex justify-between items-center">
-                    <div class="max-w-[70%]">
-                        <p class="text-[10px] font-black text-slate-400 uppercase">${i.time} | ${i.method}</p>
-                        <p class="text-xs font-bold text-slate-700 truncate">${i.items}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black text-slate-800 italic">฿${parseFloat(i.total).toLocaleString()}</p>
-                    </div>
+            // Income List
+            document.getElementById('income-list').innerHTML = d.details.incomes.map(i => `
+                <div class="bg-white p-2 rounded-xl shadow-sm border-l-2 border-green-500">
+                    <p class="font-black text-slate-800 list-text-xs">฿${parseFloat(i.total).toLocaleString()}</p>
+                    <p class="text-[8px] text-slate-400 truncate font-bold">${i.time} | ${i.items}</p>
                 </div>
-            `).join('') || '<p class="text-center py-10 text-slate-400 text-xs">วันนี้ยังไม่มีรายรับ</p>';
+            `).join('') || '<p class="text-[8px] text-center text-slate-400">ไม่มีข้อมูล</p>';
 
-            // 3. Render รายจ่ายเดือนนี้ (Details)
-            const expList = document.getElementById('expense-list');
-            document.getElementById('exp-count').innerText = d.details.expenses.length + " รายการ";
-            expList.innerHTML = d.details.expenses.map(e => `
-                <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-500 flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase">${e.date}</p>
-                        <p class="text-sm font-bold text-slate-700">${e.desc}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-black text-red-600 italic">฿${parseFloat(e.amount).toLocaleString()}</p>
-                    </div>
+            // Expense List
+            document.getElementById('expense-list').innerHTML = d.details.expenses.map(e => `
+                <div class="bg-white p-2 rounded-xl shadow-sm border-l-2 border-red-500">
+                    <p class="font-black text-red-600 list-text-xs">฿${parseFloat(e.amount).toLocaleString()}</p>
+                    <p class="text-[8px] text-slate-400 font-bold">${e.date} | ${e.desc}</p>
                 </div>
-            `).join('') || '<p class="text-center py-10 text-slate-400 text-xs">เดือนนี้ยังไม่มีรายจ่าย</p>';
+            `).join('') || '<p class="text-[8px] text-center text-slate-400">ไม่มีข้อมูล</p>';
+        }
+
+        function loadStock() {
+            const s = document.createElement('script');
+            s.src = `${API}?action=getAllInventory&callback=renderStock&t=${Date.now()}`;
+            document.body.appendChild(s);
+        }
+
+        window.renderStock = function(items) {
+            document.getElementById('full-stock-list').innerHTML = items.map(i => {
+                const isLow = parseFloat(i.stock) <= parseFloat(i.min);
+                return `
+                    <div class="bg-white p-4 rounded-[2rem] shadow-sm border-2 ${isLow ? 'border-red-200 bg-red-50/50' : 'border-transparent'} flex justify-between items-center">
+                        <div>
+                            <p class="font-black text-slate-800 text-sm">${i.item}</p>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Min: ${i.min} ${i.unit}</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-right">
+                            <div>
+                                <p class="text-xl font-black ${isLow ? 'text-red-600' : 'text-slate-800'}">${i.stock}</p>
+                                <p class="text-[8px] font-bold text-slate-400 uppercase">${i.unit}</p>
+                            </div>
+                            <button onclick="openStockModal('${i.item}', ${i.stock}, ${i.min}, '${i.unit}')" class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                                <i class="fas fa-edit text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('') || '<p class="text-center text-slate-400 py-10">ยังไม่มีสินค้าในสต๊อก</p>';
+        }
+
+        function openStockModal(name, qty, min, unit) {
+            document.getElementById('s-name').value = name;
+            document.getElementById('s-qty').value = qty;
+            document.getElementById('s-min').value = min;
+            document.getElementById('s-unit').value = unit;
+            document.getElementById('btn-del-stock').classList.toggle('hidden', name === '');
+            document.getElementById('stock-modal').classList.remove('hidden');
+        }
+
+        function closeStockModal() { document.getElementById('stock-modal').classList.add('hidden'); }
+
+        async function saveStock() {
+            const btn = document.getElementById('btn-save-stock');
+            btn.innerText = "กำลังบันทึก...";
+            const n = document.getElementById('s-name').value;
+            const q = document.getElementById('s-qty').value;
+            const m = document.getElementById('s-min').value;
+            const u = document.getElementById('s-unit').value;
+            await fetch(`${API}?action=saveStock&item=${n}&qty=${q}&min=${m}&unit=${u}`, {mode:'no-cors'});
+            btn.innerText = "บันทึก";
+            closeStockModal();
+            refreshData();
+        }
+
+        async function deleteStockItem() {
+            if(!confirm('ยืนยันการลบ?')) return;
+            const n = document.getElementById('s-name').value;
+            await fetch(`${API}?action=deleteStock&item=${n}`, {mode:'no-cors'});
+            closeStockModal();
+            refreshData();
         }
 
         async function saveExp() {
             const desc = document.getElementById('exp-desc').value;
             const amt = document.getElementById('exp-amount').value;
-            if(!desc || !amt) return alert('กรุณาระบุรายการและจำนวนเงิน');
-
-            document.getElementById('btn-save').innerText = "กำลังบันทึก...";
+            if(!desc || !amt) return alert('กรุณาระบุข้อมูลให้ครบ');
+            document.getElementById('btn-save-exp').innerText = "กำลังบันทึก...";
             await fetch(`${API}?action=saveExpense&desc=${desc}&amount=${amt}`, {mode:'no-cors'});
-            
-            alert('บันทึกรายจ่ายเรียบร้อย (หักจากทุน 70% อัตโนมัติ)');
+            alert('บันทึกเรียบร้อย');
             document.getElementById('exp-desc').value = '';
             document.getElementById('exp-amount').value = '';
-            document.getElementById('btn-save').innerText = "บันทึกข้อมูล";
+            document.getElementById('btn-save-exp').innerText = "บันทึก";
             refreshData();
             switchView('dash');
         }
