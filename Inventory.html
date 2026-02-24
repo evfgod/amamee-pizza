@@ -3,125 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMAMEE Manager - สรุปยอดและสต๊อก</title>
+    <title>AMAMEE Dashboard & Finance</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; }
-        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        body { font-family: 'Sarabun', sans-serif; background: #f8fafc; }
+        .tab-active { color: #ef4444; border-bottom: 3px solid #ef4444; }
     </style>
 </head>
-<body class="p-4 space-y-6">
+<body class="pb-24">
 
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-black text-slate-800 italic">AMAMEE <span class="text-red-500">MANAGER</span></h1>
-            <p class="text-xs font-bold text-slate-400">ระบบหลังบ้านและคุมสต๊อก</p>
+    <header class="bg-slate-900 text-white p-6 rounded-b-[2.5rem] shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-2xl font-black italic tracking-tighter">AMAMEE <span class="text-red-500">INSIGHT</span></h1>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Financial Dashboard</p>
+            </div>
+            <button onclick="refreshData()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+                <i class="fas fa-sync-alt text-sm"></i>
+            </button>
         </div>
-        <button onclick="refreshAll()" class="w-10 h-10 bg-white rounded-2xl shadow-sm text-slate-600 flex items-center justify-center">
-            <i class="fas fa-sync-alt"></i>
-        </button>
+        
+        <div class="grid grid-cols-2 gap-4 mt-6">
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p class="text-[10px] text-slate-400 font-bold">รายได้วันนี้</p>
+                <h2 id="today-total" class="text-xl font-black text-white">฿0</h2>
+            </div>
+            <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p class="text-[10px] text-slate-400 font-bold">กำไรสุทธิ (30%)</p>
+                <h2 id="today-profit" class="text-xl font-black text-green-400">฿0</h2>
+            </div>
+        </div>
+    </header>
+
+    <nav class="flex justify-around bg-white border-b mb-4">
+        <button onclick="switchTab('dash')" id="tab-dash" class="tab-active py-4 px-6 font-bold text-sm">แดชบอร์ด</button>
+        <button onclick="switchTab('expense')" id="tab-expense" class="py-4 px-6 font-bold text-sm text-slate-400">รายจ่าย</button>
+        <button onclick="switchTab('stock')" id="tab-stock" class="py-4 px-6 font-bold text-sm text-slate-400">สต๊อก</button>
+    </nav>
+
+    <div id="view-dash" class="p-4 space-y-6">
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+            <h3 class="font-black text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-calendar-alt text-red-500"></i> สรุปรายเดือน (ปัจจุบัน)
+            </h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <span class="text-sm font-bold text-slate-500">รายได้รวมทั้งหมด</span>
+                    <span id="month-income" class="text-2xl font-black text-slate-800">฿0</span>
+                </div>
+                <div class="h-px bg-slate-100"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-500 uppercase">เงินทุน (70%)</p>
+                        <p id="month-capital" class="font-black text-slate-700">฿0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-green-500 uppercase">กำไรสะสม (30%)</p>
+                        <p id="month-profit" class="font-black text-slate-700">฿0</p>
+                    </div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-2xl border border-red-100">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-red-600 uppercase">รายจ่าย (หักจากทุน)</span>
+                        <span id="month-expense" class="font-black text-red-600">-฿0</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-2 border-t border-red-200 pt-2">
+                        <span class="text-xs font-bold text-slate-600">เงินทุนคงเหลือ</span>
+                        <span id="month-remain-capital" class="font-black text-blue-700">฿0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-4">
-        <div class="bg-white p-6 rounded-[2rem] card-shadow border-b-8 border-blue-500">
-            <p class="text-sm font-bold text-slate-400 mb-1 uppercase tracking-wider">กำไรเป้าหมาย (30%) ของวันนี้</p>
-            <h2 id="target-profit" class="text-4xl font-black text-slate-800">฿0</h2>
-            <div id="cost-badge" class="mt-3 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase">กำลังคำนวณสถานะ...</div>
+    <div id="view-expense" class="hidden p-4 space-y-4">
+        <div class="bg-slate-800 p-6 rounded-[2.5rem] shadow-xl text-white">
+            <h3 class="font-bold mb-4">เพิ่มรายการจ่ายวันนี้</h3>
+            <div class="space-y-3">
+                <input type="text" id="exp-desc" placeholder="ระบุรายการ (เช่น ซื้อชีส)" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white outline-none">
+                <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white outline-none">
+                <button onclick="saveExpense()" class="w-full bg-red-500 text-white py-4 rounded-2xl font-black text-lg active:scale-95 shadow-lg">บันทึกรายจ่าย</button>
+            </div>
         </div>
-    </div>
-
-    <div class="bg-slate-800 p-6 rounded-[2rem] shadow-xl text-white">
-        <h3 class="font-bold mb-4 flex items-center gap-2">
-            <i class="fas fa-cart-plus text-yellow-400"></i> บันทึกซื้อของเข้า / รายจ่าย
-        </h3>
-        <div class="space-y-3">
-            <input type="text" id="exp-desc" placeholder="เช่น ซื้อแป้งพิซซ่า 5 ถุง" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-yellow-400">
-            <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-white/10 rounded-2xl border-none text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-yellow-400">
-            <button onclick="saveExpense()" class="w-full bg-yellow-400 text-slate-900 py-4 rounded-2xl font-black text-lg active:scale-95 transition-all">บันทึกข้อมูล</button>
-        </div>
-    </div>
-
-    <div class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h3 class="font-black text-slate-800 italic uppercase">Shopping List พรุ่งนี้</h3>
-            <span class="text-[10px] bg-red-100 text-red-600 px-3 py-1 rounded-full font-bold">Stock Alert</span>
-        </div>
-        <div id="shopping-list" class="space-y-3">
+        <div id="expense-history" class="space-y-2">
             </div>
     </div>
 
+    <div id="view-stock" class="hidden p-4 space-y-3">
+        <h3 class="font-black text-slate-800">ของที่ต้องซื้อเพิ่ม</h3>
+        <div id="shopping-list" class="space-y-2"></div>
+    </div>
+
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw4eN6LuD_SMgXI5j_Hs1pVdd3emzBoz4nViUmL6LzUzRoL0AirJMRZrYwBqphgyee3yw/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby1xGsjL0Hv4X9vMgYnyTlCaO3oKO-A2GWr0x25y95a_4IjkzL02PavFty1J8rPKqCeog/exec';
 
-        async function refreshAll() {
-            loadFinance();
-            loadShoppingList();
+        function switchTab(tab) {
+            ['dash', 'expense', 'stock'].forEach(t => {
+                document.getElementById('view-'+t).classList.add('hidden');
+                document.getElementById('tab-'+t).classList.remove('tab-active', 'text-slate-400');
+            });
+            document.getElementById('view-'+tab).classList.remove('hidden');
+            document.getElementById('tab-'+tab).classList.add('tab-active');
+            if(tab === 'dash') refreshData();
         }
 
-        function loadFinance() {
+        async function refreshData() {
+            // ดึงข้อมูลสรุปรายได้
             const script = document.createElement('script');
-            script.src = `${WEB_APP_URL}?action=getFinanceSummary&callback=finCB&t=${Date.now()}`;
+            script.src = `${WEB_APP_URL}?action=getFinanceSummary&callback=renderDashboard&t=${Date.now()}`;
             document.body.appendChild(script);
-        }
-
-        window.finCB = function(data) {
-            document.getElementById('target-profit').innerText = `฿${data.targetProfit.toLocaleString()}`;
-            const badge = document.getElementById('cost-badge');
-            badge.innerText = data.status;
             
-            if(data.actualExpense > data.targetCost) {
-                badge.className = "mt-3 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase bg-red-100 text-red-600";
-            } else {
-                badge.className = "mt-3 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-600";
-            }
+            // ดึงข้อมูลสต๊อก
+            const stockScript = document.createElement('script');
+            stockScript.src = `${WEB_APP_URL}?action=getInventoryReport&callback=renderStock&t=${Date.now()}`;
+            document.body.appendChild(stockScript);
         }
 
-        function loadShoppingList() {
-            const script = document.createElement('script');
-            script.src = `${WEB_APP_URL}?action=getInventoryReport&callback=stockCB&t=${Date.now()}`;
-            document.body.appendChild(script);
-        }
+        window.renderDashboard = function(data) {
+            // วันนี้
+            document.getElementById('today-total').innerText = `฿${data.todayIncome.toLocaleString()}`;
+            document.getElementById('today-profit').innerText = `฿${(data.todayIncome * 0.3).toLocaleString()}`;
 
-        window.stockCB = function(data) {
+            // รายเดือน
+            document.getElementById('month-income').innerText = `฿${data.monthIncome.toLocaleString()}`;
+            const capital = data.monthIncome * 0.7;
+            const profit = data.monthIncome * 0.3;
+            document.getElementById('month-capital').innerText = `฿${capital.toLocaleString()}`;
+            document.getElementById('month-profit').innerText = `฿${profit.toLocaleString()}`;
+            document.getElementById('month-expense').innerText = `-฿${data.monthExpense.toLocaleString()}`;
+            document.getElementById('month-remain-capital').innerText = `฿${(capital - data.monthExpense).toLocaleString()}`;
+        };
+
+        window.renderStock = function(data) {
             const list = document.getElementById('shopping-list');
-            if(data.length === 0) {
-                list.innerHTML = `<div class="bg-white p-8 rounded-[2rem] text-center border-2 border-dashed border-slate-200">
-                    <i class="fas fa-check-circle text-green-500 text-3xl mb-2"></i>
-                    <p class="text-xs font-bold text-slate-400">สต๊อกยังเต็มอยู่ ไม่ต้องซื้ออะไรเพิ่ม</p>
-                </div>`;
-                return;
-            }
-            list.innerHTML = data.map(i => `
-                <div class="bg-white p-5 rounded-[2rem] card-shadow flex justify-between items-center border-l-4 border-red-500">
-                    <div>
-                        <p class="font-black text-slate-800">${i.item}</p>
-                        <p class="text-[10px] text-slate-400">เหลือในร้าน: ${i.stock} ${i.unit}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-red-500 font-black text-xs">ต้องซื้อเพิ่ม</p>
-                        <p class="text-[9px] text-slate-300 font-bold uppercase">Min Limit: ${i.min}</p>
-                    </div>
+            list.innerHTML = data.length ? data.map(i => `
+                <div class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                    <div><p class="font-black text-slate-800">${i.item}</p><p class="text-[10px] text-slate-400">เหลือ ${i.stock} ${i.unit}</p></div>
+                    <span class="text-red-500 font-bold text-xs italic">Low Stock!</span>
                 </div>
-            `).join('');
-        }
+            `).join('') : '<p class="text-center text-slate-400 py-10">สต๊อกปกติ</p>';
+        };
 
         async function saveExpense() {
             const desc = document.getElementById('exp-desc').value;
             const amount = document.getElementById('exp-amount').value;
-            if(!desc || !amount) return alert('กรุณากรอกข้อมูลให้ครบครับ');
+            if(!desc || !amount) return alert('ใส่ข้อมูลไม่ครบครับ');
 
-            const params = new URLSearchParams({ action: 'saveExpense', desc: desc, amount: amount });
-            await fetch(`${WEB_APP_URL}?${params.toString()}`, { mode: 'no-cors' });
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerText = "กำลังบันทึก...";
+
+            await fetch(`${WEB_APP_URL}?action=saveExpense&desc=${desc}&amount=${amount}`, { mode: 'no-cors' });
             
-            alert('บันทึกรายจ่ายเรียบร้อยแล้ว!');
+            alert('บันทึกรายจ่ายแล้ว! (หักจากงบทุนอัตโนมัติ)');
             document.getElementById('exp-desc').value = '';
             document.getElementById('exp-amount').value = '';
-            refreshAll();
+            btn.disabled = false;
+            btn.innerText = "บันทึกรายจ่าย";
+            refreshData();
         }
 
-        window.onload = refreshAll;
+        window.onload = refreshData;
     </script>
 </body>
 </html>
