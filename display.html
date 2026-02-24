@@ -129,6 +129,31 @@
                 }
             }
         }
+        function initMenu() {
+    document.getElementById('menu-grid').innerHTML = menu.map(p => {
+        // กำหนดสีพื้นหลังตามประเภทสินค้า (ตัวอย่าง: Pizza สีแดง, โรตีสีส้ม, อื่นๆ สีฟ้า)
+        let iconBg = 'bg-slate-100';
+        if (p.id.startsWith('H')) iconBg = 'bg-red-50'; // หมวดพิซซ่า
+        if (p.id.startsWith('R')) iconBg = 'bg-orange-50'; // หมวดโรตี
+        if (p.id.startsWith('S')) iconBg = 'bg-yellow-50'; // หมวดเพิ่มชีส
+
+        return `
+            <div class="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 text-center active:scale-95 transition-all flex flex-col items-center justify-between gap-2 h-full" 
+                 onclick="add('${p.id}')">
+                <div class="w-16 h-16 ${iconBg} rounded-2xl flex items-center justify-center text-4xl shadow-inner mb-1">
+                    ${p.icon}
+                </div>
+                <div class="space-y-1">
+                    <div class="font-extrabold text-sm text-slate-700 leading-tight">${p.name}</div>
+                    <div class="text-red-500 font-black text-base">฿${p.price}</div>
+                </div>
+                <div class="mt-1 w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 text-xs">
+                    <i class="fas fa-plus"></i>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
         
         // อัปเดตไอคอนหากกด F11 บนคีย์บอร์ด
         document.addEventListener('fullscreenchange', () => {
