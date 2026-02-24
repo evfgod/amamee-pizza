@@ -42,6 +42,7 @@
         <button onclick="switchView('dash')" id="tab-dash" class="tab-active py-4 px-4 font-black text-xs uppercase">Dashboard</button>
         <button onclick="switchView('details')" id="tab-details" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Transactions</button>
         <button onclick="switchView('exp')" id="tab-exp" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Add Expense</button>
+        <button onclick="switchView('stock')" id="tab-stock" class="py-4 px-4 font-black text-xs uppercase text-slate-400">Stock</button>
     </nav>
 
     <div id="view-dash" class="p-4 space-y-6">
@@ -115,12 +116,37 @@
         </div>
     </div>
 
+    <div id="view-stock" class="hidden p-4 space-y-4">
+            <div class="flex justify-between items-center px-2">
+                <h3 class="font-black text-slate-800 italic uppercase">คลังวัตถุดิบ</h3>
+                <span class="text-[10px] font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full uppercase">Stock Alert ON</span>
+            </div>
+        
+            <div id="full-stock-list" class="space-y-3">
+                </div>
+        </div>
+        
+        <div id="stock-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+            <div class="bg-white w-full rounded-[2.5rem] p-8 space-y-4 shadow-2xl">
+                <h3 id="modal-item-name" class="text-xl font-black text-slate-800">แก้ไขสต๊อก</h3>
+                <div class="space-y-1">
+                    <p class="text-xs font-bold text-slate-400 uppercase">จำนวนคงเหลือปัจจุบัน</p>
+                    <input type="number" id="modal-qty-input" class="w-full text-4xl font-black p-4 bg-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-red-500 transition-all">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeStockModal()" class="flex-1 py-4 font-bold text-slate-400">ยกเลิก</button>
+                    <button onclick="saveStockUpdate()" class="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black shadow-lg shadow-slate-300">อัปเดตข้อมูล</button>
+                </div>
+            </div>
+        </div>
+
     <script>
         // *** ใส่ URL ของ Google Apps Script ตรงนี้ ***
-        const API = "https://script.google.com/macros/s/AKfycbx0E82PZRwnGns2wT72uksxi7B0wgGnt2bjLRfvSrkrWl6b0_IVPmMR5wZ7XUzFLKkYrg/exec";
+        const API = "https://script.google.com/macros/s/AKfycbynmGD5DqGo9Xugeg82ygO64Ef655vMDYmegkmliK2J2lwVcXg7PaTmxYWPV3gRP1ACnw/exec";
 
         let fullData = {};
-
+        let selectedItem = "";
+        
         function switchView(v) {
             ['dash','details','exp'].forEach(i => {
                 document.getElementById('view-'+i).classList.add('hidden');
@@ -131,7 +157,61 @@
             document.getElementById('tab-'+v).classList.add('tab-active');
             document.getElementById('tab-'+v).classList.remove('text-slate-400');
         }
+        function renderStock(items) {
+        const list = document.getElementById('full-stock-list');
+        list.innerHTML = items.map(i => {
+            const isLow = parseFloat(i.stock) <= parseFloat(i.min);
+            return `
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm border-2 ${isLow ? 'border-red-200 bg-red-50/30' : 'border-transparent'} flex justify-between items-center">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <p class="font-black text-slate-800">${i.item}</p>
+                            ${isLow ? '<span class="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>' : ''}
+                        </div>
+                        <p class="text-[10px] font-bold ${isLow ? 'text-red-500' : 'text-slate-400'} uppercase">
+                            Min Limit: ${i.min} ${i.unit}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-2xl font-black ${isLow ? 'text-red-600' : 'text-slate-800'}">${i.stock}</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">${i.unit}</p>
+                        </div>
+                        <button onclick="openStockModal('${i.item}', ${i.stock})" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 
+    function openStockModal(name, qty) {
+        selectedItem = name;
+        document.getElementById('modal-item-name').innerText = name;
+        document.getElementById('modal-qty-input').value = qty;
+        document.getElementById('stock-modal').classList.remove('hidden');
+    }
+
+    function closeStockModal() {
+        document.getElementById('stock-modal').classList.add('hidden');
+    }
+
+    async function saveStockUpdate() {
+        const newQty = document.getElementById('modal-qty-input').value;
+        if(newQty === "") return;
+        
+        const btn = event.target;
+        btn.innerText = "กำลังบันทึก...";
+        btn.disabled = true;
+
+        await fetch(`${API}?action=updateStock&item=${encodeURIComponent(selectedItem)}&qty=${newQty}`, {mode:'no-cors'});
+        
+        closeStockModal();
+        btn.innerText = "อัปเดตข้อมูล";
+        btn.disabled = false;
+        refreshData(); // โหลดข้อมูลใหม่
+    }
         function refreshData() {
             const now = new Date();
             const d = now.getDate();
