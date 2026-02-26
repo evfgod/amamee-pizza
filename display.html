@@ -54,135 +54,113 @@
         </div>
     </div>
 
-    <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx1GAOAGFbmDaeGY3yy8zZ6XvciTj2oJFlXEYyJjeNUkuGMgTOXbtY_G0yyDqMNMYOH/exec';
+<script>
+    // 1. ตั้งค่า URL (ตรวจสอบให้ตรงกับที่ Deploy ล่าสุด)
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx1GAOAGFbmDaeGY3yy8zZ6XvciTj2oJFlXEYyJjeNUkuGMgTOXbtY_G0yyDqMNMYOH/exec';
 
-        // แมพไอคอนตามชื่อเมนู
-        const iconMap = {
-            'ฮาวายเอี้ยน': '🍍', 'แฮมชีส': '🍖', 'แฮมปูอัดชีส': '🦀', 'ไก่กรอบชีส': '🍗',
-            'ข้าวโพดอบชีส': '🌽', 'ฮอตดอกชีส': '🌭', 'ชีสเลิฟเวอร์': '🧀', 'ซีฟู้ด': '🍤',
-            'ผักโขมชีส': '🌿', 'หน้ารวม': '🍕', 'เพิ่มชีส': '➕🧀', 'โรตี': '🫓', 'มะตะบะ': '🐔'
-        };
+    const iconMap = {
+        'ฮาวายเอี้ยน': '🍍', 'แฮมชีส': '🍖', 'แฮมปูอัดชีส': '🦀', 'ไก่กรอบชีส': '🍗',
+        'ข้าวโพดอบชีส': '🌽', 'ฮอตดอกชีส': '🌭', 'ชีสเลิฟเวอร์': '🧀', 'ซีฟู้ด': '🍤',
+        'ผักโขมชีส': '🌿', 'หน้ารวม': '🍕', 'เพิ่มชีส': '➕🧀', 'โรตี': '🫓', 'มะตะบะ': '🐔'
+    };
 
-        function fetchQueue() {
-            window.callback = function(data) {
-                renderDisplay(data);
-                const oldScript = document.getElementById('jsonp-script');
-                if (oldScript) oldScript.remove();
-            };
+    // 2. ฟังก์ชันหลักในการดึงข้อมูล
+    function fetchQueue() {
+        // ลบ Script เก่าออกเพื่อป้องกันขยะในหน้าเว็บ
+        const oldScript = document.getElementById('jsonp-script');
+        if (oldScript) oldScript.remove();
 
-            const script = document.createElement('script');
-            script.id = 'jsonp-script';
-            script.src = `${WEB_APP_URL}?action=getHistory&t=${Date.now()}`;
-            document.body.appendChild(script);
+        const script = document.createElement('script');
+        script.id = 'jsonp-script';
+        // เปลี่ยน action ให้ตรงกับ Backend (getQueues)
+        script.src = `${WEB_APP_URL}?action=getQueues&callback=renderDisplay&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
+
+    // 3. ฟังก์ชันวาดหน้าจอ
+    window.renderDisplay = function(data) {
+        const container = document.getElementById('queue-display');
+        
+        if (!data || data.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-300">
+                    <i class="fas fa-clipboard-list text-9xl mb-6 opacity-20"></i>
+                    <p class="text-3xl font-bold italic">ยังไม่มีรายการคิวในขณะนี้</p>
+                </div>`;
+            return;
         }
 
-        function renderDisplay(data) {
-            const container = document.getElementById('queue-display');
-            
-            if (!data || data.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-slate-300">
-                        <i class="fas fa-clipboard-list text-9xl mb-6 opacity-20"></i>
-                        <p class="text-3xl font-bold italic">ยังไม่มีรายการคิวในขณะนี้</p>
-                    </div>`;
-                return;
-            }
+        // กรองเฉพาะคิวที่ยังไม่เสร็จ (รอดำเนินการ, กำลังปรุง)
+        const activeQueues = data.filter(item => 
+            item.status === 'รอดำเนินการ' || item.status === 'กำลังปรุง'
+        );
 
-            const activeQueues = data.filter(item => 
-                item.status === 'รอดำเนินการ' || item.status === 'กำลังดำเนินการ'
-            );
+        if (activeQueues.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-slate-300">
+                    <i class="fas fa-check-circle text-9xl mb-6 opacity-20"></i>
+                    <p class="text-3xl font-bold italic">ดำเนินการครบทุกคิวแล้ว ขอบคุณค่ะ</p>
+                </div>`;
+            return;
+        }
 
-            if (activeQueues.length === 0) {
-                container.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-slate-300">
-                        <i class="fas fa-check-circle text-9xl mb-6 opacity-20"></i>
-                        <p class="text-3xl font-bold italic">ดำเนินการครบทุกคิวแล้ว ขอบคุณค่ะ</p>
-                    </div>`;
-                return;
-            }
+        container.innerHTML = activeQueues.map(q => {
+            const isWorking = q.status === 'กำลังปรุง';
+            // ดึงเลขคิวจากข้อความ (คิว X)
+            const qNumberMatch = q.items.match(/\(คิว (\d+)\)/);
+            const qNumber = qNumberMatch ? qNumberMatch[1] : '?';
 
-            container.innerHTML = activeQueues.map(q => {
-                const isWorking = q.status === 'กำลังดำเนินการ';
-                const qNumberMatch = q.items.match(/\(คิว (\d+)\)/);
-                const qNumber = qNumberMatch ? qNumberMatch[1] : '?';
+            // แยกรายการอาหารออกมาโชว์
+            const itemsList = q.items
+                .replace(/\(คิว \d+\) /g, '') 
+                .split(',')
+                .map(item => {
+                    const cleanItem = item.trim();
+                    const nameOnly = cleanItem.split('x')[0];
+                    const icon = Object.keys(iconMap).find(key => nameOnly.includes(key)) ? iconMap[Object.keys(iconMap).find(key => nameOnly.includes(key))] : '🍕';
+                    return `<div class="flex items-center gap-3">
+                                <span class="text-4xl">${icon}</span>
+                                <span>${cleanItem.replace('x', ' × ')}</span>
+                            </div>`;
+                })
+                .join('');
 
-                // จัดการรายการอาหาร + ใส่ Icon
-                const itemsList = q.items
-                    .replace(/\(คิว \d+\) /g, '') 
-                    .split(',')
-                    .map(item => {
-                        const cleanItem = item.trim();
-                        const nameOnly = cleanItem.split('x')[0];
-                        const icon = Object.keys(iconMap).find(key => nameOnly.includes(key)) ? iconMap[Object.keys(iconMap).find(key => nameOnly.includes(key))] : '🍕';
-                        return `<div class="flex items-center gap-3">
-                                    <span class="text-4xl">${icon}</span>
-                                    <span>${cleanItem.replace('x', ' × ')}</span>
-                                </div>`;
-                    })
-                    .join('');
-
-                return `
-                <div class="bg-white border-l-[25px] ${isWorking ? 'border-orange-500 shadow-2xl blink' : 'border-slate-300 shadow-lg'} rounded-[3rem] p-10 flex items-center justify-between transition-all">
-                    
-                    <div class="flex flex-col items-start min-w-[320px]">
-                        <p class="text-slate-400 font-black text-xl mb-1 uppercase tracking-tighter">QUEUE NUMBER</p>
-                        <h2 class="text-[140px] font-black text-slate-800 leading-none italic">#${qNumber}</h2>
+            return `
+            <div class="bg-white border-l-[25px] ${isWorking ? 'border-orange-500 shadow-2xl blink' : 'border-slate-300 shadow-lg'} rounded-[3rem] p-10 flex items-center justify-between transition-all mb-6">
+                <div class="flex flex-col items-start min-w-[320px]">
+                    <p class="text-slate-400 font-black text-xl mb-1 uppercase tracking-tighter">QUEUE NUMBER</p>
+                    <h2 class="text-[140px] font-black text-slate-800 leading-none italic">#${qNumber}</h2>
+                </div>
+                <div class="flex-1 flex flex-col items-end">
+                    <div class="${isWorking ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} px-10 py-3 rounded-2xl text-3xl font-black mb-6 shadow-sm">
+                        <i class="fas ${isWorking ? 'fa-fire-alt' : 'fa-clock'} mr-3"></i>${isWorking ? 'กำลังปรุงอาหาร...' : 'รอดำเนินการ'}
                     </div>
-
-                    <div class="flex-1 flex flex-col items-end">
-                        <div class="${isWorking ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} px-10 py-3 rounded-2xl text-3xl font-black mb-6 shadow-sm">
-                            <i class="fas ${isWorking ? 'fa-fire-alt' : 'fa-clock'} mr-3"></i>${isWorking ? 'กำลังปรุงอาหาร...' : 'รอดำเนินการ'}
-                        </div>
-                        
-                        <div class="space-y-3 text-4xl font-extrabold text-slate-700 text-right">
-                            ${itemsList}
-                        </div>
+                    <div class="space-y-3 text-4xl font-extrabold text-slate-700 text-right">
+                        ${itemsList}
                     </div>
                 </div>
-                `;
-            }).join('');
-        }
+            </div>
+            `;
+        }).join('');
+    };
 
-        // ฟังก์ชันโหลดข้อมูลคิว (ใส่ในหน้า Display)
-        function loadDisplayQueues() {
-            const s = document.createElement('script');
-            s.src = `${API}?action=getQueues&callback=renderDisplay&t=${Date.now()}`;
-            document.body.appendChild(s);
-        }
-        
-        window.renderDisplay = function(data) {
-            const pendingContainer = document.getElementById('pending-list'); // ฝั่งรอดำเนินการ
-            const doingContainer = document.getElementById('doing-list');   // ฝั่งกำลังปรุง
-        
-            if (!data || data.length === 0) {
-                pendingContainer.innerHTML = '<p class="text-slate-400">ไม่มีคิวค้าง</p>';
-                doingContainer.innerHTML = '<p class="text-slate-400">ไม่มีรายการกำลังปรุง</p>';
-                return;
+    // 4. ฟังก์ชันเต็มจอ
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            document.getElementById('fs-icon').classList.replace('fa-expand', 'fa-compress');
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                document.getElementById('fs-icon').classList.replace('fa-compress', 'fa-expand');
             }
-        
-            // กรองข้อมูลแยกฝั่ง
-            const pendingHtml = data.filter(q => q.status === "รอดำเนินการ").map(q => `
-                <div class="bg-white p-6 rounded-3xl shadow-lg border-l-8 border-red-500 mb-4 animate-pulse">
-                    <h2 class="text-4xl font-black text-slate-800">คิวที่ ${q.q_no}</h2>
-                    <p class="text-xl text-slate-500">${q.time}</p>
-                </div>
-            `).join('');
-        
-            const doingHtml = data.filter(q => q.status === "กำลังปรุง").map(q => `
-                <div class="bg-emerald-500 p-6 rounded-3xl shadow-lg text-white mb-4 border-l-8 border-white">
-                    <h2 class="text-4xl font-black">คิวที่ ${q.q_no}</h2>
-                    <p class="text-xl opacity-80">กำลังปรุง...</p>
-                </div>
-            `).join('');
-        
-            pendingContainer.innerHTML = pendingHtml || '<p class="text-slate-400">ว่าง</p>';
-            doingContainer.innerHTML = doingHtml || '<p class="text-slate-400">ว่าง</p>';
-        };
-        
-        // สั่งให้รีเฟรชทุกๆ 10 วินาที
-        setInterval(loadDisplayQueues, 10000);
-        window.onload = loadDisplayQueues;
-    </script>
+        }
+    }
+
+    // เริ่มทำงาน
+    fetchQueue();
+    // รีเฟรชคิวทุก 10 วินาที
+    setInterval(fetchQueue, 10000);
+</script>
 </body>
 </html>
