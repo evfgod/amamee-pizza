@@ -11,6 +11,8 @@
         body { font-family: 'Sarabun', sans-serif; background: #F8FAFC; }
         .tab-active { color: #EF4444; border-bottom: 3px solid #EF4444; }
         .list-text-xs { font-size: 0.65rem; line-height: 1rem; }
+        /* สไตล์เพื่อให้ดูเป็นแอปมือถือ */
+        @media (min-width: 640px) { body { max-width: 450px; margin: 0 auto; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; min-height: 100vh; } }
     </style>
 </head>
 <body class="pb-24">
@@ -21,14 +23,14 @@
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter">AMAMEE <span class="text-red-500">Insight</span></h1>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Financial Controller</p>
             </div>
-            <button onclick="refreshData()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20 active:rotate-180 transition-all">
+            <button onclick="refreshData()" id="refresh-btn" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20 transition-all active:scale-90">
                 <i class="fas fa-sync-alt text-sm"></i>
             </button>
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
                 <p class="text-[10px] text-slate-400 font-bold uppercase">วันนี้ (พ.ศ.)</p>
-                <h2 id="display-date" class="text-sm font-black text-white italic italic italic italic italic italic">กำลังโหลด...</h2>
+                <h2 id="display-date" class="text-sm font-black text-white italic">กำลังโหลด...</h2>
             </div>
             <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-right">
                 <p class="text-[10px] text-slate-400 font-bold uppercase">กำไรวันนี้ (30%)</p>
@@ -45,56 +47,54 @@
     </nav>
 
     <div id="view-dash" class="p-4 space-y-6">
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-                <h3 class="font-black text-slate-800 mb-6 flex items-center justify-between italic">
-                    <span><i class="fas fa-wallet text-green-500 mr-2"></i>สรุปรายได้วันนี้</span>
-                    <span class="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500" id="current-date-badge"></span>
-                </h3>
-                
-                <div class="text-center mb-8">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ยอดขายสุทธิ (100%)</p>
-                    <h1 id="today-gross" class="text-5xl font-black text-slate-800 tracking-tighter">฿0</h1>
+        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <h3 class="font-black text-slate-800 mb-6 flex items-center justify-between italic">
+                <span><i class="fas fa-wallet text-green-500 mr-2"></i>สรุปรายได้วันนี้</span>
+                <span class="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500" id="current-date-badge"></span>
+            </h3>
+            
+            <div class="text-center mb-8">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ยอดขายสุทธิ (100%)</p>
+                <h1 id="today-gross" class="text-5xl font-black text-slate-800 tracking-tighter">฿0</h1>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-50 p-4 rounded-3xl">
+                    <p class="text-[10px] text-blue-600 font-black uppercase mb-1">เงินทุน (70%)</p>
+                    <input type="number" id="input-cap" oninput="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-blue-600" value="0">
+                    <p class="text-[8px] text-blue-400 italic">แตะเพื่อแก้ไข</p>
                 </div>
-        
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-blue-50 p-4 rounded-3xl relative">
-                        <p class="text-[10px] text-blue-600 font-black uppercase mb-1">เงินทุน (70%)</p>
-                        <input type="number" id="input-cap" onchange="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-blue-600" value="0">
-                        <p class="text-[8px] text-blue-400 italic">แตะเพื่อปัดเศษ</p>
-                    </div>
-        
-                    <div class="bg-green-50 p-4 rounded-3xl relative">
-                        <p class="text-[10px] text-green-600 font-black uppercase mb-1">กำไร (30%)</p>
-                        <input type="number" id="input-prof" onchange="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-green-600" value="0">
-                        <p class="text-[8px] text-green-400 italic">แตะเพื่อปัดเศษ</p>
-                    </div>
-                </div>
-        
-                <div class="mt-6 p-4 bg-slate-900 rounded-3xl text-white flex justify-between items-center">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">ตรวจสอบยอดรวม</p>
-                        <p id="check-sum" class="text-xs font-black text-blue-400 italic">Balance OK</p>
-                    </div>
-                    <button onclick="refreshData()" class="bg-white/10 p-3 rounded-2xl hover:bg-white/20 transition-all">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+
+                <div class="bg-green-50 p-4 rounded-3xl">
+                    <p class="text-[10px] text-green-600 font-black uppercase mb-1">กำไร (30%)</p>
+                    <input type="number" id="input-prof" oninput="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-green-600" value="0">
+                    <p class="text-[8px] text-green-400 italic">แตะเพื่อแก้ไข</p>
                 </div>
             </div>
+
+            <div class="mt-6 p-4 bg-slate-900 rounded-3xl text-white flex justify-between items-center">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">ตรวจสอบยอดรวม</p>
+                    <p id="check-sum" class="text-xs font-black text-blue-400 italic">Balance OK</p>
+                </div>
+                <div id="loading-spinner" class="hidden animate-spin h-5 w-5 border-2 border-white/20 border-t-white rounded-full"></div>
+            </div>
         </div>
+    </div>
 
     <div id="view-details" class="hidden p-4 space-y-4">
         <div class="flex bg-slate-200 p-1 rounded-2xl">
-            <button onclick="setDetailMode('inc')" id="btn-m-inc" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Income Only</button>
-            <button onclick="setDetailMode('both')" id="btn-m-both" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase bg-white shadow-sm">Split View</button>
-            <button onclick="setDetailMode('exp')" id="btn-m-exp" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Expense Only</button>
+            <button onclick="setDetailMode('inc')" id="btn-m-inc" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Income</button>
+            <button onclick="setDetailMode('both')" id="btn-m-both" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase bg-white shadow-sm">Split</button>
+            <button onclick="setDetailMode('exp')" id="btn-m-exp" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Expense</button>
         </div>
         <div id="split-container" class="grid grid-cols-2 gap-3">
             <div id="col-income" class="space-y-2">
-                <h4 class="text-[10px] font-black text-green-600 uppercase px-2 italic">Income Today</h4>
+                <h4 class="text-[10px] font-black text-green-600 uppercase px-2 italic">Sales (Today)</h4>
                 <div id="income-list" class="space-y-2"></div>
             </div>
             <div id="col-expense" class="space-y-2 border-l pl-2 border-slate-200">
-                <h4 class="text-[10px] font-black text-red-600 uppercase px-2 italic">Expense Month</h4>
+                <h4 class="text-[10px] font-black text-red-600 uppercase px-2 italic">Expenses (All)</h4>
                 <div id="expense-list" class="space-y-2"></div>
             </div>
         </div>
@@ -106,9 +106,9 @@
                 <i class="fas fa-plus-circle text-red-500"></i> บันทึกค่าใช้จ่าย
             </h3>
             <div class="space-y-3">
-                <input type="text" id="exp-desc" placeholder="รายการจ่าย" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold">
+                <input type="text" id="exp-desc" placeholder="รายการจ่าย (เช่น ค่าน้ำแข็ง)" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold">
                 <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl">
-                <button onclick="saveExp()" id="btn-save-exp" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black">บันทึก</button>
+                <button onclick="saveExp()" id="btn-save-exp" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black active:scale-95 transition-transform">บันทึก</button>
             </div>
         </div>
     </div>
@@ -121,7 +121,7 @@
     </div>
 
     <div id="stock-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-        <div class="bg-white w-full rounded-[2.5rem] p-6 space-y-3">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-3 shadow-2xl">
             <h3 class="font-black italic uppercase text-slate-800">จัดการสต๊อก</h3>
             <input type="text" id="s-name" placeholder="ชื่อสินค้า" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
             <div class="grid grid-cols-2 gap-2">
@@ -138,7 +138,8 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbx1GAOAGFbmDaeGY3yy8zZ6XvciTj2oJFlXEYyJjeNUkuGMgTOXbtY_G0yyDqMNMYOH/exec";
+        const API = "https://script.google.com/macros/s/AKfycbyLqLSBSAz0u1pR-yY4dafiIM1NtZXkwGAXXQHAAL6mhQLKTRN5o9DREDXN315pYxA/exec";
+        let currentGross = 0;
 
         function switchView(v) {
             ['dash','details','exp','stock'].forEach(i => {
@@ -172,8 +173,12 @@
         }
 
         function refreshData() {
+            document.getElementById('loading-spinner').classList.remove('hidden');
             const now = new Date();
-            document.getElementById('display-date').innerText = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
+            const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()+543}`;
+            document.getElementById('display-date').innerText = dateStr;
+            document.getElementById('current-date-badge').innerText = dateStr;
+
             const s = document.createElement('script');
             s.src = `${API}?action=getFinanceDetail&callback=renderAll&t=${Date.now()}`;
             document.body.appendChild(s);
@@ -181,59 +186,84 @@
         }
 
         window.renderAll = function(d) {
-        const gross = d.todayIncome;
-        document.getElementById('today-gross').innerText = `฿${gross.toLocaleString()}`;
-        document.getElementById('current-date-badge').innerText = document.getElementById('display-date').innerText;
+            document.getElementById('loading-spinner').classList.add('hidden');
+            currentGross = d.todayIncome || 0;
+            
+            // 1. แสดงยอด Gross
+            document.getElementById('today-gross').innerText = `฿${currentGross.toLocaleString()}`;
 
-        // คำนวณเบื้องต้น 70/30
-        const cap = Math.floor(gross * 0.7);
-        const prof = gross - cap; // ให้กำไรเป็นตัวรับเศษที่เหลือ
+            // 2. คำนวณเบื้องต้น 70/30
+            const cap = Math.floor(currentGross * 0.7);
+            const prof = currentGross - cap;
 
-        document.getElementById('input-cap').value = cap;
-        document.getElementById('input-prof').value = prof;
-        
-        validateSum(gross, cap, prof);
+            document.getElementById('input-cap').value = cap;
+            document.getElementById('input-prof').value = prof;
+            document.getElementById('today-profit-top').innerText = `฿${prof.toLocaleString()}`;
+            
+            validateSum(currentGross, cap, prof);
 
-        // แสดงรายการขายเฉพาะวันนี้ในหน้า Transactions
-        renderTodayTransactions(d.details);
-    };
+            // 3. แสดงรายการขาย (Income)
+            renderTodayTransactions(d.details);
+            
+            // 4. แสดงรายการค่าใช้จ่าย (Expenses)
+            renderExpenseHistory(d.expenses);
+        };
 
-    function manualAdjust() {
-        const grossStr = document.getElementById('today-gross').innerText.replace('฿', '').replace(/,/g, '');
-        const gross = parseFloat(grossStr);
-        const cap = parseFloat(document.getElementById('input-cap').value) || 0;
-        const prof = parseFloat(document.getElementById('input-prof').value) || 0;
-
-        validateSum(gross, cap, prof);
-    }
-
-    function validateSum(gross, cap, prof) {
-        const sum = cap + prof;
-        const checkEl = document.getElementById('check-sum');
-        
-        if (sum === gross) {
-            checkEl.innerText = "✓ ยอดเงินตรงกันพอดี";
-            checkEl.className = "text-xs font-black text-green-400 italic";
-        } else {
-            const diff = gross - sum;
-            checkEl.innerText = `⚠ ต่างกันอยู่: ${diff} บาท`;
-            checkEl.className = "text-xs font-black text-yellow-400 italic";
+        function manualAdjust() {
+            const cap = parseFloat(document.getElementById('input-cap').value) || 0;
+            const prof = parseFloat(document.getElementById('input-prof').value) || 0;
+            document.getElementById('today-profit-top').innerText = `฿${prof.toLocaleString()}`;
+            validateSum(currentGross, cap, prof);
         }
-    }
 
-    function renderTodayTransactions(list) {
-        const incList = document.getElementById('income-list');
-        incList.innerHTML = list.map(i => `
-            <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-green-500 mb-2">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-black text-slate-400 uppercase">${i.time}</span>
-                    <span class="font-black text-slate-800 italic">฿${i.total.toLocaleString()}</span>
+        function validateSum(gross, cap, prof) {
+            const sum = cap + prof;
+            const checkEl = document.getElementById('check-sum');
+            if (sum === gross) {
+                checkEl.innerText = "✓ ยอดเงินตรงกันพอดี";
+                checkEl.className = "text-xs font-black text-green-400 italic";
+            } else {
+                const diff = gross - sum;
+                checkEl.innerText = `⚠ ต่างกันอยู่: ${diff} บาท`;
+                checkEl.className = "text-xs font-black text-yellow-400 italic";
+            }
+        }
+
+        function renderTodayTransactions(list) {
+            const incList = document.getElementById('income-list');
+            if (!list || list.length === 0) {
+                incList.innerHTML = '<p class="text-center py-10 text-slate-400 text-[10px]">ไม่มีรายการขาย</p>';
+                return;
+            }
+            incList.innerHTML = list.map(i => `
+                <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-green-500 mb-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-black text-slate-400 uppercase">${i.time}</span>
+                        <span class="font-black text-slate-800 italic text-xs">฿${i.total.toLocaleString()}</span>
+                    </div>
+                    <p class="text-[9px] font-bold text-slate-600 truncate">${i.items}</p>
                 </div>
-                <p class="text-[10px] font-bold text-slate-600 truncate">${i.items}</p>
-            </div>
-        `).join('') || '<p class="text-center py-10 text-slate-400 text-xs">วันนี้ยังไม่มีรายการที่เสร็จสิ้น</p>';
-    }
+            `).join('');
+        }
 
+        function renderExpenseHistory(list) {
+            const expList = document.getElementById('expense-list');
+            if (!list || list.length === 0) {
+                expList.innerHTML = '<p class="text-center py-10 text-slate-400 text-[10px]">ไม่มีรายการจ่าย</p>';
+                return;
+            }
+            expList.innerHTML = list.map(i => `
+                <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-red-500 mb-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[8px] font-black text-slate-400 uppercase">${i.date}</span>
+                        <span class="font-black text-red-600 italic text-xs">฿${i.amount.toLocaleString()}</span>
+                    </div>
+                    <p class="text-[9px] font-bold text-slate-600 truncate">${i.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- Stock & Expense Logic ---
         function loadStock() {
             const s = document.createElement('script');
             s.src = `${API}?action=getAllInventory&callback=renderStock&t=${Date.now()}`;
@@ -276,12 +306,10 @@
 
         async function saveStock() {
             const btn = document.getElementById('btn-save-stock');
-            btn.innerText = "กำลังบันทึก...";
             const n = document.getElementById('s-name').value;
-            const q = document.getElementById('s-qty').value;
-            const m = document.getElementById('s-min').value;
-            const u = document.getElementById('s-unit').value;
-            await fetch(`${API}?action=saveStock&item=${n}&qty=${q}&min=${m}&unit=${u}`, {mode:'no-cors'});
+            if(!n) return alert('ระบุชื่อสินค้า');
+            btn.innerText = "รอ...";
+            await fetch(`${API}?action=saveStock&item=${encodeURIComponent(n)}&qty=${document.getElementById('s-qty').value}&min=${document.getElementById('s-min').value}&unit=${encodeURIComponent(document.getElementById('s-unit').value)}`, {mode:'no-cors'});
             btn.innerText = "บันทึก";
             closeStockModal();
             refreshData();
@@ -290,7 +318,7 @@
         async function deleteStockItem() {
             if(!confirm('ยืนยันการลบ?')) return;
             const n = document.getElementById('s-name').value;
-            await fetch(`${API}?action=deleteStock&item=${n}`, {mode:'no-cors'});
+            await fetch(`${API}?action=deleteStock&item=${encodeURIComponent(n)}`, {mode:'no-cors'});
             closeStockModal();
             refreshData();
         }
@@ -299,14 +327,17 @@
             const desc = document.getElementById('exp-desc').value;
             const amt = document.getElementById('exp-amount').value;
             if(!desc || !amt) return alert('กรุณาระบุข้อมูลให้ครบ');
-            document.getElementById('btn-save-exp').innerText = "กำลังบันทึก...";
-            await fetch(`${API}?action=saveExpense&desc=${desc}&amount=${amt}`, {mode:'no-cors'});
+            const btn = document.getElementById('btn-save-exp');
+            btn.innerText = "กำลังบันทึก...";
+            btn.disabled = true;
+            await fetch(`${API}?action=saveExpense&desc=${encodeURIComponent(desc)}&amount=${amt}`, {mode:'no-cors'});
             alert('บันทึกเรียบร้อย');
             document.getElementById('exp-desc').value = '';
             document.getElementById('exp-amount').value = '';
-            document.getElementById('btn-save-exp').innerText = "บันทึก";
+            btn.innerText = "บันทึก";
+            btn.disabled = false;
             refreshData();
-            switchView('dash');
+            switchView('details');
         }
 
         window.onload = refreshData;
