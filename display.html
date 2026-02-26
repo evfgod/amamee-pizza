@@ -55,7 +55,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyQXfH3MGLXhlToI9GDWf_zczYI53uTYlP9WlemCAj8rFp6_auknJgvbhy5GBKj82gTig/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx1GAOAGFbmDaeGY3yy8zZ6XvciTj2oJFlXEYyJjeNUkuGMgTOXbtY_G0yyDqMNMYOH/exec';
 
         // แมพไอคอนตามชื่อเมนู
         const iconMap = {
@@ -144,32 +144,45 @@
             }).join('');
         }
 
-        function toggleFullScreen() {
-            const icon = document.getElementById('fs-icon');
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-                icon.classList.replace('fa-expand', 'fa-compress');
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    icon.classList.replace('fa-compress', 'fa-expand');
-                }
-            }
+        // ฟังก์ชันโหลดข้อมูลคิว (ใส่ในหน้า Display)
+        function loadDisplayQueues() {
+            const s = document.createElement('script');
+            s.src = `${API}?action=getQueues&callback=renderDisplay&t=${Date.now()}`;
+            document.body.appendChild(s);
         }
-
-        // เช็คการเปลี่ยนสถานะ Fullscreen (กด F11)
-        document.addEventListener('fullscreenchange', () => {
-            const icon = document.getElementById('fs-icon');
-            if (!document.fullscreenElement) {
-                icon.classList.replace('fa-compress', 'fa-expand');
-            } else {
-                icon.classList.replace('fa-expand', 'fa-compress');
+        
+        window.renderDisplay = function(data) {
+            const pendingContainer = document.getElementById('pending-list'); // ฝั่งรอดำเนินการ
+            const doingContainer = document.getElementById('doing-list');   // ฝั่งกำลังปรุง
+        
+            if (!data || data.length === 0) {
+                pendingContainer.innerHTML = '<p class="text-slate-400">ไม่มีคิวค้าง</p>';
+                doingContainer.innerHTML = '<p class="text-slate-400">ไม่มีรายการกำลังปรุง</p>';
+                return;
             }
-        });
-
-        // อัปเดตข้อมูลอัตโนมัติทุก 10 วินาที
-        setInterval(fetchQueue, 10000);
-        window.onload = fetchQueue;
+        
+            // กรองข้อมูลแยกฝั่ง
+            const pendingHtml = data.filter(q => q.status === "รอดำเนินการ").map(q => `
+                <div class="bg-white p-6 rounded-3xl shadow-lg border-l-8 border-red-500 mb-4 animate-pulse">
+                    <h2 class="text-4xl font-black text-slate-800">คิวที่ ${q.q_no}</h2>
+                    <p class="text-xl text-slate-500">${q.time}</p>
+                </div>
+            `).join('');
+        
+            const doingHtml = data.filter(q => q.status === "กำลังปรุง").map(q => `
+                <div class="bg-emerald-500 p-6 rounded-3xl shadow-lg text-white mb-4 border-l-8 border-white">
+                    <h2 class="text-4xl font-black">คิวที่ ${q.q_no}</h2>
+                    <p class="text-xl opacity-80">กำลังปรุง...</p>
+                </div>
+            `).join('');
+        
+            pendingContainer.innerHTML = pendingHtml || '<p class="text-slate-400">ว่าง</p>';
+            doingContainer.innerHTML = doingHtml || '<p class="text-slate-400">ว่าง</p>';
+        };
+        
+        // สั่งให้รีเฟรชทุกๆ 10 วินาที
+        setInterval(loadDisplayQueues, 10000);
+        window.onload = loadDisplayQueues;
     </script>
 </body>
 </html>
