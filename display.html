@@ -11,15 +11,23 @@
         body { font-family: 'Sarabun', sans-serif; overflow: hidden; background-color: #0F172A; }
         .blink { animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
-        /* ปรับแต่ง Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #E11D48; border-radius: 10px; }
+        /* ปรับแต่ง Scrollbar ให้ดูสะอาดตา */
+        ::-webkit-scrollbar { width: 0px; }
+        
+        .queue-card {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
     </style>
 </head>
 <body class="flex h-screen">
 
-    <div class="w-[30%] bg-black relative">
+    <div class="w-[30%] bg-black relative border-r border-white/10">
         <iframe class="w-full h-full" 
             src="https://www.youtube.com/embed/jU1R4GXhNGU?autoplay=1&mute=1&loop=1&playlist=jU1R4GXhNGU&controls=0" 
             title="Amamee Pizza Video" 
@@ -27,15 +35,15 @@
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
             allowfullscreen>
         </iframe>
-        <div class="absolute bottom-4 left-4 bg-black/50 text-white p-3 rounded-xl backdrop-blur-sm text-xs border border-white/10">
-            <p>🔴 กำลังเล่น: บรรยากาศร้าน</p>
+        <div class="absolute top-4 left-4 bg-red-600 text-white px-4 py-1 rounded-full text-xs font-black animate-pulse">
+            LIVE PROMOTION
         </div>
     </div>
 
     <div class="w-[70%] bg-slate-50 flex flex-col relative">
         <div class="bg-red-600 text-white p-8 text-center shadow-2xl relative shrink-0">
-            <h1 class="text-6xl font-black italic tracking-tighter">AMAMEE <span class="text-yellow-300">PIZZA</span></h1>
-            <p class="text-2xl font-bold mt-2 opacity-90">กรุณารอเรียกหมายเลขคิวของคุณ</p>
+            <h1 class="text-7xl font-black italic tracking-tighter">AMAMEE <span class="text-yellow-300">PIZZA</span></h1>
+            <p class="text-2xl font-bold mt-2 opacity-90">กรุณารอรับสินค้าเมื่อหมายเลขคิวปรากฏ</p>
             
             <button onclick="toggleFullScreen()" class="absolute top-6 right-6 bg-white/20 hover:bg-white/40 p-3 rounded-2xl transition-all border border-white/30">
                 <i id="fs-icon" class="fas fa-expand text-2xl"></i>
@@ -43,108 +51,104 @@
         </div>
         
         <div class="flex-1 overflow-y-auto p-8 space-y-6" id="queue-display">
-            <div class="text-center py-20">
+            <div class="text-center py-40">
                 <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-red-600 mb-4"></div>
-                <p class="text-slate-400 text-2xl font-bold">กำลังอัปเดตคิวล่าสุด...</p>
+                <p class="text-slate-400 text-2xl font-bold">ระบบกำลังเชื่อมต่อข้อมูลคิว...</p>
             </div>
         </div>
 
-        <div class="bg-slate-900 text-white p-4 text-center font-bold text-xl overflow-hidden shrink-0">
-            <marquee scrollamount="8">ยินดีต้อนรับสู่ AMAMEE PIZZA ฮาลาล 100% | ติดต่อสอบถาม/สั่งจองล่วงหน้า โทร. 092-803-6695</marquee>
+        <div class="bg-slate-900 text-white p-5 text-center font-bold text-2xl overflow-hidden shrink-0 border-t-4 border-yellow-400">
+            <marquee scrollamount="10">
+                🍕 ยินดีต้อนรับสู่ AMAMEE PIZZA ฮาลาล 100% สดใหม่ทุกวัน | 📞 ติดต่อสอบถาม/สั่งจองล่วงหน้า โทร. 092-803-6695 | ✨ ขอบคุณที่ไว้วางใจเรา
+            </marquee>
         </div>
     </div>
 
 <script>
-    // 1. ตั้งค่า URL (ตรวจสอบให้ตรงกับที่ Deploy ล่าสุด)
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx1GAOAGFbmDaeGY3yy8zZ6XvciTj2oJFlXEYyJjeNUkuGMgTOXbtY_G0yyDqMNMYOH/exec';
+    // 1. ตั้งค่า API URL (ตรวจสอบให้ตรงกับที่ Deploy ใน Google Apps Script)
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyLqLSBSAz0u1pR-yY4dafiIM1NtZXkwGAXXQHAAL6mhQLKTRN5o9DREDXN315pYxA/exec';
 
+    // แผนผังไอคอนอาหาร
     const iconMap = {
-        'ฮาวายเอี้ยน': '🍍', 'แฮมชีส': '🍖', 'แฮมปูอัดชีส': '🦀', 'ไก่กรอบชีส': '🍗',
-        'ข้าวโพดอบชีส': '🌽', 'ฮอตดอกชีส': '🌭', 'ชีสเลิฟเวอร์': '🧀', 'ซีฟู้ด': '🍤',
-        'ผักโขมชีส': '🌿', 'หน้ารวม': '🍕', 'เพิ่มชีส': '➕🧀', 'โรตี': '🫓', 'มะตะบะ': '🐔'
+        'ฮาวายเอี้ยน': '🍍', 'แฮมชีส': '🍖', 'แฮมปูอัด': '🦀', 'ไก่กรอบ': '🍗',
+        'ข้าวโพด': '🌽', 'ฮอตดอก': '🌭', 'ชีสเลิฟเวอร์': '🧀', 'ซีฟู้ด': '🍤',
+        'ผักโขม': '🌿', 'หน้ารวม': '🍕', 'โรตี': '🫓', 'มะตะบะ': '🐔'
     };
 
-    // 2. ฟังก์ชันหลักในการดึงข้อมูล
+    // 2. ฟังก์ชันดึงข้อมูลแบบ JSONP
     function fetchQueue() {
-        // ลบ Script เก่าออกเพื่อป้องกันขยะในหน้าเว็บ
         const oldScript = document.getElementById('jsonp-script');
         if (oldScript) oldScript.remove();
 
         const script = document.createElement('script');
         script.id = 'jsonp-script';
-        // เปลี่ยน action ให้ตรงกับ Backend (getQueues)
         script.src = `${WEB_APP_URL}?action=getQueues&callback=renderDisplay&t=${Date.now()}`;
         document.body.appendChild(script);
     }
 
-    // 3. ฟังก์ชันวาดหน้าจอ
+    // 3. ฟังก์ชันการแสดงผลบนหน้าจอ
     window.renderDisplay = function(data) {
         const container = document.getElementById('queue-display');
         
         if (!data || data.length === 0) {
             container.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-slate-300">
-                    <i class="fas fa-clipboard-list text-9xl mb-6 opacity-20"></i>
-                    <p class="text-3xl font-bold italic">ยังไม่มีรายการคิวในขณะนี้</p>
+                    <i class="fas fa-pizza-slice text-9xl mb-6 opacity-10"></i>
+                    <p class="text-4xl font-black italic">ยังไม่มีรายการคิวรอปรุง</p>
                 </div>`;
             return;
         }
 
-        // กรองเฉพาะคิวที่ยังไม่เสร็จ (รอดำเนินการ, กำลังปรุง)
-        const activeQueues = data.filter(item => 
+        // กรองแสดงเฉพาะสถานะที่ต้องโชว์บนจอ
+        const displayData = data.filter(item => 
             item.status === 'รอดำเนินการ' || item.status === 'กำลังปรุง'
         );
 
-        if (activeQueues.length === 0) {
+        if (displayData.length === 0) {
             container.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-full text-slate-300">
-                    <i class="fas fa-check-circle text-9xl mb-6 opacity-20"></i>
-                    <p class="text-3xl font-bold italic">ดำเนินการครบทุกคิวแล้ว ขอบคุณค่ะ</p>
+                    <i class="fas fa-smile-wink text-9xl mb-6 opacity-10"></i>
+                    <p class="text-4xl font-black italic">ดำเนินการครบทุกคิวแล้วจ้า!</p>
                 </div>`;
             return;
         }
 
-        container.innerHTML = activeQueues.map(q => {
+        container.innerHTML = displayData.map(q => {
             const isWorking = q.status === 'กำลังปรุง';
-            // ดึงเลขคิวจากข้อความ (คิว X)
+            // สกัดเลขคิวจาก Format: (คิว 5) รายการ...
             const qNumberMatch = q.items.match(/\(คิว (\d+)\)/);
             const qNumber = qNumberMatch ? qNumberMatch[1] : '?';
 
-            // แยกรายการอาหารออกมาโชว์
+            // ตกแต่งรายการอาหารและไอคอน
             const itemsList = q.items
                 .replace(/\(คิว \d+\) /g, '') 
                 .split(',')
                 .map(item => {
                     const cleanItem = item.trim();
-                    const nameOnly = cleanItem.split('x')[0];
-                    const icon = Object.keys(iconMap).find(key => nameOnly.includes(key)) ? iconMap[Object.keys(iconMap).find(key => nameOnly.includes(key))] : '🍕';
-                    return `<div class="flex items-center gap-3">
-                                <span class="text-4xl">${icon}</span>
-                                <span>${cleanItem.replace('x', ' × ')}</span>
-                            </div>`;
+                    const icon = Object.keys(iconMap).find(key => cleanItem.includes(key)) ? iconMap[Object.keys(iconMap).find(key => cleanItem.includes(key))] : '🍕';
+                    return `<span>${icon} ${cleanItem.replace('x', '×')}</span>`;
                 })
-                .join('');
+                .join(' <span class="mx-2 opacity-30">|</span> ');
 
             return `
-            <div class="bg-white border-l-[25px] ${isWorking ? 'border-orange-500 shadow-2xl blink' : 'border-slate-300 shadow-lg'} rounded-[3rem] p-10 flex items-center justify-between transition-all mb-6">
-                <div class="flex flex-col items-start min-w-[320px]">
-                    <p class="text-slate-400 font-black text-xl mb-1 uppercase tracking-tighter">QUEUE NUMBER</p>
-                    <h2 class="text-[140px] font-black text-slate-800 leading-none italic">#${qNumber}</h2>
+            <div class="queue-card bg-white border-l-[30px] ${isWorking ? 'border-orange-500 shadow-2xl blink' : 'border-slate-300 shadow-lg'} rounded-[3.5rem] p-10 flex items-center justify-between mb-8">
+                <div class="flex flex-col items-start min-w-[300px]">
+                    <p class="text-slate-400 font-black text-xl mb-1 uppercase tracking-widest">QUEUE NO.</p>
+                    <h2 class="text-[160px] font-black text-slate-800 leading-none italic tracking-tighter">#${qNumber}</h2>
                 </div>
                 <div class="flex-1 flex flex-col items-end">
-                    <div class="${isWorking ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} px-10 py-3 rounded-2xl text-3xl font-black mb-6 shadow-sm">
-                        <i class="fas ${isWorking ? 'fa-fire-alt' : 'fa-clock'} mr-3"></i>${isWorking ? 'กำลังปรุงอาหาร...' : 'รอดำเนินการ'}
+                    <div class="${isWorking ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'} px-10 py-3 rounded-2xl text-4xl font-black mb-8 shadow-sm">
+                        <i class="fas ${isWorking ? 'fa-fire-alt' : 'fa-clock'} mr-4"></i>${isWorking ? 'กำลังปรุง...' : 'รอดำเนินการ'}
                     </div>
-                    <div class="space-y-3 text-4xl font-extrabold text-slate-700 text-right">
+                    <div class="text-4xl font-extrabold text-slate-700 text-right leading-relaxed">
                         ${itemsList}
                     </div>
                 </div>
-            </div>
-            `;
+            </div>`;
         }).join('');
     };
 
-    // 4. ฟังก์ชันเต็มจอ
+    // 4. ระบบ Fullscreen
     function toggleFullScreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
@@ -157,10 +161,10 @@
         }
     }
 
-    // เริ่มทำงาน
+    // เริ่มต้นระบบ
     fetchQueue();
-    // รีเฟรชคิวทุก 10 วินาที
-    setInterval(fetchQueue, 10000);
+    // ตรวจสอบคิวใหม่ทุก 8 วินาที
+    setInterval(fetchQueue, 8000);
 </script>
 </body>
 </html>
