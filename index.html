@@ -170,7 +170,7 @@
 
 <script>
     // 1. ตั้งค่า API (ตรวจสอบ URL ให้ถูกต้อง)
-    const API = 'https://script.google.com/macros/s/AKfycbyTOhXNuE-dzhTuFaLH0HXT3hE47KLIGddpB1Tt1sP-YkYV1A7oSmVaRKmQCGj2iJF0yA/exec'; 
+    const API = 'https://script.google.com/macros/s/AKfycbyQXfH3MGLXhlToI9GDWf_zczYI53uTYlP9WlemCAj8rFp6_auknJgvbhy5GBKj82gTig/exec'; 
 
     // 2. ประกาศตัวแปร Global
     let selectedChannel = 'หน้าร้าน';
@@ -335,8 +335,14 @@
         const order = queue.find(q => q.uid == uid);
         if(order) {
             order.status = status;
-            saveQueue();
-            const params = new URLSearchParams({ action: 'updateStatus', time: order.time, status: status });
+            saveQueue(); // อัปเดตหน้าจอทันที (Local)
+            
+            // ส่งไปอัปเดตใน Google Sheet
+            const params = new URLSearchParams({ 
+                action: 'updateStatus', 
+                time: order.time, 
+                status: status 
+            });
             fetch(`${API}?${params.toString()}`, { mode: 'no-cors' });
         }
     }
@@ -446,26 +452,33 @@
 
     // --- ระบบ History (JSONP) ---
     function syncHistory() {
-        document.getElementById('history-list').innerHTML = '<p class="text-center py-10">กำลังโหลด...</p>';
+        const container = document.getElementById('history-list');
+        container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-red-500 text-2xl"></i></div>';
+        
         const s = document.createElement('script');
         s.src = `${API}?action=getFinanceDetail&callback=renderHistory&t=${Date.now()}`;
         document.body.appendChild(s);
     }
-
+    
+    // 3. ฟังก์ชันแสดงผล History ลงหน้าเว็บ
     window.renderHistory = function(data) {
         const container = document.getElementById('history-list');
         if (!data.details || data.details.length === 0) {
-            container.innerHTML = '<p class="text-center py-10">ไม่พบข้อมูลการขาย</p>';
+            container.innerHTML = `<p class="text-center py-10 text-slate-400 font-bold">ยังไม่มีรายการขายที่เสร็จสิ้น</p>`;
             return;
         }
+    
         container.innerHTML = data.details.map(item => `
             <div class="bg-white p-4 rounded-3xl shadow-sm mb-3 border border-slate-50">
-                <div class="flex justify-between items-start">
+                <div class="flex justify-between items-start mb-1">
                     <span class="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">${item.date}</span>
-                    <span class="font-black text-slate-800 italic">฿${item.total}</span>
+                    <span class="font-black text-slate-800 italic text-lg">฿${item.total.toLocaleString()}</span>
                 </div>
-                <p class="text-xs font-bold text-slate-700 mt-1">${item.items}</p>
-                <p class="text-[9px] text-slate-400 mt-1 uppercase">${item.time} | ${item.method}</p>
+                <p class="text-xs font-bold text-slate-700 leading-tight">${item.items}</p>
+                <div class="flex justify-between mt-2 text-[9px] text-slate-400 font-bold uppercase border-t pt-2 border-slate-50">
+                    <span><i class="far fa-clock mr-1"></i>${item.time}</span>
+                    <span class="text-emerald-500 font-black">${item.method}</span>
+                </div>
             </div>
         `).join('');
     };
@@ -487,6 +500,7 @@
 </script>
 </body>
 </html>
+
 
 
 
