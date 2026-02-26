@@ -45,39 +45,42 @@
     </nav>
 
     <div id="view-dash" class="p-4 space-y-6">
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h3 class="font-black text-slate-800 mb-6 flex items-center gap-2 italic">
-                <i class="fas fa-chart-pie text-red-500"></i> สรุปรายเดือนนี้
-            </h3>
-            <div class="space-y-5">
-                <div class="flex justify-between items-end">
-                    <span class="text-slate-500 font-bold text-sm italic">ยอดขายรวม (Gross)</span>
-                    <span id="month-income" class="font-black text-3xl text-slate-800 tracking-tighter">฿0</span>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <h3 class="font-black text-slate-800 mb-6 flex items-center justify-between italic">
+                    <span><i class="fas fa-wallet text-green-500 mr-2"></i>สรุปรายได้วันนี้</span>
+                    <span class="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500" id="current-date-badge"></span>
+                </h3>
+                
+                <div class="text-center mb-8">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ยอดขายสุทธิ (100%)</p>
+                    <h1 id="today-gross" class="text-5xl font-black text-slate-800 tracking-tighter">฿0</h1>
                 </div>
-                <div class="grid grid-cols-2 gap-4 py-4 border-y border-dashed border-slate-200">
-                    <div class="bg-blue-50/50 p-3 rounded-2xl">
-                        <p class="text-[10px] text-blue-600 font-black uppercase">ทุน (70%)</p>
-                        <p id="month-cap" class="font-black text-slate-700">฿0</p>
+        
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 p-4 rounded-3xl relative">
+                        <p class="text-[10px] text-blue-600 font-black uppercase mb-1">เงินทุน (70%)</p>
+                        <input type="number" id="input-cap" onchange="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-blue-600" value="0">
+                        <p class="text-[8px] text-blue-400 italic">แตะเพื่อปัดเศษ</p>
                     </div>
-                    <div class="bg-green-50/50 p-3 rounded-2xl">
-                        <p class="text-[10px] text-green-600 font-black uppercase">กำไร (30%)</p>
-                        <p id="month-prof" class="font-black text-slate-700">฿0</p>
+        
+                    <div class="bg-green-50 p-4 rounded-3xl relative">
+                        <p class="text-[10px] text-green-600 font-black uppercase mb-1">กำไร (30%)</p>
+                        <input type="number" id="input-prof" onchange="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none focus:text-green-600" value="0">
+                        <p class="text-[8px] text-green-400 italic">แตะเพื่อปัดเศษ</p>
                     </div>
                 </div>
-                <div class="bg-slate-900 p-5 rounded-3xl text-white space-y-3">
-                    <div class="flex justify-between items-center text-red-400">
-                        <span class="text-xs font-bold uppercase">รายจ่ายจริงที่หักไป</span>
-                        <span id="month-exp" class="font-black">-฿0</span>
+        
+                <div class="mt-6 p-4 bg-slate-900 rounded-3xl text-white flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">ตรวจสอบยอดรวม</p>
+                        <p id="check-sum" class="text-xs font-black text-blue-400 italic">Balance OK</p>
                     </div>
-                    <div class="h-px bg-white/10 w-full"></div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">เงินทุนคงเหลือสุทธิ</span>
-                        <span id="remain-cap" class="text-2xl font-black text-blue-400 tracking-tighter">฿0</span>
-                    </div>
+                    <button onclick="refreshData()" class="bg-white/10 p-3 rounded-2xl hover:bg-white/20 transition-all">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
     <div id="view-details" class="hidden p-4 space-y-4">
         <div class="flex bg-slate-200 p-1 rounded-2xl">
@@ -135,7 +138,7 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbz1ZUjRiqKtuKOyWibj5UZLQ3JeHwkIDOm9z8XZFuthMeMHZqxYqMmFtP41xHC1tolT9g/exec";
+        const API = "https://script.google.com/macros/s/AKfycbx-96Ymy4PDSNp39HARZGILNHcb8KgZlv4NQek8cHuH1dxWkgswSEUvjfcJADN2AaCJ2A/exec";
 
         function switchView(v) {
             ['dash','details','exp','stock'].forEach(i => {
@@ -178,31 +181,58 @@
         }
 
         window.renderAll = function(d) {
-            // Dashboard
-            document.getElementById('today-profit-top').innerText = `฿${(d.summary.todayIncome * 0.3).toLocaleString()}`;
-            document.getElementById('month-income').innerText = `฿${d.summary.monthIncome.toLocaleString()}`;
-            const cap = d.summary.monthIncome * 0.7;
-            document.getElementById('month-cap').innerText = `฿${cap.toLocaleString()}`;
-            document.getElementById('month-prof').innerText = `฿${(d.summary.monthIncome * 0.3).toLocaleString()}`;
-            document.getElementById('month-exp').innerText = `-฿${d.summary.monthExpense.toLocaleString()}`;
-            document.getElementById('remain-cap').innerText = `฿${(cap - d.summary.monthExpense).toLocaleString()}`;
+        const gross = d.todayIncome;
+        document.getElementById('today-gross').innerText = `฿${gross.toLocaleString()}`;
+        document.getElementById('current-date-badge').innerText = document.getElementById('display-date').innerText;
 
-            // Income List
-            document.getElementById('income-list').innerHTML = d.details.incomes.map(i => `
-                <div class="bg-white p-2 rounded-xl shadow-sm border-l-2 border-green-500">
-                    <p class="font-black text-slate-800 list-text-xs">฿${parseFloat(i.total).toLocaleString()}</p>
-                    <p class="text-[8px] text-slate-400 truncate font-bold">${i.time} | ${i.items}</p>
-                </div>
-            `).join('') || '<p class="text-[8px] text-center text-slate-400">ไม่มีข้อมูล</p>';
+        // คำนวณเบื้องต้น 70/30
+        const cap = Math.floor(gross * 0.7);
+        const prof = gross - cap; // ให้กำไรเป็นตัวรับเศษที่เหลือ
 
-            // Expense List
-            document.getElementById('expense-list').innerHTML = d.details.expenses.map(e => `
-                <div class="bg-white p-2 rounded-xl shadow-sm border-l-2 border-red-500">
-                    <p class="font-black text-red-600 list-text-xs">฿${parseFloat(e.amount).toLocaleString()}</p>
-                    <p class="text-[8px] text-slate-400 font-bold">${e.date} | ${e.desc}</p>
-                </div>
-            `).join('') || '<p class="text-[8px] text-center text-slate-400">ไม่มีข้อมูล</p>';
+        document.getElementById('input-cap').value = cap;
+        document.getElementById('input-prof').value = prof;
+        
+        validateSum(gross, cap, prof);
+
+        // แสดงรายการขายเฉพาะวันนี้ในหน้า Transactions
+        renderTodayTransactions(d.details);
+    };
+
+    function manualAdjust() {
+        const grossStr = document.getElementById('today-gross').innerText.replace('฿', '').replace(/,/g, '');
+        const gross = parseFloat(grossStr);
+        const cap = parseFloat(document.getElementById('input-cap').value) || 0;
+        const prof = parseFloat(document.getElementById('input-prof').value) || 0;
+
+        validateSum(gross, cap, prof);
+    }
+
+    function validateSum(gross, cap, prof) {
+        const sum = cap + prof;
+        const checkEl = document.getElementById('check-sum');
+        
+        if (sum === gross) {
+            checkEl.innerText = "✓ ยอดเงินตรงกันพอดี";
+            checkEl.className = "text-xs font-black text-green-400 italic";
+        } else {
+            const diff = gross - sum;
+            checkEl.innerText = `⚠ ต่างกันอยู่: ${diff} บาท`;
+            checkEl.className = "text-xs font-black text-yellow-400 italic";
         }
+    }
+
+    function renderTodayTransactions(list) {
+        const incList = document.getElementById('income-list');
+        incList.innerHTML = list.map(i => `
+            <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-green-500 mb-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black text-slate-400 uppercase">${i.time}</span>
+                    <span class="font-black text-slate-800 italic">฿${i.total.toLocaleString()}</span>
+                </div>
+                <p class="text-[10px] font-bold text-slate-600 truncate">${i.items}</p>
+            </div>
+        `).join('') || '<p class="text-center py-10 text-slate-400 text-xs">วันนี้ยังไม่มีรายการที่เสร็จสิ้น</p>';
+    }
 
         function loadStock() {
             const s = document.createElement('script');
