@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>AMAMEE INSIGHT - Date Filter</title>
+    <title>AMAMEE INSIGHT - Custom Tool</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet"/>
@@ -14,100 +14,105 @@
         .page.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #334155; z-index: 50; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 10px; font-weight: bold; width: 33%; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 10px; font-weight: bold; width: 25%; }
         .nav-item.active { color: #ef4444; }
-        
-        /* ปรับแต่งช่องเลือกวันที่ */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            opacity: 0.5;
-        }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
     </style>
 </head>
 <body>
 
     <header class="p-5 flex justify-between items-center sticky top-0 bg-[#0f172a] z-40">
         <h1 class="text-xl font-black italic">AMAMEE <span class="text-red-500">INSIGHT</span></h1>
-        <button onclick="refreshAll()" class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center active:scale-90 transition">
-            <span class="material-symbols-outlined text-sm text-slate-400">refresh</span>
-        </button>
+        <button onclick="refreshAll()" class="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center"><span class="material-symbols-outlined text-sm">refresh</span></button>
     </header>
 
     <main id="p-dashboard" class="page active px-5">
-        <div class="mb-6 bg-slate-800/50 p-4 rounded-[25px] border border-slate-700 flex items-center justify-between">
-            <div class="flex flex-col">
-                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Select Date</span>
-                <input type="date" id="date-filter" onchange="refreshAll()" class="bg-transparent text-sm font-bold outline-none text-red-500">
-            </div>
-            <span class="material-symbols-outlined text-slate-600">event</span>
+        <div class="mb-4 bg-slate-800/50 p-4 rounded-[25px] border border-slate-700 flex items-center justify-between">
+            <input type="date" id="date-filter" onchange="refreshAll()" class="bg-transparent text-sm font-bold outline-none text-red-500">
+            <span class="text-[10px] font-extrabold text-slate-500 uppercase">Filter Date</span>
         </div>
 
-        <div class="bg-gradient-to-br from-white to-blue-50 rounded-[35px] p-8 text-slate-900 shadow-2xl mb-8 relative overflow-hidden">
-            <h2 id="filter-label" class="text-center text-[10px] font-extrabold uppercase text-slate-400 tracking-widest mb-1 italic">Performance Overview</h2>
-            <h1 id="dash-sales" class="text-5xl font-black italic text-center mb-8 tracking-tighter">฿0</h1>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="bg-white/50 border border-blue-100 p-4 rounded-3xl text-center">
-                    <p class="text-[9px] text-blue-500 font-bold uppercase mb-1">Capital</p>
-                    <p id="dash-cap" class="text-lg font-black italic text-slate-800">0</p>
+        <div class="bg-white rounded-[35px] p-8 text-slate-900 shadow-2xl mb-6 text-center">
+            <h2 class="text-[10px] font-extrabold uppercase text-slate-400 tracking-widest mb-1">ยอดขายสุทธิ</h2>
+            <h1 id="dash-sales" class="text-5xl font-black italic mb-6">฿0</h1>
+            <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-6">
+                <div>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase">รายจ่ายสะสม</p>
+                    <p id="dash-exp" class="text-xl font-black text-red-500">฿0</p>
                 </div>
-                <div class="bg-white/50 border border-green-100 p-4 rounded-3xl text-center">
-                    <p class="text-[9px] text-green-500 font-bold uppercase mb-1">Profit</p>
-                    <p id="dash-prof" class="text-lg font-black italic text-slate-800">0</p>
+                <div>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase">คงเหลือจริง</p>
+                    <p id="dash-remain" class="text-xl font-black text-emerald-600">฿0</p>
                 </div>
             </div>
         </div>
-        
-        <h3 class="font-bold mb-4 italic text-sm text-slate-500 flex items-center gap-2 px-2">
-            <span class="w-1.5 h-4 bg-red-500 rounded-full"></span> Date Transactions
-        </h3>
         <div id="log-list" class="space-y-3"></div>
     </main>
 
-    <main id="p-income" class="page px-5">
-        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-[30px] mb-8">
-            <h2 class="font-bold mb-4 italic text-blue-400 uppercase text-sm">Add New Income</h2>
-            <input type="number" id="in-amt" inputmode="decimal" class="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-3xl font-black mb-4 focus:border-blue-500 outline-none" placeholder="0.00">
-            <select id="in-method" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mb-6 font-bold">
-                <option value="เงินโอน">💰 เงินโอน</option>
-                <option value="เงินสด">💵 เงินสด</option>
-            </select>
-            <button onclick="saveIncome()" class="w-full bg-blue-600 p-5 rounded-2xl font-black italic shadow-lg active:scale-95 transition">CONFIRM INCOME</button>
+    <main id="p-calc" class="page px-5">
+        <div class="bg-slate-800 p-6 rounded-[30px] border border-slate-700">
+            <h2 class="font-bold mb-4 italic text-yellow-400 flex items-center gap-2">
+                <span class="material-symbols-outlined">calculate</span> เครื่องมือกองทุนกำไร
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-slate-400 font-bold uppercase ml-2">ยอดเงินที่ต้องการแบ่ง</label>
+                    <input type="number" id="calc-amt" class="w-full bg-slate-900 p-4 rounded-2xl text-2xl font-black outline-none border border-slate-700 focus:border-yellow-500" placeholder="0.00">
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase ml-2">หักทุน (%)</label>
+                        <input type="number" id="calc-cap-per" class="w-full bg-slate-900 p-4 rounded-2xl font-bold border border-slate-700" value="70">
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase ml-2">กำไร (%)</label>
+                        <input type="number" id="calc-prof-per" class="w-full bg-slate-900 p-4 rounded-2xl font-bold border border-slate-700" value="30">
+                    </div>
+                </div>
+                <button onclick="calculateSplit()" class="w-full bg-yellow-500 text-slate-900 p-4 rounded-2xl font-black italic active:scale-95 transition">CALCULATE SPLIT</button>
+            </div>
+
+            <div id="calc-result" class="hidden mt-6 p-5 bg-slate-900 rounded-2xl border-2 border-dashed border-slate-700 space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-xs text-slate-400 font-bold uppercase">ต้องเก็บเข้าทุน:</span>
+                    <span id="res-cap" class="font-black text-blue-400 text-lg">฿0</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-800 pt-3">
+                    <span class="text-xs text-slate-400 font-bold uppercase">กำไรสุทธิ:</span>
+                    <span id="res-prof" class="font-black text-emerald-400 text-lg">฿0</span>
+                </div>
+            </div>
         </div>
-        <div id="income-log" class="space-y-2"></div>
+    </main>
+
+    <main id="p-income" class="page px-5">
+        <div class="bg-slate-800 p-6 rounded-[30px] border border-slate-700">
+            <h2 class="font-bold mb-4 italic text-blue-400">บันทึกยอดขาย</h2>
+            <input type="number" id="in-amt" inputmode="decimal" class="w-full bg-slate-900 p-5 rounded-2xl text-3xl font-black mb-4 outline-none border border-slate-700 focus:border-blue-500" placeholder="0.00">
+            <button onclick="saveIncome()" class="w-full bg-blue-600 p-5 rounded-2xl font-black italic active:scale-95 transition">SAVE INCOME</button>
+        </div>
     </main>
 
     <main id="p-expense" class="page px-5">
-        <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-[30px] mb-8">
-            <h2 class="font-bold mb-4 italic text-red-400 uppercase text-sm">Add New Expense</h2>
-            <input type="number" id="ex-amt" inputmode="decimal" class="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-3xl font-black mb-4 focus:border-red-500 outline-none" placeholder="0.00">
-            <input type="text" id="ex-title" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mb-6 font-bold" placeholder="เช่น ค่าที่, ค่าถุง">
-            <button onclick="saveExpense()" class="w-full bg-red-600 p-5 rounded-2xl font-black italic shadow-lg active:scale-95 transition">SAVE EXPENSE</button>
+        <div class="bg-slate-800 p-6 rounded-[30px] border border-slate-700">
+            <h2 class="font-bold mb-4 italic text-red-400">บันทึกรายจ่าย</h2>
+            <input type="number" id="ex-amt" inputmode="decimal" class="w-full bg-slate-900 p-5 rounded-2xl text-3xl font-black mb-4 outline-none border border-slate-700 focus:border-red-500" placeholder="0.00">
+            <input type="text" id="ex-title" class="w-full bg-slate-900 p-4 rounded-2xl mb-6 font-bold" placeholder="ระบุชื่อรายการ">
+            <button onclick="saveExpense()" class="w-full bg-red-600 p-5 rounded-2xl font-black italic active:scale-95 transition">SAVE EXPENSE</button>
         </div>
-        <div id="expense-log" class="space-y-2"></div>
     </main>
 
     <nav class="bottom-nav">
-        <button onclick="nav('dashboard')" id="nav-dashboard" class="nav-item active">
-            <span class="material-symbols-outlined">analytics</span>Dashboard
-        </button>
-        <button onclick="nav('income')" id="nav-income" class="nav-item">
-            <span class="material-symbols-outlined">add_circle</span>Income
-        </button>
-        <button onclick="nav('expense')" id="nav-expense" class="nav-item">
-            <span class="material-symbols-outlined">remove_circle</span>Expense
-        </button>
+        <button onclick="nav('dashboard')" id="nav-dashboard" class="nav-item active"><span class="material-symbols-outlined">analytics</span>Dash</button>
+        <button onclick="nav('calc')" id="nav-calc" class="nav-item"><span class="material-symbols-outlined">calculate</span>Split</button>
+        <button onclick="nav('income')" id="nav-income" class="nav-item"><span class="material-symbols-outlined">add_circle</span>Income</button>
+        <button onclick="nav('expense')" id="nav-expense" class="nav-item"><span class="material-symbols-outlined">remove_circle</span>Expense</button>
     </nav>
 
     <script>
         const SB_URL = 'https://fhedgbohznryyytgkbcu.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZoZWRnYm9oem5yeXl5dGdrYmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjA3NTUsImV4cCI6MjA4ODA5Njc1NX0.Y9V3lP2p2bpf_4P1g1T3EFt_0HuhEkhPgzGhS71EghE';
         const sb = supabase.createClient(SB_URL, SB_KEY);
-
-        // ตั้งค่าเริ่มต้นให้ Input Date เป็นวันนี้
-        function setDefaultDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date-filter').value = today;
-        }
 
         function nav(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -117,90 +122,65 @@
             refreshAll();
         }
 
-        async function refreshAll() {
-            const selectedDate = document.getElementById('date-filter').value;
-            await fetchDashboardData(selectedDate);
-            await updateHistoryLogs();
-        }
-
         async function saveIncome() {
             const amt = parseFloat(document.getElementById('in-amt').value);
-            const method = document.getElementById('in-method').value;
-            if(!amt) return alert("กรุณาใส่จำนวนเงิน");
-            const { error } = await sb.from('transactions').insert([{
-                type: 'income', amount: amt, capital: amt * 0.7, profit: amt * 0.3, payment_method: method, title: 'ยอดขาย'
-            }]);
-            if(!error) { document.getElementById('in-amt').value = ''; refreshAll(); alert("บันทึกรายรับแล้ว ✅"); }
+            if(!amt) return;
+            const { error } = await sb.from('transactions').insert([{ type: 'income', amount: amt, title: 'ยอดขาย' }]);
+            if(!error) { document.getElementById('in-amt').value = ''; alert("บันทึกสำเร็จ ✅"); refreshAll(); }
         }
 
         async function saveExpense() {
             const amt = parseFloat(document.getElementById('ex-amt').value);
             const title = document.getElementById('ex-title').value;
-            if(!amt || !title) return alert("กรอกข้อมูลให้ครบ");
-            const { error } = await sb.from('transactions').insert([{
-                type: 'expense', amount: amt, capital: -amt, profit: 0, title: title
-            }]);
-            if(!error) { document.getElementById('ex-amt').value = ''; document.getElementById('ex-title').value = ''; refreshAll(); alert("บันทึกรายจ่ายแล้ว 📉"); }
+            if(!amt || !title) return;
+            const { error } = await sb.from('transactions').insert([{ type: 'expense', amount: amt, title: title }]);
+            if(!error) { document.getElementById('ex-amt').value = ''; document.getElementById('ex-title').value = ''; alert("บันทึกรายจ่ายแล้ว 📉"); refreshAll(); }
         }
 
-        async function fetchDashboardData(filterDate) {
+        function calculateSplit() {
+            const amt = parseFloat(document.getElementById('calc-amt').value) || 0;
+            const capPer = parseFloat(document.getElementById('calc-cap-per').value) || 0;
+            const profPer = parseFloat(document.getElementById('calc-prof-per').value) || 0;
+            
+            const capAmt = (amt * capPer) / 100;
+            const profAmt = (amt * profPer) / 100;
+
+            document.getElementById('res-cap').innerText = '฿' + capAmt.toLocaleString();
+            document.getElementById('res-prof').innerText = '฿' + profAmt.toLocaleString();
+            document.getElementById('calc-result').classList.remove('hidden');
+        }
+
+        async function refreshAll() {
+            const date = document.getElementById('date-filter').value;
             const { data } = await sb.from('transactions').select('*');
-            if (data) {
-                // กรองเฉพาะวันที่เลือก
-                const filtered = data.filter(i => {
-                    const iDate = new Date(i.created_at).toISOString().split('T')[0];
-                    return iDate === filterDate;
-                });
-
-                let s = 0, c = 0, p = 0;
+            if(data) {
+                const filtered = data.filter(i => new Date(i.created_at).toISOString().split('T')[0] === date);
+                let inc = 0, exp = 0;
                 filtered.forEach(i => {
-                    if (i.type === 'income') s += (i.amount || 0);
-                    c += (i.capital || 0);
-                    p += (i.profit || 0);
+                    if(i.type === 'income') inc += i.amount;
+                    else exp += i.amount;
                 });
 
-                document.getElementById('dash-sales').innerText = '฿' + s.toLocaleString();
-                document.getElementById('dash-cap').innerText = c.toLocaleString();
-                document.getElementById('dash-prof').innerText = p.toLocaleString();
+                document.getElementById('dash-sales').innerText = '฿' + inc.toLocaleString();
+                document.getElementById('dash-exp').innerText = '฿' + exp.toLocaleString();
+                document.getElementById('dash-remain').innerText = '฿' + (inc - exp).toLocaleString();
 
-                // ประวัติรายการของวันที่เลือก
-                document.getElementById('log-list').innerHTML = filtered.length ? filtered.map(i => `
+                document.getElementById('log-list').innerHTML = filtered.map(i => `
                     <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between items-center border border-slate-700/50">
                         <div class="flex flex-col">
                             <span class="text-xs font-bold">${i.title}</span>
-                            <span class="text-[9px] text-slate-500 font-bold uppercase">${new Date(i.created_at).toLocaleTimeString()}</span>
+                            <span class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">${new Date(i.created_at).toLocaleTimeString()}</span>
                         </div>
-                        <span class="${i.type === 'income' ? 'text-green-400' : 'text-red-400'} font-black italic">
+                        <span class="${i.type === 'income' ? 'text-blue-400' : 'text-red-400'} font-black italic">
                             ${i.type === 'income' ? '+' : '-'}฿${i.amount.toLocaleString()}
                         </span>
-                    </div>
-                `).join('') : '<p class="text-center text-slate-600 text-xs py-10">ไม่มีรายการในวันที่นี้</p>';
-            }
-        }
-
-        async function updateHistoryLogs() {
-            const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
-            if (data) {
-                const inLog = data.filter(i => i.type === 'income').slice(0, 5);
-                document.getElementById('income-log').innerHTML = inLog.map(item => `
-                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between mb-2">
-                        <span class="text-xs text-slate-400 font-bold">${new Date(item.created_at).toLocaleDateString()}</span>
-                        <span class="text-green-400 font-black">+฿${item.amount.toLocaleString()}</span>
-                    </div>
-                `).join('');
-
-                const exLog = data.filter(i => i.type === 'expense').slice(0, 5);
-                document.getElementById('expense-log').innerHTML = exLog.map(item => `
-                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between mb-2">
-                        <span class="text-xs font-bold">${item.title}</span>
-                        <span class="text-red-400 font-black">-฿${item.amount.toLocaleString()}</span>
                     </div>
                 `).join('');
             }
         }
 
         window.onload = () => {
-            setDefaultDate();
+            document.getElementById('date-filter').value = new Date().toISOString().split('T')[0];
             refreshAll();
         };
     </script>
