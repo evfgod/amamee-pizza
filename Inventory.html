@@ -158,24 +158,49 @@
         }
 
         async function fetchAllData() {
-            const { data } = await sb.from('transactions').select('*').order('created_at', {ascending: false});
-            if(data) {
-                let s_total = 0, c_total = 0, p_total = 0;
-                const list = document.getElementById('log-list');
-                list.innerHTML = data.map(i => {
-                    if(new Date(i.created_at).toDateString() === new Date().toDateString()){
-                        if(i.type === 'income') s_total += i.amount;
-                        c_total += i.capital;
-                        p_total += i.profit;
+            console.log("กำลังดึงข้อมูลจาก Supabase...");
+            
+            // ดึงข้อมูลทั้งหมดจากตาราง transactions
+            const { data, error } = await sb
+                .from('transactions')
+                .select('*')
+                .order('created_at', { ascending: false });
+        
+            if (error) {
+                console.error("ดึงข้อมูลไม่สำเร็จ:", error.message);
+                return;
+            }
+        
+            if (data) {
+                console.log("ข้อมูลที่ดึงได้:", data); // ดูใน Console ว่ามีข้อมูลไหม
+        
+                let s_total = 0; // ยอดขาย 100%
+                let c_total = 0; // ทุนรวม (รวมรายรับ-รายจ่าย)
+                let p_total = 0; // กำไรสะสม
+                
+                const today = new Date().toLocaleDateString();
+        
+                data.forEach(item => {
+                    // คำนวณยอดเฉพาะของวันนี้
+                    if (new Date(item.created_at).toLocaleDateString() === today) {
+                        if (item.type === 'income') {
+                            s_total += item.amount || 0;
+                        }
                     }
-                    return `<div class="bg-slate-800/50 p-3 rounded-xl flex justify-between border border-slate-800 text-[11px]">
-                        <span>${i.title} (${i.type})</span>
-                        <span class="${i.type === 'income' ? 'text-green-400' : 'text-red-400'} font-bold">฿${i.amount}</span>
-                    </div>`;
-                }).join('');
-                document.getElementById('dash-sales').innerText = '฿'+s_total.toLocaleString();
-                document.getElementById('dash-cap').innerText = c_total.toLocaleString();
-                document.getElementById('dash-prof').innerText = p_total.toLocaleString();
+                    // คำนวณยอดสะสมทั้งหมด (Capital และ Profit)
+                    c_total += item.capital || 0;
+                    p_total += item.profit || 0;
+                });
+        
+                // แสดงผลลงในหน้า Dashboard (อ้างอิง ID ตาม UI AMAMEE INSIGHT)
+                document.getElementById('dash-sales').innerText = '฿' + s_total.toLocaleString();
+                document.getElementById('dash-cap').innerText = '฿' + c_total.toLocaleString();
+                document.getElementById('dash-prof').innerText = '฿' + p_total.toLocaleString();
+                
+                // ถ้ามีที่แสดงยอดใน Card เล็กด้านบนด้วย
+                if(document.getElementById('top-profit')) {
+                    document.getElementById('top-profit').innerText = '฿' + p_total.toLocaleString();
+                }
             }
         }
 
