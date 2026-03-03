@@ -104,27 +104,19 @@
         }
 
         async function saveIncome() {
+            // ตัวอย่าง Logic การบันทึกที่สอดคล้องกับรูปภาพของคุณ
             const amt = parseFloat(document.getElementById('in-amt').value);
-            const method = document.getElementById('in-method').value;
-            if(!amt) return alert("ใส่ยอดเงิน");
-        
-            const response = await fetch(`${SB_URL}/rest/v1/transactions`, {
-                method: 'POST',
-                headers: {
-                    'apikey': SB_KEY,
-                    'Authorization': `Bearer ${SB_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({
-                    type: 'income',
-                    amount: amt,
-                    capital: amt * 0.7,
-                    profit: amt * 0.3,
-                    payment_method: method,
-                    title: 'ยอดขาย'
-                })
-            });
+            const capital = amt * 0.7; // เงินทุน 70%
+            const profit = amt * 0.3;  // กำไร 30%
+            
+            // ส่งไปที่ตาราง transactions
+            const { error } = await sb.from('transactions').insert([{
+                type: 'income',
+                amount: amt,
+                capital: capital,
+                profit: profit,
+                title: 'ยอดขายรายวัน'
+            }]);
         
             if (response.ok) {
                 alert("บันทึกสำเร็จ!");
