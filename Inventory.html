@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <title>AMAMEE INSIGHT - Pro</title>
+    <title>AMAMEE INSIGHT - Date Filter</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet"/>
@@ -16,8 +16,12 @@
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px 0; border-top: 1px solid #334155; z-index: 50; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 10px; font-weight: bold; width: 33%; }
         .nav-item.active { color: #ef4444; }
-        .nav-item .material-symbols-outlined { font-size: 24px; margin-bottom: 2px; }
-        .filter-btn.active { background-color: #ef4444; color: white; border-color: #ef4444; }
+        
+        /* ปรับแต่งช่องเลือกวันที่ */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -30,29 +34,31 @@
     </header>
 
     <main id="p-dashboard" class="page active px-5">
-        <div class="flex gap-2 mb-6 bg-slate-800/50 p-1 rounded-2xl border border-slate-700">
-            <button onclick="setFilter('today')" id="f-today" class="filter-btn active flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition">Today</button>
-            <button onclick="setFilter('month')" id="f-month" class="filter-btn flex-1 py-2 rounded-xl text-[10px] font-bold uppercase transition">This Month</button>
+        <div class="mb-6 bg-slate-800/50 p-4 rounded-[25px] border border-slate-700 flex items-center justify-between">
+            <div class="flex flex-col">
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Select Date</span>
+                <input type="date" id="date-filter" onchange="refreshAll()" class="bg-transparent text-sm font-bold outline-none text-red-500">
+            </div>
+            <span class="material-symbols-outlined text-slate-600">event</span>
         </div>
 
         <div class="bg-gradient-to-br from-white to-blue-50 rounded-[35px] p-8 text-slate-900 shadow-2xl mb-8 relative overflow-hidden">
-            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl"></div>
-            <h2 id="filter-label" class="text-center text-[10px] font-extrabold uppercase text-slate-400 tracking-widest mb-1">Total Sales (Today)</h2>
+            <h2 id="filter-label" class="text-center text-[10px] font-extrabold uppercase text-slate-400 tracking-widest mb-1 italic">Performance Overview</h2>
             <h1 id="dash-sales" class="text-5xl font-black italic text-center mb-8 tracking-tighter">฿0</h1>
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-white/50 border border-blue-100 p-4 rounded-3xl text-center">
-                    <p class="text-[9px] text-blue-500 font-bold uppercase mb-1">Total Capital</p>
+                    <p class="text-[9px] text-blue-500 font-bold uppercase mb-1">Capital</p>
                     <p id="dash-cap" class="text-lg font-black italic text-slate-800">0</p>
                 </div>
                 <div class="bg-white/50 border border-green-100 p-4 rounded-3xl text-center">
-                    <p class="text-[9px] text-green-500 font-bold uppercase mb-1">Total Profit</p>
+                    <p class="text-[9px] text-green-500 font-bold uppercase mb-1">Profit</p>
                     <p id="dash-prof" class="text-lg font-black italic text-slate-800">0</p>
                 </div>
             </div>
         </div>
         
-        <h3 class="font-bold mb-4 italic text-sm text-slate-500 flex items-center gap-2">
-            <span class="w-1.5 h-4 bg-red-500 rounded-full"></span> Recent Transactions
+        <h3 class="font-bold mb-4 italic text-sm text-slate-500 flex items-center gap-2 px-2">
+            <span class="w-1.5 h-4 bg-red-500 rounded-full"></span> Date Transactions
         </h3>
         <div id="log-list" class="space-y-3"></div>
     </main>
@@ -62,8 +68,8 @@
             <h2 class="font-bold mb-4 italic text-blue-400 uppercase text-sm">Add New Income</h2>
             <input type="number" id="in-amt" inputmode="decimal" class="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-3xl font-black mb-4 focus:border-blue-500 outline-none" placeholder="0.00">
             <select id="in-method" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mb-6 font-bold">
-                <option value="เงินโอน">💰 เงินโอน (Transfer)</option>
-                <option value="เงินสด">💵 เงินสด (Cash)</option>
+                <option value="เงินโอน">💰 เงินโอน</option>
+                <option value="เงินสด">💵 เงินสด</option>
             </select>
             <button onclick="saveIncome()" class="w-full bg-blue-600 p-5 rounded-2xl font-black italic shadow-lg active:scale-95 transition">CONFIRM INCOME</button>
         </div>
@@ -74,7 +80,7 @@
         <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-[30px] mb-8">
             <h2 class="font-bold mb-4 italic text-red-400 uppercase text-sm">Add New Expense</h2>
             <input type="number" id="ex-amt" inputmode="decimal" class="w-full bg-slate-900 border border-slate-700 p-5 rounded-2xl text-3xl font-black mb-4 focus:border-red-500 outline-none" placeholder="0.00">
-            <input type="text" id="ex-title" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mb-6 font-bold" placeholder="e.g. Rent, Gas, Supplies">
+            <input type="text" id="ex-title" class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl mb-6 font-bold" placeholder="เช่น ค่าที่, ค่าถุง">
             <button onclick="saveExpense()" class="w-full bg-red-600 p-5 rounded-2xl font-black italic shadow-lg active:scale-95 transition">SAVE EXPENSE</button>
         </div>
         <div id="expense-log" class="space-y-2"></div>
@@ -97,67 +103,59 @@
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZoZWRnYm9oem5yeXl5dGdrYmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjA3NTUsImV4cCI6MjA4ODA5Njc1NX0.Y9V3lP2p2bpf_4P1g1T3EFt_0HuhEkhPgzGhS71EghE';
         const sb = supabase.createClient(SB_URL, SB_KEY);
 
-        let currentFilter = 'today'; // ค่าเริ่มต้นเป็น วันนี้
+        // ตั้งค่าเริ่มต้นให้ Input Date เป็นวันนี้
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-filter').value = today;
+        }
 
         function nav(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
             document.getElementById('p-'+id).classList.add('active');
             document.getElementById('nav-'+id).classList.add('active');
-            window.scrollTo(0,0);
-            refreshAll();
-        }
-
-        function setFilter(type) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('f-'+type).classList.add('active');
-            document.getElementById('filter-label').innerText = type === 'today' ? 'Total Sales (Today)' : 'Total Sales (This Month)';
             refreshAll();
         }
 
         async function refreshAll() {
-            await fetchAllData();
-            await updateLogs();
+            const selectedDate = document.getElementById('date-filter').value;
+            await fetchDashboardData(selectedDate);
+            await updateHistoryLogs();
         }
 
         async function saveIncome() {
             const amt = parseFloat(document.getElementById('in-amt').value);
             const method = document.getElementById('in-method').value;
-            if(!amt) return alert("Please enter amount");
+            if(!amt) return alert("กรุณาใส่จำนวนเงิน");
             const { error } = await sb.from('transactions').insert([{
-                type: 'income', amount: amt, capital: amt * 0.7, profit: amt * 0.3, payment_method: method, title: 'ยอดขายรายวัน'
+                type: 'income', amount: amt, capital: amt * 0.7, profit: amt * 0.3, payment_method: method, title: 'ยอดขาย'
             }]);
-            if(!error) { document.getElementById('in-amt').value = ''; refreshAll(); alert("Saved Successfully! ✅"); }
+            if(!error) { document.getElementById('in-amt').value = ''; refreshAll(); alert("บันทึกรายรับแล้ว ✅"); }
         }
 
         async function saveExpense() {
             const amt = parseFloat(document.getElementById('ex-amt').value);
             const title = document.getElementById('ex-title').value;
-            if(!amt || !title) return alert("Please fill all fields");
+            if(!amt || !title) return alert("กรอกข้อมูลให้ครบ");
             const { error } = await sb.from('transactions').insert([{
-                type: 'expense', amount: amt, capital: -amt, profit: 0, payment_method: 'เงินสด', title: title
+                type: 'expense', amount: amt, capital: -amt, profit: 0, title: title
             }]);
-            if(!error) { document.getElementById('ex-amt').value = ''; document.getElementById('ex-title').value = ''; refreshAll(); alert("Expense Logged! 📉"); }
+            if(!error) { document.getElementById('ex-amt').value = ''; document.getElementById('ex-title').value = ''; refreshAll(); alert("บันทึกรายจ่ายแล้ว 📉"); }
         }
 
-        async function fetchAllData() {
-            const { data } = await sb.from('transactions').select('*').order('created_at', {ascending: false});
+        async function fetchDashboardData(filterDate) {
+            const { data } = await sb.from('transactions').select('*');
             if (data) {
-                const now = new Date();
-                const filteredData = data.filter(i => {
-                    const itemDate = new Date(i.created_at);
-                    if (currentFilter === 'today') {
-                        return itemDate.toDateString() === now.toDateString();
-                    } else {
-                        return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-                    }
+                // กรองเฉพาะวันที่เลือก
+                const filtered = data.filter(i => {
+                    const iDate = new Date(i.created_at).toISOString().split('T')[0];
+                    return iDate === filterDate;
                 });
 
                 let s = 0, c = 0, p = 0;
-                filteredData.forEach(i => {
+                filtered.forEach(i => {
                     if (i.type === 'income') s += (i.amount || 0);
-                    c += (i.capital || 0); 
+                    c += (i.capital || 0);
                     p += (i.profit || 0);
                 });
 
@@ -165,43 +163,46 @@
                 document.getElementById('dash-cap').innerText = c.toLocaleString();
                 document.getElementById('dash-prof').innerText = p.toLocaleString();
 
-                // Show only last 5 from filtered results
-                document.getElementById('log-list').innerHTML = filteredData.slice(0,5).map(i => `
+                // ประวัติรายการของวันที่เลือก
+                document.getElementById('log-list').innerHTML = filtered.length ? filtered.map(i => `
                     <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between items-center border border-slate-700/50">
                         <div class="flex flex-col">
                             <span class="text-xs font-bold">${i.title}</span>
-                            <span class="text-[9px] text-slate-500 font-bold uppercase">${new Date(i.created_at).toLocaleDateString()}</span>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase">${new Date(i.created_at).toLocaleTimeString()}</span>
                         </div>
                         <span class="${i.type === 'income' ? 'text-green-400' : 'text-red-400'} font-black italic">
                             ${i.type === 'income' ? '+' : '-'}฿${i.amount.toLocaleString()}
                         </span>
                     </div>
-                `).join('');
+                `).join('') : '<p class="text-center text-slate-600 text-xs py-10">ไม่มีรายการในวันที่นี้</p>';
             }
         }
 
-        async function updateLogs() {
-            const { data: trans } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
-            if (trans) {
-                const inLog = trans.filter(i => i.type === 'income').slice(0,10);
+        async function updateHistoryLogs() {
+            const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
+            if (data) {
+                const inLog = data.filter(i => i.type === 'income').slice(0, 5);
                 document.getElementById('income-log').innerHTML = inLog.map(item => `
-                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between border border-slate-700/30 mb-2">
+                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between mb-2">
                         <span class="text-xs text-slate-400 font-bold">${new Date(item.created_at).toLocaleDateString()}</span>
                         <span class="text-green-400 font-black">+฿${item.amount.toLocaleString()}</span>
                     </div>
                 `).join('');
 
-                const exLog = trans.filter(i => i.type === 'expense').slice(0,10);
+                const exLog = data.filter(i => i.type === 'expense').slice(0, 5);
                 document.getElementById('expense-log').innerHTML = exLog.map(item => `
-                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between border border-slate-700/30 mb-2">
-                        <span class="text-xs font-bold text-slate-200">${item.title}</span>
+                    <div class="bg-slate-800/40 p-4 rounded-2xl flex justify-between mb-2">
+                        <span class="text-xs font-bold">${item.title}</span>
                         <span class="text-red-400 font-black">-฿${item.amount.toLocaleString()}</span>
                     </div>
                 `).join('');
             }
         }
 
-        window.onload = refreshAll;
+        window.onload = () => {
+            setDefaultDate();
+            refreshAll();
+        };
     </script>
 </body>
 </html>
