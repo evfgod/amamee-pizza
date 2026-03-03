@@ -158,30 +158,38 @@
         }
 
         async function fetchAllData() {
-            console.log("กำลังดึงข้อมูล...");
-            const { data, error } = await sb.from('transactions').select('*');
+            console.log("เริ่มดึงข้อมูล...");
+            
+            // ดึงทุกอย่างจากตาราง transactions
+            const { data, error } = await sb
+                .from('transactions')
+                .select('*'); 
         
             if (error) {
-                console.error("Error:", error.message);
+                console.error("เกิดข้อผิดพลาด:", error.message);
                 return;
             }
         
-            console.log("ข้อมูลดิบจาก DB:", data); // ดูตรงนี้ใน Console อีกรอบ
+            console.log("ข้อมูลดิบจากฐานข้อมูล:", data);
         
             if (data && data.length > 0) {
-                let s_total = 0, c_total = 0, p_total = 0;
-                
+                let totalSales = 0;
+                let totalCapital = 0;
+                let totalProfit = 0;
+        
                 data.forEach(item => {
-                    s_total += item.amount || 0;
-                    c_total += item.capital || 0;
-                    p_total += item.profit || 0;
+                    // ใช้ชื่อคอลัมน์ให้ตรงกับใน Supabase (ตัวเล็กทั้งหมด)
+                    totalSales += (item.amount || 0);
+                    totalCapital += (item.capital || 0);
+                    totalProfit += (item.profit || 0);
                 });
         
-                document.getElementById('dash-sales').innerText = '฿' + s_total.toLocaleString();
-                document.getElementById('dash-cap').innerText = '฿' + c_total.toLocaleString();
-                document.getElementById('dash-prof').innerText = '฿' + p_total.toLocaleString();
+                // อัปเดตตัวเลขบนหน้าจอ
+                document.getElementById('dash-sales').innerText = '฿' + totalSales.toLocaleString();
+                document.getElementById('dash-cap').innerText = '฿' + totalCapital.toLocaleString();
+                document.getElementById('dash-prof').innerText = '฿' + totalProfit.toLocaleString();
             } else {
-                console.warn("ไม่มีข้อมูลในตาราง transactions เลย");
+                console.warn("ดึงข้อมูลสำเร็จ แต่ไม่มีข้อมูลในตาราง (Array ว่าง)");
             }
         }
 
