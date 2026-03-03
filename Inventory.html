@@ -86,12 +86,14 @@
         const SB_URL = 'https://fhedgbohznryyytgkbcu.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZoZWRnYm9oem5yeXl5dGdrYmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MjA3NTUsImV4cCI6MjA4ODA5Njc1NX0.Y9V3lP2p2bpf_4P1g1T3EFt_0HuhEkhPgzGhS71EghE';
         const sb = supabase.createClient(SB_URL, SB_KEY, {
-  global: {
-    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-  }
-});
-        
-
+          global: {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+          }
+        });
+                
+        console.log("URL:", SB_URL);
+        console.log("Key Length:", SB_KEY.length); // โดยปกติ anon key จะยาวประมาณ 100+ ตัวอักษร
+                
         function nav(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('div button').forEach(b => b.classList.remove('tab-active', 'text-slate-500'));
@@ -105,13 +107,34 @@
             const amt = parseFloat(document.getElementById('in-amt').value);
             const method = document.getElementById('in-method').value;
             if(!amt) return alert("ใส่ยอดเงิน");
-            
-            const { error } = await sb.from('transactions').insert([{
-                type: 'income', amount: amt, capital: amt * 0.7, profit: amt * 0.3, payment_method: method, title: 'ยอดขาย'
-            }]);
-            if(!error) { alert("บันทึกสำเร็จ"); document.getElementById('in-amt').value = ''; nav('dashboard'); }
+        
+            const response = await fetch(`${SB_URL}/rest/v1/transactions`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    type: 'income',
+                    amount: amt,
+                    capital: amt * 0.7,
+                    profit: amt * 0.3,
+                    payment_method: method,
+                    title: 'ยอดขาย'
+                })
+            });
+        
+            if (response.ok) {
+                alert("บันทึกสำเร็จ!");
+                nav('dashboard');
+            } else {
+                const errData = await response.json();
+                console.error("Error Detail:", errData);
+                alert("พังเพราะ: " + (errData.message || response.statusText));
+            }
         }
-
         async function saveExpense() {
             const amt = parseFloat(document.getElementById('ex-amt').value);
             const title = document.getElementById('ex-title').value;
