@@ -1,237 +1,158 @@
 <!DOCTYPE html>
-<html lang="th">
+<html class="dark" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AMAMEE Manager Insight</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>AMAMEE INSIGHT - Financial Controller</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <style>
-        body { font-family: 'Sarabun', sans-serif; background: #F8FAFC; }
-        .tab-active { color: #EF4444; border-bottom: 3px solid #EF4444; }
-        @media (min-width: 640px) { body { max-width: 450px; margin: 0 auto; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; min-height: 100vh; } }
+        body { font-family: 'Manrope', sans-serif; background-color: #111827; color: white; }
+        .tab-active { border-bottom: 3px solid #ef4444; color: #ef4444; }
+        .page { display: none; }
+        .page.active { display: block; }
     </style>
 </head>
-<body class="pb-24">
+<body class="bg-[#0f172a]">
 
-    <header class="bg-[#0F172A] text-white p-6 rounded-b-[2.5rem] shadow-xl">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-black italic uppercase tracking-tighter">AMAMEE <span class="text-red-500">Insight</span></h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Financial Controller</p>
-            </div>
-            <button onclick="refreshData()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/20 active:scale-90">
-                <i class="fas fa-sync-alt text-sm"></i>
-            </button>
+    <header class="p-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-black italic">AMAMEE <span class="text-red-500">INSIGHT</span></h1>
+            <p class="text-[10px] text-slate-400 tracking-widest uppercase">Financial Controller</p>
         </div>
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">วันนี้</p>
-                <h2 id="display-date" class="text-sm font-black text-white italic">...</h2>
-            </div>
-            <div class="bg-white/5 p-4 rounded-2xl border border-white/10 text-right">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">กำไรวันนี้ (30%)</p>
-                <h2 id="today-profit-top" class="text-xl font-black text-green-400">฿0</h2>
-            </div>
-        </div>
+        <button onclick="fetchAllData()" class="bg-slate-800 p-2 rounded-full hover:bg-slate-700 transition">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+        </button>
     </header>
 
-    <nav class="flex justify-around bg-white border-b sticky top-0 z-40">
-        <button onclick="switchView('dash')" id="tab-dash" class="tab-active py-4 px-4 font-black text-[10px] uppercase">Dashboard</button>
-        <button onclick="switchView('details')" id="tab-details" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Transactions</button>
-        <button onclick="switchView('exp')" id="tab-exp" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Expense</button>
-        <button onclick="switchView('stock')" id="tab-stock" class="py-4 px-4 font-black text-[10px] uppercase text-slate-400">Stock</button>
-    </nav>
+    <div class="px-6 grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+            <p class="text-[10px] text-slate-400 mb-1">วันนี้</p>
+            <p id="display-date" class="text-sm font-bold italic">26/02/2569</p>
+        </div>
+        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+            <p class="text-[10px] text-slate-400 mb-1">กำไรวันนี้ (30%)</p>
+            <p id="top-profit" class="text-xl font-black text-green-500 italic">฿0</p>
+        </div>
+    </div>
 
-    <div id="view-dash" class="p-4">
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100">
-            <h3 class="font-black text-slate-800 mb-6 flex items-center justify-between italic">
-                <span><i class="fas fa-wallet text-green-500 mr-2"></i>สรุปรายได้วันนี้</span>
-                <span class="text-[10px] bg-slate-100 px-3 py-1 rounded-full text-slate-500" id="current-date-badge"></span>
-            </h3>
-            <div class="text-center mb-8">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ยอดขายสุทธิ (100%)</p>
-                <h1 id="today-gross" class="text-5xl font-black text-slate-800 tracking-tighter">฿0</h1>
+    <div class="flex justify-between px-6 border-b border-slate-800 text-[10px] font-bold uppercase tracking-tighter mb-8">
+        <button onclick="nav('dashboard')" id="tab-dashboard" class="pb-2 tab-active">Dashboard</button>
+        <button onclick="nav('transactions')" id="tab-transactions" class="pb-2 text-slate-500">Transactions</button>
+        <button onclick="nav('expense')" id="tab-expense" class="pb-2 text-slate-500">Expense</button>
+        <button onclick="nav('stock')" id="tab-stock" class="pb-2 text-slate-500">Stock</button>
+    </div>
+
+    <main id="page-dashboard" class="page active px-6">
+        <div class="bg-white rounded-[40px] p-8 text-slate-900 shadow-xl">
+            <div class="flex items-center gap-2 mb-6">
+                <span class="material-symbols-outlined text-green-600">wallet</span>
+                <h3 class="text-xl font-black italic">สรุปรายได้วันนี้</h3>
+                <span class="ml-auto text-[9px] bg-slate-100 px-2 py-1 rounded-full text-slate-400">26/02/2569</span>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+
+            <div class="text-center mb-10">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">ยอดขายสุทธิ (100%)</p>
+                <h1 id="total-sales" class="text-6xl font-black italic">฿0</h1>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
                 <div class="bg-blue-50 p-4 rounded-3xl">
-                    <p class="text-[10px] text-blue-600 font-black uppercase mb-1">เงินทุน (70%)</p>
-                    <input type="number" id="input-cap" oninput="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none">
+                    <p class="text-[9px] text-blue-400 font-bold uppercase mb-1">เงินทุน (70%)</p>
+                    <p id="total-capital" class="text-2xl font-black italic text-slate-800">0</p>
                 </div>
                 <div class="bg-green-50 p-4 rounded-3xl">
-                    <p class="text-[10px] text-green-600 font-black uppercase mb-1">กำไร (30%)</p>
-                    <input type="number" id="input-prof" oninput="manualAdjust()" class="bg-transparent text-2xl font-black text-slate-700 w-full outline-none">
+                    <p class="text-[9px] text-green-400 font-bold uppercase mb-1">กำไร (30%)</p>
+                    <p id="total-profit" class="text-2xl font-black italic text-slate-800">0</p>
                 </div>
             </div>
-            <div class="mt-6 p-4 bg-slate-900 rounded-3xl text-white flex justify-between items-center">
-                <p id="check-sum" class="text-xs font-black text-blue-400 italic">Balance OK</p>
-                <div id="loading-spinner" class="hidden animate-spin h-5 w-5 border-2 border-white/20 border-t-white rounded-full"></div>
+
+            <div class="bg-slate-900 text-blue-400 p-4 rounded-2xl flex items-center gap-2 italic font-bold text-xs">
+                <span>Balance OK</span>
             </div>
         </div>
-    </div>
+    </main>
 
-    <div id="view-details" class="hidden p-4 space-y-4">
-        <div class="flex bg-slate-200 p-1 rounded-2xl">
-            <button onclick="setDetailMode('inc')" id="btn-m-inc" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase bg-white">Income</button>
-            <button onclick="setDetailMode('exp')" id="btn-m-exp" class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase">Expense</button>
+    <main id="page-transactions" class="page px-6">
+        <div class="bg-slate-800 rounded-3xl p-6 mb-4">
+            <h2 class="font-bold mb-4">บันทึกรายรับ (ออเดอร์)</h2>
+            <input type="number" id="input-amount" placeholder="ใส่ยอดขาย" class="w-full bg-slate-700 p-4 rounded-xl border-none text-2xl font-bold mb-4">
+            <select id="input-method" class="w-full bg-slate-700 p-4 rounded-xl border-none mb-4">
+                <option value="เงินโอน">เงินโอน</option>
+                <option value="เงินสด">เงินสด</option>
+            </select>
+            <button onclick="saveData('income')" class="w-full bg-blue-600 p-4 rounded-xl font-bold uppercase italic">บันทึกยอดขาย</button>
         </div>
-        <div id="income-list" class="space-y-2"></div>
-        <div id="expense-list" class="hidden space-y-2"></div>
-    </div>
 
-    <div id="view-exp" class="hidden p-4">
-        <div class="bg-white p-6 rounded-[2.5rem] shadow-xl">
-            <h3 class="font-black text-slate-800 mb-4 italic">บันทึกค่าใช้จ่าย</h3>
-            <div class="space-y-3">
-                <input type="text" id="exp-desc" placeholder="รายการจ่าย" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold">
-                <input type="number" id="exp-amount" placeholder="จำนวนเงิน" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl">
-                <button onclick="saveExp()" id="btn-save-exp" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black">บันทึก</button>
+        <div id="log-list" class="space-y-2 mt-6">
             </div>
-        </div>
-    </div>
-
-    <div id="view-stock" class="hidden p-4 space-y-4">
-        <button onclick="openStockModal('', 0, 0, '')" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm">เพิ่มสินค้าใหม่</button>
-        <div id="full-stock-list" class="space-y-3"></div>
-    </div>
-
-    <div id="stock-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-3">
-            <h3 class="font-black italic uppercase">จัดการสต๊อก</h3>
-            <input type="text" id="s-name" placeholder="ชื่อสินค้า" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
-            <div class="grid grid-cols-2 gap-2">
-                <input type="number" id="s-qty" placeholder="จำนวน" class="p-3 bg-slate-100 rounded-xl font-bold">
-                <input type="number" id="s-min" placeholder="ขั้นต่ำ" class="p-3 bg-slate-100 rounded-xl font-bold">
-            </div>
-            <input type="text" id="s-unit" placeholder="หน่วย" class="w-full p-3 bg-slate-100 rounded-xl font-bold">
-            <div class="flex gap-2">
-                <button onclick="closeStockModal()" class="flex-1 py-3 font-bold text-slate-400">ปิด</button>
-                <button onclick="saveStock()" id="btn-save-stock" class="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black">บันทึก</button>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbzQW6mtPWOoQOpbzutUsfOa-HxxV-xSkhCo3VYRn7M9pK7DqYaDt01uNaEOxCP3Nx7CCw/exec";
-        let currentGross = 0;
+        // --- ส่วนที่ต้องนำข้อมูลจาก Supabase มาใส่ ---
+        const SB_URL = 'SB_URL';
+        const SB_KEY = 'SB_KEY';
+        const sb = supabase.createClient(SB_URL, SB_KEY);
 
-        function switchView(v) {
-            ['dash','details','exp','stock'].forEach(i => {
-                document.getElementById('view-'+i).classList.add('hidden');
-                document.getElementById('tab-'+i).classList.remove('tab-active');
-                document.getElementById('tab-'+i).classList.add('text-slate-400');
-            });
-            document.getElementById('view-'+v).classList.remove('hidden');
-            document.getElementById('tab-'+v).classList.add('tab-active');
-            if(v === 'stock') loadStock();
-        }
-
-        function refreshData() {
-            document.getElementById('loading-spinner').classList.remove('hidden');
-            const now = new Date();
-            const dateStr = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()+543}`;
-            document.getElementById('display-date').innerText = dateStr;
-            document.getElementById('current-date-badge').innerText = dateStr;
-
-            const s = document.createElement('script');
-            s.src = `${API}?action=getFinanceDetail&callback=renderAll&t=${Date.now()}`;
-            document.body.appendChild(s);
-        }
-
-        window.renderAll = function(d) {
-            document.getElementById('loading-spinner').classList.add('hidden');
-            currentGross = d.todayIncome || 0;
-            document.getElementById('today-gross').innerText = `฿${currentGross.toLocaleString()}`;
+        function nav(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav button, div button').forEach(b => b.classList.remove('tab-active', 'text-slate-500'));
             
-            const cap = Math.floor(currentGross * 0.7);
-            const prof = currentGross - cap;
-            document.getElementById('input-cap').value = cap;
-            document.getElementById('input-prof').value = prof;
-            document.getElementById('today-profit-top').innerText = `฿${prof.toLocaleString()}`;
-            
-            renderTransactions(d.details, d.expenses);
-        };
-
-        function renderTransactions(inc, exp) {
-            document.getElementById('income-list').innerHTML = inc.map(i => `
-                <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-green-500">
-                    <div class="flex justify-between font-black text-xs"><span>${i.time}</span><span>฿${i.total}</span></div>
-                    <p class="text-[10px] text-slate-500">${i.items}</p>
-                </div>
-            `).join('') || '<p class="text-center text-xs p-10">ไม่มีรายการขายวันนี้</p>';
-
-            document.getElementById('expense-list').innerHTML = exp.map(e => `
-                <div class="bg-white p-3 rounded-2xl shadow-sm border-l-4 border-red-500">
-                    <div class="flex justify-between font-black text-xs"><span>${e.date}</span><span>฿${e.amount}</span></div>
-                    <p class="text-[10px] text-slate-500">${e.desc}</p>
-                </div>
-            `).join('') || '<p class="text-center text-xs p-10">ไม่มีค่าใช้จ่าย</p>';
+            document.getElementById('page-' + id).classList.add('active');
+            document.getElementById('tab-' + id).classList.add('tab-active');
+            if(id === 'dashboard') fetchAllData();
         }
 
-        function setDetailMode(mode) {
-            document.getElementById('income-list').classList.toggle('hidden', mode === 'exp');
-            document.getElementById('expense-list').classList.toggle('hidden', mode === 'inc');
-            document.getElementById('btn-m-inc').classList.toggle('bg-white', mode === 'inc');
-            document.getElementById('btn-m-exp').classList.toggle('bg-white', mode === 'exp');
+        async function saveData(type) {
+            const amt = parseFloat(document.getElementById('input-amount').value);
+            const method = document.getElementById('input-method').value;
+            if(!amt) return alert("กรุณาระบุจำนวนเงิน");
+
+            // Logic คำนวณตาม UI ของคุณ: ทุน 70%, กำไร 30%
+            const capital = amt * 0.7;
+            const profit = amt * 0.3;
+
+            const { error } = await sb.from('transactions').insert([{
+                type: type,
+                amount: amt,
+                capital: capital,
+                profit: profit,
+                payment_method: method,
+                title: 'ยอดขายรายวัน'
+            }]);
+
+            if(!error) {
+                alert("บันทึกสำเร็จ!");
+                document.getElementById('input-amount').value = '';
+                nav('dashboard');
+            }
         }
 
-        function loadStock() {
-            const s = document.createElement('script');
-            s.src = `${API}?action=getAllInventory&callback=renderStock`;
-            document.body.appendChild(s);
+        async function fetchAllData() {
+            const { data, error } = await sb.from('transactions').select('*').order('created_at', {ascending: false});
+            if(data) {
+                let s_total = 0, c_total = 0, p_total = 0;
+                
+                // กรองเฉพาะข้อมูลวันนี้
+                const today = new Date().toLocaleDateString();
+                data.forEach(item => {
+                    if(new Date(item.created_at).toLocaleDateString() === today) {
+                        s_total += item.amount;
+                        c_total += item.capital;
+                        p_total += item.profit;
+                    }
+                });
+
+                document.getElementById('total-sales').innerText = '฿' + s_total.toLocaleString();
+                document.getElementById('total-capital').innerText = c_total.toLocaleString();
+                document.getElementById('total-profit').innerText = p_total.toLocaleString();
+                document.getElementById('top-profit').innerText = '฿' + p_total.toLocaleString();
+            }
         }
 
-        window.renderStock = function(items) {
-            document.getElementById('full-stock-list').innerHTML = items.map(i => {
-                const isLow = parseFloat(i.stock) <= parseFloat(i.min);
-                return `
-                    <div class="bg-white p-4 rounded-3xl flex justify-between items-center ${isLow ? 'border-2 border-red-500' : ''}">
-                        <div><p class="font-black text-sm">${i.item}</p><p class="text-[10px]">Min: ${i.min}</p></div>
-                        <div class="text-right">
-                            <p class="text-xl font-black ${isLow ? 'text-red-500' : ''}">${i.stock}</p>
-                            <button onclick="openStockModal('${i.item}',${i.stock},${i.min},'${i.unit}')" class="text-blue-500 text-xs font-bold">แก้ไข</button>
-                        </div>
-                    </div>`;
-            }).join('');
-        };
-
-        function openStockModal(n, q, m, u) {
-            document.getElementById('s-name').value = n;
-            document.getElementById('s-qty').value = q;
-            document.getElementById('s-min').value = m;
-            document.getElementById('s-unit').value = u;
-            document.getElementById('stock-modal').classList.remove('hidden');
-        }
-
-        function closeStockModal() { document.getElementById('stock-modal').classList.add('hidden'); }
-
-        function saveExp() {
-            const desc = document.getElementById('exp-desc').value;
-            const amt = document.getElementById('exp-amount').value;
-            if(!desc || !amt) return alert('ใส่ข้อมูลให้ครบ');
-            const s = document.createElement('script');
-            s.src = `${API}?action=saveExpense&desc=${encodeURIComponent(desc)}&amount=${amt}&callback=afterAction`;
-            document.body.appendChild(s);
-        }
-
-        function saveStock() {
-            const n = document.getElementById('s-name').value;
-            const q = document.getElementById('s-qty').value;
-            const m = document.getElementById('s-min').value;
-            const u = document.getElementById('s-unit').value;
-            const s = document.createElement('script');
-            s.src = `${API}?action=saveStock&item=${encodeURIComponent(n)}&qty=${q}&min=${m}&unit=${encodeURIComponent(u)}&callback=afterAction`;
-            document.body.appendChild(s);
-        }
-
-        window.afterAction = function() {
-            alert('สำเร็จ!');
-            closeStockModal();
-            refreshData();
-        };
-
-        window.onload = refreshData;
+        window.onload = fetchAllData;
     </script>
 </body>
 </html>
