@@ -58,6 +58,10 @@
             </select>
             <button onclick="saveIncome()" class="w-full bg-blue-600 p-4 rounded-xl font-black italic">SAVE INCOME</button>
         </div>
+        <div class="mt-8">
+    <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">ประวัติรายรับวันนี้</h3>
+    <div id="income-log" class="space-y-2"></div>
+</div>
     </main>
 
     <main id="p-expense" class="page px-6">
@@ -67,6 +71,10 @@
             <input type="text" id="ex-title" class="w-full bg-slate-700 p-4 rounded-xl mb-4" placeholder="ระบุรายการ (เช่น ค่าเช่าที่)">
             <button onclick="saveExpense()" class="w-full bg-red-600 p-4 rounded-xl font-black italic">SAVE EXPENSE</button>
         </div>
+        <div class="mt-8">
+    <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">ประวัติรายจ่ายวันนี้</h3>
+    <div id="expense-log" class="space-y-2"></div>
+</div>
     </main>
 
     <main id="p-stock" class="page px-6">
@@ -80,6 +88,10 @@
             <button onclick="saveStock()" class="w-full bg-emerald-600 p-4 rounded-xl font-black italic">ADD TO STOCK</button>
         </div>
         <div id="stock-list" class="space-y-2"></div>
+        <div class="mt-8">
+    <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">คลังสินค้าปัจจุบัน</h3>
+    <div id="stock-log" class="space-y-2"></div>
+</div>
     </main>
 
     <script>
@@ -118,13 +130,11 @@
                 title: 'ยอดขายรายวัน'
             }]);
         
-            if (response.ok) {
-                alert("บันทึกสำเร็จ!");
-                nav('dashboard');
-            } else {
-                const errData = await response.json();
-                console.error("Error Detail:", errData);
-                alert("พังเพราะ: " + (errData.message || response.statusText));
+            if (!error) {
+                alert("บันทึกรายรับสำเร็จ");
+                document.getElementById('in-amt').value = '';
+                updateLogs(); // <--- เพิ่มบรรทัดนี้
+                fetchAllData(); // อัปเดตหน้า Dashboard ด้วย
             }
         }
         async function saveExpense() {
@@ -192,7 +202,56 @@
                 console.warn("ดึงข้อมูลสำเร็จ แต่ไม่มีข้อมูลในตาราง (Array ว่าง)");
             }
         }
-
+        async function updateLogs() {
+            // 1. ดึงข้อมูลธุรกรรม (Income/Expense)
+            const { data: transData, error: transError } = await sb
+                .from('transactions')
+                .select('*')
+                .order('created_at', { ascending: false });
+        
+            if (transData) {
+                const incomeContainer = document.getElementById('income-log');
+                const expenseContainer = document.getElementById('expense-log');
+                
+                // กรองและสร้าง HTML สำหรับ Income
+                incomeContainer.innerHTML = transData
+                    .filter(i => i.type === 'income')
+                    .map(item => `
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                            <span>${item.payment_method} - ${new Date(item.created_at).toLocaleTimeString()}</span>
+                            <span class="text-green-400 font-bold">+฿${item.amount.toLocaleString()}</span>
+                        </div>
+                    `).join('');
+        
+                // กรองและสร้าง HTML สำหรับ Expense
+                expenseContainer.innerHTML = transData
+                    .filter(i => i.type === 'expense')
+                    .map(item => `
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                            <div>
+                                <p class="font-bold">${item.title}</p>
+                                <p class="text-[9px] text-slate-500">${new Date(item.created_at).toLocaleTimeString()}</p>
+                            </div>
+                            <span class="text-red-400 font-bold">-฿${item.amount.toLocaleString()}</span>
+                        </div>
+                    `).join('');
+            }
+        
+            // 2. ดึงข้อมูลสต็อก (Stock)
+            const { data: stockData, error: stockError } = await sb
+                .from('stock')
+                .select('*')
+                .order('item_name', { ascending: true });
+        
+            if (stockData) {
+                document.getElementById('stock-log').innerHTML = stockData.map(i => `
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                        <span>${i.item_name}</span>
+                        <span class="bg-blue-500/20 text-blue-400 px-2 py-1 rounded-lg font-bold">${i.quantity} หน่วย</span>
+                    </div>
+                `).join('');
+            }
+        }
         async function fetchStock() {
             const { data } = await sb.from('stock').select('*');
             if(data) {
