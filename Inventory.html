@@ -60,7 +60,8 @@
         </div>
         <div class="mt-8">
     <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">ประวัติรายรับวันนี้</h3>
-    <div id="income-log" class="space-y-2"></div>
+    <div id="p-income" class="page">
+    <div id="income-log" class="mt-4 space-y-2"></div> </div>
 </div>
     </main>
 
@@ -73,7 +74,8 @@
         </div>
         <div class="mt-8">
     <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">ประวัติรายจ่ายวันนี้</h3>
-    <div id="expense-log" class="space-y-2"></div>
+    <div id="p-expense" class="page">
+    <div id="expense-log" class="mt-4 space-y-2"></div> </div>
 </div>
     </main>
 
@@ -90,7 +92,8 @@
         <div id="stock-list" class="space-y-2"></div>
         <div class="mt-8">
     <h3 class="text-xs font-bold text-slate-500 uppercase mb-3">คลังสินค้าปัจจุบัน</h3>
-    <div id="stock-log" class="space-y-2"></div>
+    <div id="p-stock" class="page">
+    <div id="stock-log" class="mt-4 space-y-2"></div> </div>
 </div>
     </main>
 
@@ -130,12 +133,7 @@
                 title: 'ยอดขายรายวัน'
             }]);
         
-            if (!error) {
-                alert("บันทึกรายรับสำเร็จ");
-                document.getElementById('in-amt').value = '';
-                updateLogs(); // <--- เพิ่มบรรทัดนี้
-                fetchAllData(); // อัปเดตหน้า Dashboard ด้วย
-            }
+            if(!error) { alert("บันทึกรายจ่ายแล้ว"); document.getElementById('ex-amt').value = ''; nav('dashboard'); }
         }
         async function saveExpense() {
             const amt = parseFloat(document.getElementById('ex-amt').value);
@@ -203,39 +201,54 @@
             }
         }
         async function updateLogs() {
-            // 1. ดึงข้อมูลธุรกรรม (Income/Expense)
-            const { data: transData, error: transError } = await sb
+            console.log("เริ่มโหลดประวัติรายการ...");
+        
+            // 1. ดึงข้อมูล Transactions (Income & Expense)
+            const { data: trans, error: tError } = await sb
                 .from('transactions')
                 .select('*')
                 .order('created_at', { ascending: false });
         
-            if (transData) {
-                const incomeContainer = document.getElementById('income-log');
-                const expenseContainer = document.getElementById('expense-log');
+            if (tError) console.error("โหลดประวัติพัง:", tError.message);
+        
+            if (trans) {
+                console.log("ประวัติที่ดึงได้:", trans.length, "รายการ");
                 
-                // กรองและสร้าง HTML สำหรับ Income
-                incomeContainer.innerHTML = transData
-                    .filter(i => i.type === 'income')
-                    .map(item => `
-                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
-                            <span>${item.payment_method} - ${new Date(item.created_at).toLocaleTimeString()}</span>
+                // แยกข้อมูลใส่หน้า Income
+                const inBox = document.getElementById('income-log');
+                if (inBox) {
+                    inBox.innerHTML = trans.filter(i => i.type === 'income').map(item => `
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-[11px] mb-2">
+                            <span class="text-slate-400">${new Date(item.created_at).toLocaleTimeString()}</span>
                             <span class="text-green-400 font-bold">+฿${item.amount.toLocaleString()}</span>
                         </div>
                     `).join('');
+                }
         
-                // กรองและสร้าง HTML สำหรับ Expense
-                expenseContainer.innerHTML = transData
-                    .filter(i => i.type === 'expense')
-                    .map(item => `
-                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
-                            <div>
-                                <p class="font-bold">${item.title}</p>
-                                <p class="text-[9px] text-slate-500">${new Date(item.created_at).toLocaleTimeString()}</p>
-                            </div>
+                // แยกข้อมูลใส่หน้า Expense
+                const exBox = document.getElementById('expense-log');
+                if (exBox) {
+                    exBox.innerHTML = trans.filter(i => i.type === 'expense').map(item => `
+                        <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-[11px] mb-2">
+                            <span>${item.title}</span>
                             <span class="text-red-400 font-bold">-฿${item.amount.toLocaleString()}</span>
                         </div>
                     `).join('');
+                }
             }
+        
+            // 2. ดึงข้อมูล Stock
+            const { data: stocks, error: sError } = await sb.from('stock').select('*');
+            const stBox = document.getElementById('stock-log');
+            if (stocks && stBox) {
+                stBox.innerHTML = stocks.map(s => `
+                    <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-[11px] mb-2">
+                        <span>${s.item_name}</span>
+                        <span class="text-blue-400 font-bold">${s.quantity} หน่วย</span>
+                    </div>
+                `).join('');
+            }
+        }
         
             // 2. ดึงข้อมูลสต็อก (Stock)
             const { data: stockData, error: stockError } = await sb
@@ -264,7 +277,10 @@
             }
         }
 
-        window.onload = fetchAllData;
+        window.onload = function() {
+    fetchAllData(); // ดึงยอดสรุป Dashboard
+    updateLogs();   // ดึงประวัติรายการในทุกหน้า
+};
     </script>
 </body>
 </html>
